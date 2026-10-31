@@ -8,6 +8,8 @@ build/
 dist/
 *.egg-info/
 *.egg
+*.tgz
+node_modules/
 
 # Virtual environments
 .venv/
