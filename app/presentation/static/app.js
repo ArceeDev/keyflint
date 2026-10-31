@@ -1,4 +1,4 @@
-// KeyForge v1.0.0 — Interactive Admin & Cryptographic Console
+// KeyForge v1.1.0 — Consola operativa
 
 document.addEventListener("DOMContentLoaded", () => {
     const issueEmail = document.getElementById("issueEmail");
@@ -40,7 +40,11 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     function renderBox(el, payload, state = "ok") {
-        el.classList.remove("is-hidden", "state-ok", "state-warn", "state-err");
+        el.classList.remove("is-hidden", "is-idle", "state-ok", "state-warn", "state-err");
+        // Reinicia la animación de entrada para que cada respuesta nueva sea perceptible
+        el.style.animation = "none";
+        void el.offsetWidth;
+        el.style.animation = "";
         el.classList.add(`state-${state}`);
         el.textContent = typeof payload === "string" ? payload : JSON.stringify(payload, null, 2);
     }
@@ -60,15 +64,40 @@ document.addEventListener("DOMContentLoaded", () => {
         return "ok";
     }
 
+    // Botones que requieren un token en su campo para tener sentido
+    const keyBound = [
+        { input: verifyKey, ids: ["btnVerifyOnline", "btnVerifyOffline", "btnActivate", "btnRevoke"] },
+        { input: quotaKey, ids: ["btnQuotaBalance", "btnQuotaDeduct", "btnQuotaReplenish"] },
+    ];
+    function syncKeyBoundButtons() {
+        for (const { input, ids } of keyBound) {
+            const empty = !input.value.trim();
+            for (const id of ids) {
+                const b = document.getElementById(id);
+                if (b && !b.classList.contains("is-loading")) {
+                    b.disabled = empty;
+                    b.title = empty ? "Introduce un token" : "";
+                }
+            }
+        }
+    }
+    verifyKey.addEventListener("input", syncKeyBoundButtons);
+    quotaKey.addEventListener("input", syncKeyBoundButtons);
+
     async function withButtonLock(btn, loadingLabel, taskFn) {
-        const originalText = btn.textContent;
+        if (btn.disabled) return;
         btn.disabled = true;
-        btn.textContent = loadingLabel;
+        btn.classList.add("is-loading");
+        btn.setAttribute("aria-busy", "true");
+        btn.setAttribute("aria-label", loadingLabel);
         try {
             await taskFn();
         } finally {
+            btn.classList.remove("is-loading");
+            btn.removeAttribute("aria-busy");
+            btn.removeAttribute("aria-label");
             btn.disabled = false;
-            btn.textContent = originalText;
+            syncKeyBoundButtons();
         }
     }
 
@@ -86,8 +115,9 @@ document.addEventListener("DOMContentLoaded", () => {
             previewEnt.textContent = `${seats} nodos / ${credits} créditos (${(tierLabel || "pro").toUpperCase()})`;
         }
         if (previewStatus) {
-            previewStatus.textContent = "CLAVE ACTIVA";
+            previewStatus.textContent = "Clave activa";
         }
+        syncKeyBoundButtons();
     }
 
     function normalizeDomainHost(raw, allowWildcard = false) {
@@ -146,7 +176,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const telemetryResult = document.getElementById("telemetryResult");
         const key = (targetKey || quotaKey.value || verifyKey.value || "").trim();
         if (!key) {
-            renderBox(telemetryResult, "Introduce o emite una clave de licencia antes de consultar la auditoría.", "warn");
+            renderBox(telemetryResult, "Sin token. Emite una licencia o pega una en el panel 02.", "warn");
             return;
         }
         try {
@@ -416,13 +446,18 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnRevoke = document.getElementById("btnRevoke");
     btnRevoke.addEventListener("click", () =>
         withButtonLock(btnRevoke, "Revocando...", async () => {
+            const key = verifyKey.value.trim();
+            const shortKey = key.length > 40 ? `${key.slice(0, 20)}…${key.slice(-8)}` : key;
+            if (!window.confirm(`Revocar ${shortKey}\n\nLa revocación es definitiva: verificación online y cuotas dejarán de aceptarla.`)) {
+                return;
+            }
             try {
                 const res = await fetch("/api/v1/licenses/revoke", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         license_key: verifyKey.value.trim(),
-                        reason: "Revocación manual desde consola operativa",
+                        reason: "Revocación manual desde consola",
                     }),
                 });
                 const data = await res.json();
@@ -616,7 +651,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const codeSnippets = {
         "python-mcp": `<span class="hl-kw">from</span> keyforge_verify.mcp <span class="hl-kw">import</span> metered
 
-<span class="hl-cm"># Decorador oficial para servidores MCP en Python: descuenta 2 créditos por llamada</span>
+<span class="hl-cm"># 2 créditos por llamada; reembolso automático si la tool lanza o devuelve isError</span>
 <span class="hl-fn">@mcp.tool</span>()
 <span class="hl-fn">@metered</span>(credits=2)
 <span class="hl-kw">async def</span> <span class="hl-fn">analizar_codigo</span>(repo_url: str) -> str:
@@ -626,14 +661,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
 <span class="hl-kw">const</span> kf = createMcpWrapper({ gatewayUrl: <span class="hl-str">"https://licenses.tu-dominio.com"</span> });
 
-<span class="hl-cm">// Protege herramientas en @modelcontextprotocol/sdk con cobro atómico</span>
+<span class="hl-cm">// Descuento atómico por llamada en @modelcontextprotocol/sdk</span>
 server.tool(<span class="hl-str">"analizar_codigo"</span>, schema, kf.metered(2, <span class="hl-kw">async</span> (args) => {
     <span class="hl-kw">return await</span> runAiAudit(args);
 }));`,
 
         "python-offline": `<span class="hl-kw">from</span> keyforge_verify <span class="hl-kw">import</span> validate_offline
 
-<span class="hl-cm"># Verificación matemática 100% offline sin llamadas de red (&lt; 0.1 ms)</span>
+<span class="hl-cm"># Verificación local, sin red</span>
 is_valid, payload, err = validate_offline(
     license_token=<span class="hl-str">"LIC-PRO-eyJ..."</span>,
     public_key_hex=<span class="hl-str">"0043b567..."</span>,
@@ -644,7 +679,7 @@ is_valid, payload, err = validate_offline(
 
         "js-webcrypto": `<span class="hl-kw">import</span> { verifyLicense } <span class="hl-kw">from</span> <span class="hl-str">"keyforge-verify"</span>;
 
-<span class="hl-cm">// Validación en navegador o Node.js usando la Web Crypto API nativa</span>
+<span class="hl-cm">// Web Crypto: mismo código en Node y navegador</span>
 <span class="hl-kw">const</span> { valid, payload, errorCode } = <span class="hl-kw">await</span> verifyLicense(token, publicKeyHex);
 <span class="hl-kw">if</span> (!valid) {
     <span class="hl-kw">throw new</span> Error(<span class="hl-str">\`Acceso denegado: \${errorCode}\`</span>);
@@ -653,8 +688,12 @@ is_valid, payload, err = validate_offline(
 
     document.querySelectorAll(".tab-btn").forEach((btn) => {
         btn.addEventListener("click", () => {
-            document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+            document.querySelectorAll(".tab-btn").forEach((b) => {
+                b.classList.remove("active");
+                b.setAttribute("aria-selected", "false");
+            });
             btn.classList.add("active");
+            btn.setAttribute("aria-selected", "true");
             const tabKey = btn.getAttribute("data-tab");
             if (codeSnippet && codeSnippets[tabKey]) {
                 codeSnippet.innerHTML = codeSnippets[tabKey];
@@ -667,7 +706,9 @@ is_valid, payload, err = validate_offline(
             const rawText = codeSnippet.textContent || codeSnippet.innerText;
             try {
                 await navigator.clipboard.writeText(rawText);
-                showToast("Código copiado al portapapeles");
+                showToast("Copiado");
+                btnCopySnippet.textContent = "Copiado";
+                setTimeout(() => (btnCopySnippet.textContent = "Copiar"), 1400);
             } catch (err) {
                 showToast("Selecciona el código para copiar");
             }
@@ -684,7 +725,7 @@ is_valid, payload, err = validate_offline(
             if (val && !val.includes("<")) {
                 try {
                     await navigator.clipboard.writeText(val);
-                    showToast("Token copiado al portapapeles");
+                    showToast("Token copiado");
                 } catch {
                     showToast("Error al copiar");
                 }
@@ -697,10 +738,37 @@ is_valid, payload, err = validate_offline(
         q.addEventListener("click", () => {
             const parent = q.parentElement;
             const isOpen = parent.classList.contains("open");
-            document.querySelectorAll(".faq-item").forEach((item) => item.classList.remove("open"));
+            document.querySelectorAll(".faq-item").forEach((item) => {
+                item.classList.remove("open");
+                const b = item.querySelector(".faq-question");
+                if (b) b.setAttribute("aria-expanded", "false");
+            });
             if (!isOpen) {
                 parent.classList.add("open");
+                q.setAttribute("aria-expanded", "true");
             }
         });
     });
+
+    // 11. Enter en un campo ejecuta la acción principal de su panel
+    const enterMap = [
+        [["issueEmail", "issueDomain"], "btnIssue"],
+        [["verifyKey", "verifyHw", "verifyDomain"], "btnVerifyOnline"],
+        [["quotaKey", "quotaCredits"], "btnQuotaDeduct"],
+        [["simEmail"], "btnSimulate"],
+    ];
+    for (const [inputIds, btnId] of enterMap) {
+        for (const id of inputIds) {
+            const el = document.getElementById(id);
+            if (!el) continue;
+            el.addEventListener("keydown", (e) => {
+                if (e.key === "Enter" && !e.isComposing) {
+                    e.preventDefault();
+                    document.getElementById(btnId).click();
+                }
+            });
+        }
+    }
+
+    syncKeyBoundButtons();
 });
