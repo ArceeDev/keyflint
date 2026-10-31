@@ -1,0 +1,30 @@
+services:
+  keyforge:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: keyforge:1.0.0
+    container_name: keyforge_gateway
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - ENVIRONMENT=production
+      - HOST=0.0.0.0
+      - PORT=8000
+      - DATABASE_URL=sqlite:////app/data/keyforge.db
+      - LOG_LEVEL=INFO
+      - TRUST_PROXY_HEADERS=true
+      - SECRET_KEY=${SECRET_KEY}
+      - ED25519_PRIVATE_KEY_HEX=${ED25519_PRIVATE_KEY_HEX}
+      - ED25519_PUBLIC_KEY_HEX=${ED25519_PUBLIC_KEY_HEX}
+      - ADMIN_API_KEY=${ADMIN_API_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
+      - LEMONSQUEEZY_WEBHOOK_SECRET=${LEMONSQUEEZY_WEBHOOK_SECRET:-}
+      - BILLING_MODE=${BILLING_MODE:-mock}
+    volumes:
+      - keyforge_data:/app/data
+
+volumes:
+  keyforge_data:
+    driver: local
