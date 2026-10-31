@@ -1,6 +1,6 @@
 {
   "name": "keyforge-verify",
-  "version": "0.1.0",
+  "version": "1.1.0",
   "description": "Zero-dependency offline verifier and MCP tool gating for KeyForge Ed25519 license tokens (Web Crypto API).",
   "license": "MIT",
   "type": "module",
