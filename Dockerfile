@@ -15,6 +15,7 @@ RUN groupadd -r keyforge && useradd -r -g keyforge -d /app -s /sbin/nologin keyf
 
 # Copy Python packages from builder
 COPY --from=builder /root/.local /home/keyforge/.local
+ENV PYTHONUSERBASE=/home/keyforge/.local
 ENV PATH=/home/keyforge/.local/bin:$PATH
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
