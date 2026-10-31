@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "keyforge-verify"
 version = "0.1.0"
-description = "Zero-dependency offline verifier for KeyForge Ed25519 license tokens"
+description = "Zero-dependency offline verifier and MCP tool gating for KeyForge Ed25519 license tokens"
 readme = "README.md"
 requires-python = ">=3.9"
 license = "MIT"
@@ -21,6 +21,7 @@ dependencies = []
 
 [project.optional-dependencies]
 fast = ["cryptography>=43.0.0"]
+mcp = ["mcp>=1.2"]
 
 [tool.setuptools.packages.find]
 where = ["src"]

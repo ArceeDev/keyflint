@@ -15,7 +15,7 @@ from typing import Any, Mapping, Optional, Sequence, Union
 
 from ._validator import validate_offline
 
-__all__ = ["validate_offline", "verify_license", "VerifyResult", "PublicKeys"]
+__all__ = ["validate_offline", "verify_license", "decode_payload", "VerifyResult", "PublicKeys"]
 __version__ = "0.1.0"
 
 PublicKeys = Union[str, Sequence[str], Mapping[str, str]]
@@ -54,14 +54,20 @@ def _normalize_keys(keys: PublicKeys) -> Optional[list[tuple[Optional[str], str]
     return out
 
 
-def _peek_kid(token: str) -> Optional[str]:
+def decode_payload(token: str) -> Optional[dict[str, Any]]:
+    """Returns the token payload WITHOUT verifying it (display / routing only)."""
     try:
         payload_b64 = token.split(".")[0].split("-", 2)[2]
         raw = base64.urlsafe_b64decode(payload_b64 + "=" * (-len(payload_b64) % 4))
-        kid = json.loads(raw).get("kid")
-        return kid if isinstance(kid, str) else None
+        payload = json.loads(raw)
+        return payload if isinstance(payload, dict) else None
     except Exception:
         return None
+
+
+def _peek_kid(token: str) -> Optional[str]:
+    kid = (decode_payload(token) or {}).get("kid")
+    return kid if isinstance(kid, str) else None
 
 
 def verify_license(

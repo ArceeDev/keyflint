@@ -1,17 +1,13 @@
-// Builds ESM with tsc, then derives a CJS bundle from the single-file ESM output.
+// Builds ESM (dist/esm) and CommonJS (dist/cjs) with tsc; no bundler needed.
 import { execFileSync } from "node:child_process";
-import { mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { rmSync, writeFileSync } from "node:fs";
+
+const tsc = (project) =>
+  execFileSync(process.execPath, ["node_modules/typescript/bin/tsc", "-p", project], { stdio: "inherit" });
 
 rmSync("dist", { recursive: true, force: true });
-execFileSync(process.execPath, ["node_modules/typescript/bin/tsc", "-p", "tsconfig.json"], { stdio: "inherit" });
-
-const esm = readFileSync("dist/esm/index.js", "utf8");
-const names = [...esm.matchAll(/^export (?:async )?(?:function|const|class) (\w+)/gm)].map((m) => m[1]);
-const cjs =
-  '"use strict";\n' +
-  esm.replace(/^export (?=(?:async )?(?:function|const|class) )/gm, "") +
-  `\nmodule.exports = { ${names.join(", ")} };\n`;
-mkdirSync("dist/cjs", { recursive: true });
-writeFileSync("dist/cjs/index.cjs", cjs);
-writeFileSync("dist/cjs/index.d.cts", readFileSync("dist/esm/index.d.ts", "utf8"));
-console.log(`built esm + cjs (${names.length} exports)`);
+tsc("tsconfig.json");
+tsc("tsconfig.cjs.json");
+writeFileSync("dist/esm/package.json", '{ "type": "module" }\n');
+writeFileSync("dist/cjs/package.json", '{ "type": "commonjs" }\n');
+console.log("built dist/esm + dist/cjs");

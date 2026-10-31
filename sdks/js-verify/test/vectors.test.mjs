@@ -72,7 +72,7 @@ test("decodeLicense returns unverified payload", () => {
 
 test("CommonJS entry point works", async () => {
   const require = createRequire(import.meta.url);
-  const cjs = require("../dist/cjs/index.cjs");
+  const cjs = require("../dist/cjs/index.js");
   const v = byName.valid_basic;
   assert.equal((await cjs.verifyLicense(v.token, v.public_keys[0], { now: v.now })).valid, true);
 });

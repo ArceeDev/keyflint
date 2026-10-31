@@ -1,11 +1,11 @@
 {
   "name": "keyforge-verify",
   "version": "0.1.0",
-  "description": "Zero-dependency offline verifier for KeyForge Ed25519 license tokens (Web Crypto API).",
+  "description": "Zero-dependency offline verifier and MCP tool gating for KeyForge Ed25519 license tokens (Web Crypto API).",
   "license": "MIT",
   "type": "module",
   "sideEffects": false,
-  "main": "./dist/cjs/index.cjs",
+  "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
   "types": "./dist/esm/index.d.ts",
   "exports": {
@@ -15,8 +15,18 @@
         "default": "./dist/esm/index.js"
       },
       "require": {
-        "types": "./dist/cjs/index.d.cts",
-        "default": "./dist/cjs/index.cjs"
+        "types": "./dist/cjs/index.d.ts",
+        "default": "./dist/cjs/index.js"
+      }
+    },
+    "./mcp": {
+      "import": {
+        "types": "./dist/esm/mcp.d.ts",
+        "default": "./dist/esm/mcp.js"
+      },
+      "require": {
+        "types": "./dist/cjs/mcp.d.ts",
+        "default": "./dist/cjs/mcp.js"
       }
     },
     "./package.json": "./package.json"
@@ -30,13 +40,14 @@
     "node": ">=18.4"
   },
   "keywords": [
+    "ed25519",
+    "keyforge",
     "license",
     "licensing",
-    "ed25519",
-    "webcrypto",
+    "mcp",
+    "model-context-protocol",
     "offline",
-    "keyforge",
-    "mcp"
+    "webcrypto"
   ],
   "scripts": {
     "build": "node scripts/build.mjs",
@@ -45,6 +56,8 @@
     "prepublishOnly": "node --test test/*.test.mjs"
   },
   "devDependencies": {
-    "typescript": "5.9.3"
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "typescript": "5.9.3",
+    "zod": "^4.6.7"
   }
 }

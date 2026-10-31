@@ -11,6 +11,22 @@ console.log(r.payload.tier, r.payload.features);
 
 `machineId` is required only for node-locked licenses. Pass `domain` when the license has `allowed_domains`.
 
+## MCP servers (`@modelcontextprotocol/sdk`)
+
+```ts
+import { createKeyForge } from "keyforge-verify/mcp";
+const kf = createKeyForge(); // KEYFORGE_LICENSE, KEYFORGE_PUBLIC_KEYS, KEYFORGE_URL, KEYFORGE_CHECKOUT_URL
+
+server.registerTool("search", { inputSchema: { q: z.string() } },
+  kf.requireLicense(async ({ q }) => ({ content: [{ type: "text", text: q }] }), { features: ["core"] }));
+server.registerTool("summarize", { inputSchema: { url: z.string() } },
+  kf.metered(5, async ({ url }) => ({ content: [{ type: "text", text: url }] })));
+```
+
+- `requireLicense` is 100% offline. `metered` also calls `POST /api/v1/quota/deduct` **before** running the handler, with an automatic `Idempotency-Key` that it reuses on its single network retry.
+- Failures throw `KeyForgeMcpError` (`code`, `message`, `data`, the same shape as the SDK's `McpError`). Codes: `-32040` invalid license, `-32041` feature not in plan, `-32042` credits exhausted (HTTP 402, with `data.checkoutUrl`), `-32043` gateway error. `McpServer` returns it to the model as an `isError` tool result, with the upgrade link in the text.
+- The wrappers keep the handler's arguments and types, so they work with `registerTool`, `tool()` or low-level handlers. No runtime dependency on the SDK.
+
 ## Key rotation
 
 `publicKeys` accepts three forms:
