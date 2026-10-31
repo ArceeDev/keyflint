@@ -198,6 +198,27 @@ class TestSimulationAndCheckout(BaseKeyForgeTestCase):
                 err_json = json.loads(fail_res.output)
                 self.assertFalse(err_json["success"])
                 self.assertEqual(err_json["error"]["code"], "LICENSE_REVOKED")
+
+                # 7. Domain-locked CLI issuance + offline domain verification
+                dom_issue = runner.invoke(
+                    cli,
+                    ["issue", "--email", "dom_cli@acme.ai", "--tier", "pro", "--domain", "*.acme.ai"],
+                )
+                self.assertEqual(dom_issue.exit_code, 0, dom_issue.output)
+                dom_key = json.loads(dom_issue.output)["license_key"]
+
+                dom_off_ok = runner.invoke(
+                    cli, ["verify", dom_key, "--offline", "--domain", "api.acme.ai"]
+                )
+                self.assertEqual(dom_off_ok.exit_code, 0, dom_off_ok.output)
+
+                dom_off_bad = runner.invoke(
+                    cli, ["verify", dom_key, "--offline", "--domain", "evil.org"]
+                )
+                self.assertNotEqual(dom_off_bad.exit_code, 0)
+                self.assertEqual(
+                    json.loads(dom_off_bad.output)["error"], "ERR_DOMAIN_LOCK_VIOLATION"
+                )
             finally:
                 if prev_db_url is not None:
                     os.environ["DATABASE_URL"] = prev_db_url

@@ -40,7 +40,11 @@ class SqliteCustomerRepo(ICustomerRepository):
         return self._row_to_entity(row) if row else None
 
     def get_by_email(self, email: str) -> Optional[Customer]:
-        cur = self._conn.execute("SELECT * FROM customers WHERE email = ?", (email.strip(),))
+        cleaned = email.strip()
+        cur = self._conn.execute(
+            "SELECT * FROM customers WHERE email = ? OR LOWER(email) = LOWER(?)",
+            (cleaned, cleaned),
+        )
         row = cur.fetchone()
         return self._row_to_entity(row) if row else None
 

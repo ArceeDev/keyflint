@@ -40,6 +40,11 @@ class Settings(BaseSettings):
 
     STRIPE_WEBHOOK_SECRET: str = "whsec_test_stripe_secret_12345"
     LEMONSQUEEZY_WEBHOOK_SECRET: str = "whsec_test_lemonsqueezy_secret_12345"
+    STRIPE_SECRET_KEY: Optional[str] = None
+    LEMONSQUEEZY_CHECKOUT_URL: Optional[str] = None
+    CHECKOUT_SUCCESS_URL: str = "http://127.0.0.1:8000/?checkout=success"
+    CHECKOUT_CANCEL_URL: str = "http://127.0.0.1:8000/?checkout=cancelled"
+    BILLING_PORTAL_RETURN_URL: str = "http://127.0.0.1:8000/"
     ADMIN_API_KEY: str = "kf_dev_admin_key_change_in_prod"
 
     BILLING_MODE: str = "mock"

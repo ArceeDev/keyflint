@@ -242,6 +242,102 @@ class TestValidatorAndNodeLocking(BaseKeyForgeTestCase):
             conn.close()
         self.assertEqual(persisted_status, "expired")
 
+    def test_wildcard_domain_hardening_idna_port_and_offline_domain_lock(self):
+        """Rejects degenerate wildcards ('*', '*.'), normalizes :port / FQDN dot / IDNA, and enforces offline domain locks."""
+        from app.domain.entities.license import License, Tier
+
+        self.require_app()
+        # 1. Degenerate wildcard patterns must be rejected at issuance (422) and entity level
+        for bad_pat in ("*", "*.", "*.com", "https://acme.ai/path"):
+            bad_res = self.client.post(
+                "/api/v1/licenses/issue",
+                json={
+                    "customer_email": "badpat@acme.ai",
+                    "tier": "pro",
+                    "allowed_domains": [bad_pat],
+                },
+            )
+            self.assertEqual(bad_res.status_code, 422, f"Pattern {bad_pat!r} should fail validation")
+
+        ent = License(
+            id="lic_deg",
+            customer_id="cust_deg",
+            license_key="LIC-PRO-x.y",
+            tier=Tier.PRO,
+            metadata={"allowed_domains": ["*.", "*"]},
+        )
+        self.assertFalse(ent.matches_domain("evil.com."))
+        self.assertFalse(ent.matches_domain("evil.com"))
+
+        # 2. Valid IDNA + wildcard domain issuance & online/offline host:port + FQDN dot matching
+        ok_issue = self.client.post(
+            "/api/v1/licenses/issue",
+            json={
+                "customer_email": "idna@acme.ai",
+                "tier": "pro",
+                "allowed_domains": ["*.acme.ai", "*.münchen.de"],
+            },
+        )
+        self.assertEqual(ok_issue.status_code, 200, ok_issue.text)
+        dom_key = ok_issue.json()["data"]["license_key"]
+
+        for valid_host in ("api.acme.ai:8443", "api.acme.ai.", "api.xn--mnchen-3ya.de", "sub.münchen.de:443"):
+            on_ok = self.verify_license_api(license_key=dom_key, domain=valid_host)
+            self.assertTrue(on_ok.json()["data"]["valid"], f"Online verify rejected {valid_host}")
+            off_ok, _, off_err = validate_offline(
+                dom_key,
+                TEST_ED25519_PUBLIC_KEY_HEX,
+                expected_machine_id="   ",
+                expected_domain=valid_host,
+                force_pure_python=True,
+            )
+            self.assertTrue(off_ok, f"Offline verify rejected {valid_host}: {off_err}")
+
+        off_bad, _, off_bad_err = validate_offline(
+            dom_key,
+            TEST_ED25519_PUBLIC_KEY_HEX,
+            expected_domain="evil.org",
+        )
+        self.assertFalse(off_bad)
+        self.assertEqual(off_bad_err, "ERR_DOMAIN_LOCK_VIOLATION")
+
+        off_missing_dom, _, off_missing_err = validate_offline(dom_key, TEST_ED25519_PUBLIC_KEY_HEX)
+        self.assertFalse(off_missing_dom)
+        self.assertEqual(off_missing_err, "ERR_DOMAIN_LOCK_VIOLATION")
+
+    def test_purged_revoked_and_expired_token_still_reports_revoked(self):
+        """A revoked token whose DB row is purged AND whose timestamp is expired still reports 'revoked' (never 'expired')."""
+        import time
+        from tests.conftest import encode_license_token, sign_payload_ed25519
+
+        self.require_app()
+        now = int(time.time())
+        rev_id = "lic_purged_revoked_expired_01"
+        payload = {
+            "customer_email": "purged@acme.ai",
+            "customer_id": "cust_purged",
+            "expires_at": now - 3600,
+            "features": ["core"],
+            "issued_at": now - 7200,
+            "license_id": rev_id,
+            "max_seats": 1,
+            "nonce": "deadbeef01",
+            "tier": "pro",
+        }
+        tok = encode_license_token("pro", payload, sign_payload_ed25519(payload))
+
+        conn = create_connection()
+        try:
+            SqliteLicenseRepo(conn).record_revocation(rev_id, "permanent_ban")
+            conn.commit()
+        finally:
+            conn.close()
+
+        res = self.verify_license_api(license_key=tok)
+        self.assertEqual(res.status_code, 200)
+        self.assertFalse(res.json()["data"]["valid"])
+        self.assertEqual(res.json()["data"]["status"], "revoked")
+
 
 if __name__ == "__main__":
     unittest.main()

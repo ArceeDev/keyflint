@@ -8,6 +8,8 @@ from typing import Any, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.domain.entities.license import normalize_domain_host
+
 _VALID_TIERS = ("community", "pro", "studio", "lifetime")
 _VALID_ALGOS = ("ed25519", "hmac-sha256", "hmac")
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
@@ -51,6 +53,22 @@ class LicenseIssueRequest(BaseModel):
         if s not in _VALID_ALGOS:
             raise ValueError(f"Unsupported signing_algorithm '{v}'.")
         return "hmac-sha256" if s == "hmac" else s
+
+    @field_validator("allowed_domains")
+    @classmethod
+    def validate_allowed_domains(cls, v: Optional[list[str]]) -> Optional[list[str]]:
+        if v is None:
+            return None
+        normalized: list[str] = []
+        for item in v:
+            if item is None or (isinstance(item, str) and not item.strip()):
+                continue
+            norm = normalize_domain_host(item, allow_wildcard=True)
+            if not norm:
+                raise ValueError(f"Invalid allowed_domains pattern: '{item}'")
+            if norm not in normalized:
+                normalized.append(norm)
+        return normalized or None
 
     def get_effective_max_seats(self) -> Optional[int]:
         """Returns max_seats or max_activations if specified."""

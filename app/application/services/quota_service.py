@@ -46,7 +46,10 @@ class QuotaService:
         if license_entity is None:
             raise LicenseNotFoundError("License key not found.")
 
-        if license_entity.status == LicenseStatus.REVOKED:
+        if license_entity.status == LicenseStatus.REVOKED or (
+            hasattr(self._license_repo, "is_revoked")
+            and self._license_repo.is_revoked(license_entity.id)
+        ):
             raise LicenseRevokedError("Cannot consume quota for a revoked license.")
         if license_entity.status == LicenseStatus.SUSPENDED:
             raise LicenseSuspendedError("Cannot consume quota for a suspended license.")
@@ -87,8 +90,19 @@ class QuotaService:
         license_entity = self._license_repo.get_by_key(request.license_key)
         if license_entity is None:
             raise LicenseNotFoundError("License key not found.")
-        if license_entity.status == LicenseStatus.REVOKED:
+        if license_entity.status == LicenseStatus.REVOKED or (
+            hasattr(self._license_repo, "is_revoked")
+            and self._license_repo.is_revoked(license_entity.id)
+        ):
             raise LicenseRevokedError("Cannot replenish quota for a revoked license.")
+        if license_entity.status == LicenseStatus.SUSPENDED:
+            raise LicenseSuspendedError("Cannot replenish quota for a suspended license.")
+
+        now = datetime.now(timezone.utc)
+        if license_entity.status == LicenseStatus.EXPIRED or license_entity.is_expired(now):
+            if license_entity.status != LicenseStatus.EXPIRED:
+                self._license_repo.update_status(license_entity.id, LicenseStatus.EXPIRED)
+            raise LicenseExpiredError("Cannot replenish quota for an expired license.")
 
         updated_ledger = self._quota_repo.replenish(
             license_id=license_entity.id,

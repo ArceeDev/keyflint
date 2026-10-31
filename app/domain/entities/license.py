@@ -149,23 +149,7 @@ class License:
 
     def matches_domain(self, domain: Optional[str]) -> bool:
         """Checks whether a caller domain satisfies optional allowed_domains metadata."""
-        allowed = self.metadata.get("allowed_domains")
-        if not allowed:
-            return True
-        if not domain or not domain.strip():
-            return False
-        candidate = domain.strip().lower()
-        for pattern in allowed:
-            if not isinstance(pattern, str):
-                continue
-            pat = pattern.strip().lower()
-            if pat == candidate:
-                return True
-            if pat.startswith("*.") and (
-                candidate == pat[2:] or candidate.endswith("." + pat[2:])
-            ):
-                return True
-        return False
+        return matches_allowed_domains(self.metadata.get("allowed_domains"), domain)
 
     def record_activation(self) -> None:
         """Validates invariants and increments active seat count."""
@@ -209,5 +193,85 @@ class License:
         now = datetime.now(timezone.utc)
         base = self.expires_at if (self.expires_at and self.expires_at > now) else now
         self.expires_at = base + timedelta(days=days)
-        if self.status == LicenseStatus.EXPIRED:
+        if self.status in (LicenseStatus.EXPIRED, LicenseStatus.GRACE_PERIOD):
             self.status = LicenseStatus.ACTIVE
+
+
+def normalize_domain_host(raw: Optional[str], *, allow_wildcard: bool = False) -> Optional[str]:
+    """Normalizes a hostname (optional :port, trailing FQDN dot, and IDNA punycode).
+
+    Returns lowercase ASCII hostname (or '*.domain.tld' when allow_wildcard=True),
+    or None if malformed or degenerate (e.g. '*', '*.', URL path/userinfo).
+    """
+    if not raw or not isinstance(raw, str):
+        return None
+    s = raw.strip()
+    if not s or any(ch in s for ch in ("/", "\\", "@", "?", "#", " ", "\t", "\r", "\n")):
+        return None
+
+    wildcard = False
+    if s.startswith("*."):
+        if not allow_wildcard:
+            return None
+        wildcard = True
+        s = s[2:]
+    elif "*" in s:
+        return None
+
+    if ":" in s:
+        host_part, port_part = s.rsplit(":", 1)
+        if not port_part.isdigit():
+            return None
+        port_num = int(port_part)
+        if port_num < 1 or port_num > 65535:
+            return None
+        s = host_part
+
+    s = s.rstrip(".")
+    if not s or s.startswith(".") or ".." in s:
+        return None
+
+    labels = s.split(".")
+    if wildcard and len(labels) < 2:
+        return None
+
+    ascii_labels: list[str] = []
+    for label in labels:
+        if not label:
+            return None
+        try:
+            enc = label.encode("idna").decode("ascii").lower()
+        except UnicodeError:
+            return None
+        if not enc or any(not (ch.isalnum() or ch == "-") for ch in enc) or enc.startswith("-") or enc.endswith("-"):
+            return None
+        ascii_labels.append(enc)
+
+    normalized = ".".join(ascii_labels)
+    return f"*.{normalized}" if wildcard else normalized
+
+
+def matches_allowed_domains(allowed: Any, domain: Optional[str]) -> bool:
+    """Evaluates whether domain satisfies an optional allowed_domains list."""
+    if not allowed:
+        return True
+    if not isinstance(allowed, (list, tuple, set)):
+        return False
+    candidate = normalize_domain_host(domain, allow_wildcard=False)
+    if not candidate:
+        return False
+    for pattern in allowed:
+        if not isinstance(pattern, str):
+            continue
+        pat = normalize_domain_host(pattern, allow_wildcard=True)
+        if not pat:
+            continue
+        if pat == candidate:
+            return True
+        if pat.startswith("*."):
+            suffix = pat[2:]
+            if suffix and "." in suffix and (
+                candidate == suffix or candidate.endswith("." + suffix)
+            ):
+                return True
+    return False

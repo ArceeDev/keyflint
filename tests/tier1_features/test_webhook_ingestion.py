@@ -202,6 +202,109 @@ class TestWebhookIngestion(BaseKeyForgeTestCase):
         bal = self.client.get(f"/api/v1/quota/balance?license_key={new_key}").json()["data"]
         self.assertEqual(bal["credit_balance"], 5000)
 
+    def test_renewal_extends_lapsed_active_and_grace_licenses_while_blocking_suspended(self):
+        """invoice.payment_succeeded renews time-lapsed ACTIVE/GRACE_PERIOD licenses to active, ignores SUSPENDED, and syncs expired status."""
+        from datetime import datetime, timedelta, timezone
+        from app.domain.entities.license import LicenseStatus
+        from app.infrastructure.database.connection import create_connection
+        from app.infrastructure.repositories.sqlite_license_repo import SqliteLicenseRepo
+
+        self.require_app()
+        past_iso = (datetime.now(timezone.utc) - timedelta(hours=3)).isoformat()
+
+        # 1. Time-lapsed ACTIVE license -> billing/status & telemetry report 'expired' before renewal;
+        #    for renewal test, set expires_at in past while status='active' and verify renewal restores validity!
+        email_active = f"lapsed_act_{uuid.uuid4().hex[:6]}@acme.ai"
+        act_lic = self.issue_license_api(customer_email=email_active, tier="pro")
+        act_key = act_lic["license_key"]
+        act_id = act_lic["license_id"]
+
+        conn = create_connection()
+        try:
+            conn.execute("UPDATE licenses SET expires_at = ? WHERE id = ?", (past_iso, act_id))
+            conn.commit()
+        finally:
+            conn.close()
+
+        # Mixed-case email in webhook also exercises case-insensitive customer lookup
+        ren_act = self.simulate_webhook_api(
+            event_type="invoice.payment_succeeded",
+            customer_email=email_active.upper(),
+            tier="pro",
+        )
+        self.assertEqual(ren_act.status_code, 200)
+        ver_act = self.verify_license_api(license_key=act_key).json()["data"]
+        self.assertTrue(ver_act["valid"])
+        self.assertEqual(ver_act["status"], "active")
+
+        # 2. Time-lapsed GRACE_PERIOD license -> renewed to 'active' (not stuck in 'grace_period')
+        email_grace = f"lapsed_grace_{uuid.uuid4().hex[:6]}@acme.ai"
+        gr_lic = self.issue_license_api(customer_email=email_grace, tier="pro")
+        gr_key = gr_lic["license_key"]
+        gr_id = gr_lic["license_id"]
+
+        conn = create_connection()
+        try:
+            conn.execute(
+                "UPDATE licenses SET status = 'grace_period', expires_at = ? WHERE id = ?",
+                (past_iso, gr_id),
+            )
+            conn.commit()
+        finally:
+            conn.close()
+
+        ren_gr = self.simulate_webhook_api(
+            event_type="invoice.payment_succeeded",
+            customer_email=email_grace,
+            tier="pro",
+        )
+        self.assertEqual(ren_gr.status_code, 200)
+        ver_gr = self.verify_license_api(license_key=gr_key).json()["data"]
+        self.assertTrue(ver_gr["valid"])
+        self.assertEqual(ver_gr["status"], "active")
+
+        # 3. Admin-SUSPENDED license -> NOT unsuspended or replenished by invoice.payment_succeeded
+        email_susp = f"susp_{uuid.uuid4().hex[:6]}@acme.ai"
+        sp_lic = self.issue_license_api(customer_email=email_susp, tier="pro")
+        sp_key = sp_lic["license_key"]
+        sp_id = sp_lic["license_id"]
+        self.deduct_quota_api(license_key=sp_key, credits=100)
+
+        conn = create_connection()
+        try:
+            SqliteLicenseRepo(conn).update_status(sp_id, LicenseStatus.SUSPENDED)
+            conn.commit()
+        finally:
+            conn.close()
+
+        self.simulate_webhook_api(
+            event_type="invoice.payment_succeeded",
+            customer_email=email_susp,
+            tier="pro",
+        )
+        ver_sp = self.verify_license_api(license_key=sp_key).json()["data"]
+        self.assertFalse(ver_sp["valid"])
+        self.assertEqual(ver_sp["status"], "suspended")
+        bal_sp = self.client.get(f"/api/v1/quota/balance?license_key={sp_key}").json()["data"]
+        self.assertEqual(bal_sp["credit_balance"], 400)
+
+        # 4. Expired status sync in /billing/status and /telemetry/events
+        email_exp = f"exp_sync_{uuid.uuid4().hex[:6]}@acme.ai"
+        ex_lic = self.issue_license_api(customer_email=email_exp, tier="community")
+        ex_key = ex_lic["license_key"]
+        ex_id = ex_lic["license_id"]
+        conn = create_connection()
+        try:
+            conn.execute("UPDATE licenses SET expires_at = ? WHERE id = ?", (past_iso, ex_id))
+            conn.commit()
+        finally:
+            conn.close()
+
+        st_exp = self.client.get(f"/api/v1/billing/status?license_key={ex_key}").json()["data"]
+        self.assertEqual(st_exp["status"], "expired")
+        tel_exp = self.client.get(f"/api/v1/telemetry/events?license_key={ex_key}").json()["data"]
+        self.assertEqual(tel_exp["status"], "expired")
+
 
 if __name__ == "__main__":
     unittest.main()

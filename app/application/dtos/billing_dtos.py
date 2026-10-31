@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field, field_validator
 
 
 VALID_TIERS = ("community", "pro", "studio", "lifetime")
+VALID_PROVIDERS = ("stripe", "lemonsqueezy")
 
 
 class CheckoutRequest(BaseModel):
@@ -15,6 +16,7 @@ class CheckoutRequest(BaseModel):
     customer_email: str = Field(min_length=1)
     tier: str = "pro"
     interval: Optional[str] = "monthly"
+    provider: str = "stripe"
 
     @field_validator("customer_email")
     @classmethod
@@ -32,6 +34,16 @@ class CheckoutRequest(BaseModel):
             raise ValueError(f"Invalid tier '{v}'. Supported tiers: {', '.join(VALID_TIERS)}")
         return s
 
+    @field_validator("provider")
+    @classmethod
+    def validate_provider(cls, v: str) -> str:
+        s = v.strip().lower()
+        if s not in VALID_PROVIDERS:
+            raise ValueError(
+                f"Invalid provider '{v}'. Supported providers: {', '.join(VALID_PROVIDERS)}"
+            )
+        return s
+
 
 class CheckoutResponse(BaseModel):
     """Result of checkout session creation."""
@@ -40,6 +52,8 @@ class CheckoutResponse(BaseModel):
     session_id: str
     customer_email: str
     tier: str
+    provider: str = "stripe"
+    mode: str = "mock"
 
 
 class PortalRequest(BaseModel):

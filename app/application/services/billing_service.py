@@ -6,12 +6,16 @@ replay protection idempotency, subscription lifecycles, and local webhook simula
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import hashlib
 import hmac
 import json
 import time
-import uuid
 from typing import Any, Optional
+from urllib.parse import urlencode
+import uuid
+
+import httpx
 
 from app.application.dtos.billing_dtos import (
     BillingStatusResponse,
@@ -27,19 +31,26 @@ from app.application.dtos.license_dtos import (
     LicenseRevokeRequest,
 )
 from app.application.dtos.quota_dtos import (
-    QuotaBalanceRequest,
     QuotaReplenishRequest,
 )
 from app.application.services.license_service import LicenseService
 from app.application.services.quota_service import QuotaService
 from app.config import get_settings
-from app.domain.entities.license import License, LicenseStatus, Tier
+from app.domain.entities.license import LicenseStatus, Tier
 from app.domain.entities.webhook import WebhookRecord
-from app.domain.exceptions import LicenseNotFoundError
+from app.domain.exceptions import DomainError, LicenseNotFoundError
 from app.domain.interfaces.customer_repository import ICustomerRepository
 from app.domain.interfaces.license_repository import ILicenseRepository
 from app.domain.interfaces.quota_repository import IQuotaRepository
 from app.domain.interfaces.webhook_repository import IWebhookRepository
+
+
+_TIER_UNIT_AMOUNTS_CENTS: dict[str, int] = {
+    "community": 0,
+    "pro": 2900,
+    "studio": 8900,
+    "lifetime": 19900,
+}
 
 
 class WebhookAuthenticationError(Exception):
@@ -75,18 +86,159 @@ class BillingService:
         )
 
     def create_checkout_session(self, request: CheckoutRequest) -> CheckoutResponse:
-        """Creates a mock or Stripe checkout redirect session."""
-        session_id = f"cs_{uuid.uuid4().hex}"
+        """Creates a mock or live (Stripe / LemonSqueezy) checkout redirect session."""
+        settings = get_settings()
+        mode = settings.BILLING_MODE.strip().lower()
+        provider = request.provider.strip().lower()
+
+        if mode == "live":
+            if provider == "lemonsqueezy":
+                base_url = (settings.LEMONSQUEEZY_CHECKOUT_URL or "").strip()
+                if not base_url:
+                    raise DomainError(
+                        "Live LemonSqueezy checkout requires LEMONSQUEEZY_CHECKOUT_URL.",
+                        code="BILLING_PROVIDER_UNCONFIGURED",
+                        status_code=503,
+                    )
+                sep = "&" if "?" in base_url else "?"
+                query = urlencode(
+                    {
+                        "checkout[email]": request.customer_email,
+                        "checkout[custom][tier]": request.tier,
+                        "checkout[custom][customer_email]": request.customer_email,
+                    }
+                )
+                session_id = f"ls_live_{uuid.uuid4().hex}"
+                return CheckoutResponse(
+                    checkout_url=f"{base_url}{sep}{query}",
+                    session_id=session_id,
+                    customer_email=request.customer_email,
+                    tier=request.tier,
+                    provider=provider,
+                    mode="live",
+                )
+
+            stripe_key = (settings.STRIPE_SECRET_KEY or "").strip()
+            if not stripe_key:
+                raise DomainError(
+                    "Live Stripe checkout requires STRIPE_SECRET_KEY.",
+                    code="BILLING_PROVIDER_UNCONFIGURED",
+                    status_code=503,
+                )
+            unit_amount = _TIER_UNIT_AMOUNTS_CENTS.get(request.tier, 1900)
+            is_recurring = request.tier != "lifetime"
+            form_data: dict[str, str] = {
+                "mode": "subscription" if is_recurring else "payment",
+                "customer_email": request.customer_email,
+                "success_url": settings.CHECKOUT_SUCCESS_URL,
+                "cancel_url": settings.CHECKOUT_CANCEL_URL,
+                "metadata[tier]": request.tier,
+                "line_items[0][quantity]": "1",
+                "line_items[0][price_data][currency]": "usd",
+                "line_items[0][price_data][unit_amount]": str(unit_amount),
+                "line_items[0][price_data][product_data][name]": f"KeyForge {request.tier.upper()}",
+            }
+            if is_recurring:
+                interval = "year" if (request.interval or "").lower() in ("yearly", "annual", "year") else "month"
+                form_data["line_items[0][price_data][recurring][interval]"] = interval
+
+            try:
+                resp = httpx.post(
+                    "https://api.stripe.com/v1/checkout/sessions",
+                    auth=(stripe_key, ""),
+                    data=form_data,
+                    timeout=10.0,
+                )
+            except httpx.HTTPError as exc:
+                raise DomainError(
+                    f"Stripe checkout API request failed: {exc}",
+                    code="BILLING_UPSTREAM_ERROR",
+                    status_code=502,
+                ) from exc
+
+            if resp.status_code >= 400:
+                raise DomainError(
+                    f"Stripe rejected checkout session creation (HTTP {resp.status_code}).",
+                    code="BILLING_UPSTREAM_ERROR",
+                    status_code=502,
+                )
+            stripe_body = resp.json()
+            return CheckoutResponse(
+                checkout_url=str(stripe_body.get("url") or ""),
+                session_id=str(stripe_body.get("id") or f"cs_live_{uuid.uuid4().hex}"),
+                customer_email=request.customer_email,
+                tier=request.tier,
+                provider="stripe",
+                mode="live",
+            )
+
+        session_id = f"cs_{provider}_{uuid.uuid4().hex}"
         checkout_url = f"/api/v1/billing/checkout/mock-session-{session_id}"
         return CheckoutResponse(
             checkout_url=checkout_url,
             session_id=session_id,
             customer_email=request.customer_email,
             tier=request.tier,
+            provider=provider,
+            mode="mock",
         )
 
     def create_portal_session(self, request: PortalRequest) -> PortalResponse:
         """Generates customer management portal session URL."""
+        settings = get_settings()
+        if settings.BILLING_MODE.strip().lower() == "live":
+            stripe_key = (settings.STRIPE_SECRET_KEY or "").strip()
+            if not stripe_key:
+                raise DomainError(
+                    "Live billing portal requires STRIPE_SECRET_KEY.",
+                    code="BILLING_PROVIDER_UNCONFIGURED",
+                    status_code=503,
+                )
+            try:
+                cust_resp = httpx.get(
+                    "https://api.stripe.com/v1/customers",
+                    auth=(stripe_key, ""),
+                    params={"email": request.customer_email, "limit": 1},
+                    timeout=10.0,
+                )
+                if cust_resp.status_code >= 400:
+                    raise DomainError(
+                        "Unable to query customer from Stripe billing API.",
+                        code="BILLING_UPSTREAM_ERROR",
+                        status_code=502,
+                    )
+                customers = cust_resp.json().get("data") or []
+                if not customers:
+                    raise LicenseNotFoundError(
+                        f"No Stripe billing profile found for '{request.customer_email}'."
+                    )
+                portal_resp = httpx.post(
+                    "https://api.stripe.com/v1/billing_portal/sessions",
+                    auth=(stripe_key, ""),
+                    data={
+                        "customer": str(customers[0]["id"]),
+                        "return_url": settings.BILLING_PORTAL_RETURN_URL,
+                    },
+                    timeout=10.0,
+                )
+            except httpx.HTTPError as exc:
+                raise DomainError(
+                    f"Stripe billing portal API request failed: {exc}",
+                    code="BILLING_UPSTREAM_ERROR",
+                    status_code=502,
+                ) from exc
+
+            if portal_resp.status_code >= 400:
+                raise DomainError(
+                    f"Stripe rejected portal session creation (HTTP {portal_resp.status_code}).",
+                    code="BILLING_UPSTREAM_ERROR",
+                    status_code=502,
+                )
+            return PortalResponse(
+                portal_url=str(portal_resp.json().get("url") or ""),
+                customer_email=request.customer_email,
+            )
+
         session_id = f"portal_{uuid.uuid4().hex}"
         portal_url = f"/api/v1/billing/portal/session-{session_id}"
         return PortalResponse(
@@ -265,8 +417,21 @@ class BillingService:
             if customer:
                 existing_licenses = self._license_repo.list_by_customer_id(customer.id)
                 upgradable = [
-                    lic for lic in existing_licenses if lic.status != LicenseStatus.REVOKED
+                    lic
+                    for lic in existing_licenses
+                    if lic.status
+                    in (
+                        LicenseStatus.ACTIVE,
+                        LicenseStatus.GRACE_PERIOD,
+                        LicenseStatus.EXPIRED,
+                    )
+                    and not self._license_service.is_revoked_id(lic.id)
                 ]
+                upgradable.sort(
+                    key=lambda item: 0
+                    if item.status in (LicenseStatus.ACTIVE, LicenseStatus.GRACE_PERIOD)
+                    else 1
+                )
                 if upgradable:
                     upgraded = self._license_service.upgrade_existing(
                         license_entity=upgradable[0],
@@ -304,18 +469,19 @@ class BillingService:
                 if customer:
                     licenses = self._license_repo.list_by_customer_id(customer.id)
                     for lic in licenses:
-                        if lic.status == LicenseStatus.REVOKED:
-                            continue
-                        if lic.status in (
-                            LicenseStatus.GRACE_PERIOD,
-                            LicenseStatus.SUSPENDED,
-                            LicenseStatus.EXPIRED,
+                        if (
+                            lic.status
+                            not in (LicenseStatus.ACTIVE, LicenseStatus.GRACE_PERIOD)
+                            or self._license_service.is_revoked_id(lic.id)
                         ):
-                            if lic.is_expired():
-                                lic.extend_expiration(lic.tier.default_expires_in_days or 365)
-                                self._license_repo.save(lic)
-                            else:
-                                self._license_repo.update_status(lic.id, LicenseStatus.ACTIVE)
+                            continue
+                        if lic.is_expired():
+                            lic.extend_expiration(lic.tier.default_expires_in_days or 365)
+                            lic.status = LicenseStatus.ACTIVE
+                            self._license_repo.save(lic)
+                        elif lic.status == LicenseStatus.GRACE_PERIOD:
+                            lic.status = LicenseStatus.ACTIVE
+                            self._license_repo.update_status(lic.id, LicenseStatus.ACTIVE)
                         self._quota_service.replenish(
                             QuotaReplenishRequest(
                                 license_key=lic.license_key,
@@ -465,6 +631,17 @@ class BillingService:
         if license_entity is None:
             raise LicenseNotFoundError(f"License '{license_key}' not found.")
 
+        effective_status = license_entity.status
+        if self._license_service.is_revoked_id(license_entity.id):
+            effective_status = LicenseStatus.REVOKED
+        elif (
+            effective_status
+            not in (LicenseStatus.REVOKED, LicenseStatus.SUSPENDED, LicenseStatus.EXPIRED)
+            and license_entity.is_expired(datetime.now(timezone.utc))
+        ):
+            self._license_repo.update_status(license_entity.id, LicenseStatus.EXPIRED)
+            effective_status = LicenseStatus.EXPIRED
+
         customer = self._customer_repo.get_by_id(license_entity.customer_id)
         balance_info = self._quota_repo.get_balance(license_entity.id)
 
@@ -473,7 +650,7 @@ class BillingService:
             license_key=license_entity.license_key,
             customer_email=customer.email if customer else None,
             tier=license_entity.tier.value,
-            status=license_entity.status.value,
+            status=effective_status.value,
             credit_balance=balance_info.balance,
             total_allowance=balance_info.total_allowance,
             consumed=balance_info.consumed,

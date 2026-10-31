@@ -70,7 +70,7 @@ def _b64u_dec(text: str) -> bytes:
 
 
 def verify_domain_ast_purity() -> bool:
-    """Gate 1: Ensures app/domain uses 100% Python stdlib AST with zero 3rd-party imports."""
+    """Gate 1: Ensures app/domain and standalone offline_validator use 100% pure stdlib boundaries."""
     domain_dir = PROJECT_ROOT / "app" / "domain"
     if not domain_dir.exists():
         print_fail(f"Domain directory not found: {domain_dir}")
@@ -87,20 +87,39 @@ def verify_domain_ast_purity() -> bool:
                 if isinstance(node, ast.Import):
                     for alias in node.names:
                         top = alias.name.split(".")[0]
-                        if top not in stdlib_allowed and top != "app":
+                        if top not in stdlib_allowed and not alias.name.startswith("app.domain"):
                             violations.append((fpath.name, alias.name))
                 elif isinstance(node, ast.ImportFrom) and node.module:
                     top = node.module.split(".")[0]
-                    if top not in stdlib_allowed and top != "app":
+                    if top not in stdlib_allowed and not node.module.startswith("app.domain"):
                         violations.append((fpath.name, node.module))
         except Exception as exc:
             violations.append((fpath.name, f"Syntax error: {exc}"))
 
+    offline_path = PROJECT_ROOT / "app" / "infrastructure" / "security" / "offline_validator.py"
+    try:
+        off_tree = ast.parse(offline_path.read_text(encoding="utf-8"))
+        for stmt in off_tree.body:
+            if isinstance(stmt, ast.Import):
+                for alias in stmt.names:
+                    if alias.name.split(".")[0] not in stdlib_allowed:
+                        violations.append(("offline_validator.py", alias.name))
+            elif isinstance(stmt, ast.ImportFrom) and stmt.module:
+                if stmt.module.split(".")[0] not in stdlib_allowed:
+                    violations.append(("offline_validator.py", stmt.module))
+        for node in ast.walk(off_tree):
+            if isinstance(node, ast.ImportFrom) and node.module and node.module.startswith("app"):
+                violations.append(("offline_validator.py", node.module))
+    except Exception as exc:
+        violations.append(("offline_validator.py", f"Syntax error: {exc}"))
+
     if violations:
-        print_fail(f"Domain layer AST violations detected: {violations}")
+        print_fail(f"Domain/Offline AST violations detected: {violations}")
         return False
 
-    print_pass(f"Domain layer is 100% pure Python stdlib across {len(py_files)} files.")
+    print_pass(
+        f"Domain layer ({len(py_files)} files) and standalone offline_validator.py pass strict stdlib AST check."
+    )
     return True
 
 

@@ -214,6 +214,91 @@ class TestCheckoutBoundaries(BaseKeyForgeTestCase):
                     os.environ[k] = val
             get_settings.cache_clear()
 
+    def test_checkout_providers_mock_session_routes_live_mode_and_smuggling_guards(self):
+        """Verifies checkout provider validation, 200 OK mock session routes, BILLING_MODE=live handling, conflicting Content-Length 400, and bounded rate limiter."""
+        import os
+        from app.config import get_settings
+        from app.presentation.middlewares import SlidingWindowRateLimiter
+
+        self.require_app()
+
+        # 1. Invalid provider returns 422; valid lemonsqueezy mock checkout + portal resolve with 200 OK
+        bad_prov = self.client.post(
+            "/api/v1/billing/checkout",
+            json={"customer_email": "prov@acme.ai", "tier": "pro", "provider": "paypal"},
+        )
+        self.assertEqual(bad_prov.status_code, 422)
+
+        ls_co = self.client.post(
+            "/api/v1/billing/checkout",
+            json={"customer_email": "prov@acme.ai", "tier": "studio", "provider": "lemonsqueezy"},
+        )
+        self.assertEqual(ls_co.status_code, 200)
+        co_data = ls_co.json()["data"]
+        self.assertEqual(co_data["provider"], "lemonsqueezy")
+        self.assertEqual(co_data["mode"], "mock")
+
+        co_get = self.client.get(co_data["checkout_url"])
+        self.assertEqual(co_get.status_code, 200)
+        self.assertEqual(co_get.json()["data"]["status"], "open")
+
+        portal_post = self.client.post("/api/v1/billing/portal", json={"customer_email": "prov@acme.ai"})
+        self.assertEqual(portal_post.status_code, 200)
+        portal_get = self.client.get(portal_post.json()["data"]["portal_url"])
+        self.assertEqual(portal_get.status_code, 200)
+
+        # 2. BILLING_MODE=live fails closed with 503 when unconfigured, and builds live LS URL when configured
+        prev_mode = os.environ.get("BILLING_MODE")
+        prev_ls_url = os.environ.get("LEMONSQUEEZY_CHECKOUT_URL")
+        try:
+            os.environ["BILLING_MODE"] = "live"
+            os.environ.pop("LEMONSQUEEZY_CHECKOUT_URL", None)
+            get_settings.cache_clear()
+
+            unconf = self.client.post(
+                "/api/v1/billing/checkout",
+                json={"customer_email": "live@acme.ai", "tier": "pro", "provider": "stripe"},
+            )
+            self.assertEqual(unconf.status_code, 503)
+            self.assertEqual(unconf.json()["error"]["code"], "BILLING_PROVIDER_UNCONFIGURED")
+
+            os.environ["LEMONSQUEEZY_CHECKOUT_URL"] = "https://acme.lemonsqueezy.com/checkout/buy/var_123"
+            get_settings.cache_clear()
+            live_ls = self.client.post(
+                "/api/v1/billing/checkout",
+                json={"customer_email": "live@acme.ai", "tier": "pro", "provider": "lemonsqueezy"},
+            )
+            self.assertEqual(live_ls.status_code, 200)
+            self.assertTrue(
+                live_ls.json()["data"]["checkout_url"].startswith(
+                    "https://acme.lemonsqueezy.com/checkout/buy/var_123?"
+                )
+            )
+        finally:
+            if prev_mode is None:
+                os.environ.pop("BILLING_MODE", None)
+            else:
+                os.environ["BILLING_MODE"] = prev_mode
+            if prev_ls_url is None:
+                os.environ.pop("LEMONSQUEEZY_CHECKOUT_URL", None)
+            else:
+                os.environ["LEMONSQUEEZY_CHECKOUT_URL"] = prev_ls_url
+            get_settings.cache_clear()
+
+        # 3. Comma-separated conflicting Content-Length header returns 400 INVALID_CONTENT_LENGTH
+        smuggle_res = self.client.post(
+            "/api/v1/billing/checkout",
+            content=b"{}",
+            headers={"Content-Type": "application/json", "Content-Length": "2, 999999"},
+        )
+        self.assertEqual(smuggle_res.status_code, 400)
+        self.assertEqual(smuggle_res.json()["error"]["code"], "INVALID_CONTENT_LENGTH")
+
+        # 4. SlidingWindowRateLimiter enforces max_buckets cap
+        bounded = SlidingWindowRateLimiter(max_buckets=128)
+        for i in range(400):
+            bounded.check(f"api:198.51.100.{i}", limit=10, window_seconds=60.0)
+        self.assertLessEqual(len(bounded._buckets), 128)
 
 
 if __name__ == "__main__":

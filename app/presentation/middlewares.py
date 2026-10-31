@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from collections import deque
+from collections import OrderedDict, deque
 from datetime import datetime, timezone
 import json
 import math
@@ -219,12 +219,12 @@ class PayloadSizeLimitMiddleware:
 
         limit = self._effective_limit()
 
+        parsed_lengths: set[int] = set()
         for k, v in scope.get("headers", ()):
             if k.lower() == b"content-length":
-                raw_len = v.decode("latin-1", errors="ignore").strip()
-                try:
-                    content_length = int(raw_len)
-                except ValueError:
+                raw_header = v.decode("latin-1", errors="ignore")
+                parts = [p.strip() for p in raw_header.split(",")]
+                if not parts or any(not p for p in parts):
                     await _send_json_error(
                         send,
                         scope,
@@ -233,28 +233,40 @@ class PayloadSizeLimitMiddleware:
                         message="Malformed Content-Length header.",
                     )
                     return
+                for raw_len in parts:
+                    if not raw_len.isdigit():
+                        await _send_json_error(
+                            send,
+                            scope,
+                            status_code=400,
+                            code="INVALID_CONTENT_LENGTH",
+                            message="Malformed Content-Length header.",
+                        )
+                        return
+                    parsed_lengths.add(int(raw_len))
 
-                if content_length < 0:
-                    await _send_json_error(
-                        send,
-                        scope,
-                        status_code=400,
-                        code="INVALID_CONTENT_LENGTH",
-                        message="Content-Length header cannot be negative.",
-                    )
-                    return
+        if len(parsed_lengths) > 1:
+            await _send_json_error(
+                send,
+                scope,
+                status_code=400,
+                code="INVALID_CONTENT_LENGTH",
+                message="Conflicting multiple Content-Length headers are not permitted.",
+            )
+            return
 
-                if content_length > limit:
-                    await _send_json_error(
-                        send,
-                        scope,
-                        status_code=413,
-                        code="PAYLOAD_TOO_LARGE",
-                        message=f"Payload size exceeds limit of {limit} bytes.",
-                        details={"max_bytes": limit, "content_length": content_length},
-                    )
-                    return
-                break
+        if len(parsed_lengths) == 1:
+            content_length = next(iter(parsed_lengths))
+            if content_length > limit:
+                await _send_json_error(
+                    send,
+                    scope,
+                    status_code=413,
+                    code="PAYLOAD_TOO_LARGE",
+                    message=f"Payload size exceeds limit of {limit} bytes.",
+                    details={"max_bytes": limit, "content_length": content_length},
+                )
+                return
 
         received_bytes = 0
         response_started = False
@@ -290,11 +302,23 @@ class PayloadSizeLimitMiddleware:
 
 
 class SlidingWindowRateLimiter:
-    """Thread-safe in-memory sliding-window HTTP rate limiter."""
+    """Thread-safe bounded in-memory sliding-window HTTP rate limiter."""
 
-    def __init__(self) -> None:
+    def __init__(self, max_buckets: int = 10_000) -> None:
         self._lock = threading.Lock()
-        self._buckets: dict[str, Deque[float]] = {}
+        self._buckets: OrderedDict[str, Deque[float]] = OrderedDict()
+        self._max_buckets = max(64, max_buckets)
+        self._last_sweep = time.monotonic()
+
+    def _sweep_expired_locked(self, cutoff: float, now: float) -> None:
+        stale_keys = [
+            bucket_key
+            for bucket_key, dq in self._buckets.items()
+            if not dq or dq[-1] <= cutoff
+        ]
+        for bucket_key in stale_keys:
+            self._buckets.pop(bucket_key, None)
+        self._last_sweep = now
 
     def check(
         self,
@@ -306,10 +330,20 @@ class SlidingWindowRateLimiter:
         now = time.monotonic()
         cutoff = now - window_seconds
         with self._lock:
+            if (now - self._last_sweep) >= max(5.0, window_seconds):
+                self._sweep_expired_locked(cutoff, now)
+
             q = self._buckets.get(key)
-            if q is None:
+            if q is not None:
+                self._buckets.move_to_end(key)
+            else:
+                if len(self._buckets) >= self._max_buckets:
+                    self._sweep_expired_locked(cutoff, now)
+                    while len(self._buckets) >= self._max_buckets:
+                        self._buckets.popitem(last=False)
                 q = deque()
                 self._buckets[key] = q
+
             while q and q[0] <= cutoff:
                 q.popleft()
 
@@ -362,10 +396,10 @@ class RateLimitMiddleware:
                 if k.lower() == b"x-forwarded-for":
                     forwarded = v.decode("latin-1", errors="ignore").split(",")[0].strip()
                     if forwarded:
-                        return forwarded
+                        return forwarded[:128]
         client = scope.get("client")
         if client and len(client) >= 1 and client[0]:
-            return str(client[0])
+            return str(client[0])[:128]
         return "local"
 
     async def __call__(

@@ -1,6 +1,6 @@
 # KeyForge v1.0.0 — Guía Operativa Multi-Sesión para Argon y Resumen Paso a Paso
 
-> **Versión**: `1.0.0` | **Runtime**: Python 3.11+ (verificado en 3.14.8) | **Arquitectura**: Hexagonal / Clean | **Estado**: `7/7` Gates + `65/65` Tests E2E Aprobados
+> **Versión**: `1.0.0` | **Runtime**: Python 3.11+ (verificado en 3.14.8) | **Arquitectura**: Hexagonal / Clean | **Estado**: `7/7` Gates + `69/69` Tests E2E Aprobados
 
 ---
 
@@ -25,31 +25,31 @@
 ## 2. Resumen Cronológico Paso a Paso de Todo lo Construido y Endurecido
 
 1. **Núcleo de Dominio Puro (`app/domain/`)**:
-   - Entidades inmutables/optimizadas con `slots=True` (`Customer`, `License`, `Activation`, `QuotaLedger`) usando exclusivamente librería estándar de Python (verificado por AST contra `sys.stdlib_module_names`).
-   - Ciclo de vida completo de licencias (`ACTIVE`, `GRACE_PERIOD`, `SUSPENDED`, `EXPIRED`, `REVOKED`) y jerarquía de excepciones de dominio alineada con RFC 7807.
+   - Entidades inmutables/optimizadas con `slots=True` (`Customer`, `License`, `Activation`, `QuotaLedger`) usando exclusivamente librería estándar de Python + módulos internos `app.domain.*` (verificado por AST contra `sys.stdlib_module_names`).
+   - Ciclo de vida completo de licencias (`ACTIVE`, `GRACE_PERIOD`, `SUSPENDED`, `EXPIRED`, `REVOKED`), normalización canónica de host/puerto/FQDN/IDNA para bloqueos de dominio y jerarquía de excepciones alineada con RFC 7807.
 2. **Motor Criptográfico Dual y Validador Air-Gapped (`app/infrastructure/security/`)**:
    - `Ed25519Signer` con aceleración nativa OpenSSL y fallback matemático puro sobre coordenadas extendidas twisted Edwards `(X, Y, Z, T)` (~3.6 ms por verificación, sin recursión ni inversiones modulares por bit).
    - Cumplimiento estricto de **RFC 8032 Sección 5.1.3**: rechazo de firmas maleables (`s >= L`), coordenadas no canónicas (`y >= p`), puntos fuera de curva y codificación inválida `x = 0` con bit de signo `1`.
-   - `offline_validator.py` autónomo (cero dependencias externas) con verificación de expiración, estructura tipada JSON y bloqueo opcional por `expected_machine_id`.
+   - `offline_validator.py` 100% autónomo (cero dependencias externas ni imports de `app.*`) con verificación de expiración, estructura tipada JSON y bloqueo opcional por `expected_machine_id` y `expected_domain`.
 3. **Persistencia SQLite WAL y Contabilidad ACID (`app/infrastructure/database/` y `repositories/`)**:
    - Conexiones con `PRAGMA journal_mode=WAL`, `foreign_keys=ON`, `busy_timeout=5000`, `BEGIN IMMEDIATE` / `SAVEPOINT` anidados, reintentos con jitter exponencial y cierre limpio de memoria compartida vía `atexit` (cero `ResourceWarning`).
    - Migraciones versionadas con verificación SHA-256 (`schemas.sql` + `schema_migrations`).
-   - Deducción atómica sin sobregiro (`balance >= credits`), `consumed_total` acumulado real, aislamiento de idempotencia multi-tenant `UNIQUE(license_id, idempotency_key)`, renovación de ciclo sin inflación (`reset_cycle=True` fija `500 -> 500`) y registro permanente `revoked_licenses` consultado antes de cualquier validación sin estado.
+   - Deducción atómica sin sobregiro (`balance >= credits`), `consumed_total` acumulado real, aislamiento de idempotencia multi-tenant `UNIQUE(license_id, idempotency_key)`, renovación de ciclo sin inflación (`reset_cycle=True` fija `500 -> 500`), búsqueda `O(1)` de claves reemplazadas y registro permanente `revoked_licenses` consultado antes de cualquier validación sin estado o fallo por expiración.
 4. **Servicios de Aplicación y Facturación Multi-Proveedor (`app/application/services/`)**:
-   - `LicenseService`: emisión Ed25519/HMAC, normalización de `hardware_id` en minúsculas, bloqueo por dominios exactos o comodín (`*.empresa.com`), persistencia automática de `EXPIRED` y re-firma criptográfica en upgrades (`upgrade_existing`) preservando historial en `previous_license_keys`.
-   - `QuotaService`: bloqueo de consumo en licencias `REVOKED`, `SUSPENDED` o `EXPIRED`, recarga (`replenish`) y telemetría auditable.
-   - `BillingService`: soporte de webhooks firmados para **Stripe** (incluyendo múltiples firmas `v1=` durante rotación de secretos y ventana anti-replay de 300 s) y **LemonSqueezy** (formato nativo `meta.event_name`, `meta.custom_data`, `data.attributes`), deduplicación por `event_id` y cabecera `X-Subscription-Warning` en `GRACE_PERIOD`.
+   - `LicenseService`: emisión Ed25519/HMAC, normalización de `hardware_id` en minúsculas, bloqueo por dominios exactos o comodín (`*.empresa.com`), persistencia automática de `EXPIRED` y re-firma criptográfica en upgrades (`upgrade_existing`) preservando historial en `previous_license_keys` sin reactivar licencias `SUSPENDED` ni `REVOKED`.
+   - `QuotaService`: bloqueo de consumo y recarga en licencias `REVOKED`, `SUSPENDED` o `EXPIRED`, y telemetría auditable.
+   - `BillingService`: sesiones de Checkout/Portal tanto en modo `mock` como `live` (Stripe REST + LemonSqueezy Checkouts), webhooks firmados para **Stripe** (multi-`v1=` y ventana anti-replay de 300 s) y **LemonSqueezy** (`meta.event_name`, `meta.custom_data`, `data.attributes`), deduplicación por `event_id`, renovación segura de licencias `ACTIVE`/`GRACE_PERIOD` vencidas y cabecera `X-Subscription-Warning`.
 5. **Gateway HTTP FastAPI y Blindaje de Producción (`app/presentation/` y `app/main.py`)**:
-   - Middlewares ASGI puros: `SecurityHeadersMiddleware` (CSP estricta, HSTS, `X-Frame-Options: DENY`, `Referrer-Policy` y `X-Request-ID` sincronizado con `metadata.request_id`), `PayloadSizeLimitMiddleware` (64 KB en `Content-Length` y en streaming chunked con señal `BaseException` -> HTTP `413`), y `RateLimitMiddleware` por ventana deslizante inmune a spoofing de `X-Forwarded-For` (`TRUST_PROXY_HEADERS=false`).
+   - Middlewares ASGI puros: `SecurityHeadersMiddleware` (CSP estricta, HSTS, `X-Frame-Options: DENY`, `Referrer-Policy` y `X-Request-ID` sincronizado con `metadata.request_id`), `PayloadSizeLimitMiddleware` (64 KB validando cabeceras `Content-Length` duplicadas y streaming chunked -> HTTP `400`/`413`), y `RateLimitMiddleware` por ventana deslizante con memoria acotada LRU/TTL inmune a spoofing de `X-Forwarded-For` (`TRUST_PROXY_HEADERS=false`).
    - En `ENVIRONMENT=production`: aborto inmediato en arranque si persiste cualquier secreto público por defecto, exigencia de `X-Admin-Key` en `/issue`, `/revoke` y `/quota/replenish`, y bloqueo `403` de `/api/v1/billing/simulate-webhook`.
 6. **CLI Completa (`app/cli.py`)**:
-   - Auto-migración en bases SQLite nuevas, comandos `issue` (con defaults automáticos por plan), `verify` (`--offline`, `--pure-python`), `activate`, `revoke`, `quota balance|deduct|replenish` y `serve`, con errores JSON limpios sin trazas crudas.
+   - Auto-migración en bases SQLite nuevas, comandos `issue` (con defaults automáticos por plan), `verify` (`--offline`, `--pure-python`, `--domain`), `activate`, `revoke`, `quota balance|deduct|replenish` y `serve`, con errores JSON limpios sin trazas crudas.
 7. **Consola Web Cyber-Minimalist (`app/presentation/static/index.html` y `app.js`)**:
-   - Fondo sólido `#0B0D17`, cero gradientes, cero emojis, contraste mínimo verificado `7.0:1` (> WCAG AA `4.5:1`), acento `#CCFF00` en una única palabra clave del `<h1>`, retícula espacial estricta de `8pt`, glassmorphism y curvas `cubic-bezier`.
-   - Incluye emisión, activación, revocación, deducción de cuota, **validador Ed25519 100% en navegador (WebCrypto)**, simulador de webhooks conectado en vivo, feed de telemetría (`/api/v1/telemetry/events`) y tarjetas de precios conectadas a Checkout y Portal; verificado con Playwright en `1440x900` y `375x812` (`0` errores de consola, `0` desbordamiento horizontal).
+   - Fondo sólido `#0B0D17`, cero gradientes, cero emojis, `--status-error: #EF4444`, contraste verificado `>= 4.73:1` (> WCAG AA `4.5:1`), acento `#CCFF00` en una única palabra clave del `<h1>`, retícula espacial estricta de `8pt`, glassmorphism y curvas `cubic-bezier`.
+   - Incluye emisión, activación, revocación, deducción de cuota, **validador Ed25519 100% en navegador (WebCrypto)** con validación offline de `machine_id` y `allowed_domains`, simulador de webhooks en vivo, feed de telemetría (`/api/v1/telemetry/events`) y tarjetas de precios conectadas a Checkout y Portal; verificado con Playwright en `1440x900` y `375x812` (`0` errores de consola, `0` desbordamiento horizontal).
 8. **Verificación Automatizada y CI/CD**:
-   - `run_tests.py`: 65 tests deterministas (Tiers 1-4), independientes del orden de ejecución y limpios bajo `-W error::ResourceWarning`.
-   - `verify_production.py`: 7 compuertas automáticas (pureza AST, `typing.get_type_hints` en 352 símbolos / 56 módulos, integridad SQLite, paridad OpenSSL <-> Python puro + vectores adversarios RFC 8032, carrera concurrente de 30 hilos sin sobregiro, ciclo CLI y suite E2E completa).
+   - `run_tests.py`: 69 tests deterministas (Tiers 1-4), independientes del orden de ejecución y limpios bajo `-W error::ResourceWarning`.
+   - `verify_production.py`: 7 compuertas automáticas (pureza AST de dominio y `offline_validator.py`, `typing.get_type_hints` en 360 símbolos / 56 módulos, integridad SQLite, paridad OpenSSL <-> Python puro + vectores adversarios RFC 8032, carrera concurrente de 30 hilos sin sobregiro, ciclo CLI y suite E2E completa).
    - `.github/workflows/ci.yml`, `requirements.txt`, `pyproject.toml` (`1.0.0`) y `LICENSE` (MIT).
 
 ---
@@ -79,8 +79,10 @@ app/
 | `POST` | `/api/v1/quota/deduct` | Pública | Debita créditos atómicamente (`Idempotency-Key`) |
 | `POST` | `/api/v1/quota/replenish` | `X-Admin-Key` (prod) | Recarga o reinicia ciclo (`reset_cycle`) |
 | `GET` | `/api/v1/telemetry/events` | Pública | Historial auditable de eventos de consumo |
-| `POST` | `/api/v1/billing/checkout` | Pública | Genera sesión de compra por plan |
-| `POST` | `/api/v1/billing/portal` | Pública | Genera sesión de portal de cliente |
+| `POST` | `/api/v1/billing/checkout` | Pública | Genera sesión de compra (`mock` o `live` Stripe/LS) |
+| `POST` | `/api/v1/billing/portal` | Pública | Genera sesión de portal (`mock` o `live` Stripe/LS) |
+| `GET` | `/api/v1/billing/checkout/{session_id}` | Solo `mock` | Confirmación local de sesión de compra simulada |
+| `GET` | `/api/v1/billing/portal/{session_id}` | Solo `mock` | Confirmación local de portal simulado |
 | `GET` | `/api/v1/billing/status` | Pública | Estado consolidado de plan, asientos y cuota |
 | `POST` | `/api/v1/billing/simulate-webhook` | Solo dev/mock | Arnés local de eventos de facturación |
 | `POST` | `/api/v1/webhooks/stripe` | Firma `Stripe-Signature` | Ingesta real Stripe (soporta multi-`v1=`) |
@@ -99,7 +101,10 @@ app/
 | `ADMIN_API_KEY` | `kf_dev_admin_key_change_in_prod` | Cabecera `X-Admin-Key` obligatoria en producción |
 | `STRIPE_WEBHOOK_SECRET` | `whsec_test_stripe_secret_12345` | Secreto HMAC de Stripe |
 | `LEMONSQUEEZY_WEBHOOK_SECRET` | `whsec_test_lemonsqueezy_secret_12345` | Secreto HMAC de LemonSqueezy |
-| `BILLING_MODE` | `mock` | `mock` (desarrollo) o `live` (bloquea simulador) |
+| `BILLING_MODE` | `mock` | `mock` (desarrollo) o `live` (bloquea simulador y usa pasarela real) |
+| `STRIPE_SECRET_KEY` | `""` | Clave REST `sk_live_...` requerida para checkout/portal Stripe en `live` |
+| `LEMONSQUEEZY_CHECKOUT_URL` / `PORTAL_URL` | `""` | URLs base de tienda/portal LemonSqueezy en `live` |
+| `PUBLIC_BASE_URL` | `http://127.0.0.1:8000` | URL base de retorno (`success_url` / `cancel_url`) en `live` |
 | `ENVIRONMENT` | `development` | `development`, `testing` o `production` |
 | `HOST` / `PORT` / `LOG_LEVEL` | `0.0.0.0` / `8000` / `INFO` | Parámetros del servidor HTTP y logs |
 | `MAX_PAYLOAD_BYTES` | `65536` | Límite máximo de cuerpo HTTP (64 KB) |
@@ -167,13 +172,13 @@ python -c "import secrets; from app.infrastructure.security.ed25519_signer impor
 3. Editar únicamente los módulos objetivo con cambios atómicos y volver a correr `python verify_production.py` antes de hacer commit siguiendo Conventional Commits.
 
 ### Estado Verificado Actual (Checkpoint `v1.0.0`)
-- **Backend, Dominio, Criptografía y SQLite WAL**: Completos y verificados (`352` símbolos tipados sin errores en `56` módulos).
-- **Seguridad HTTP y Secretos de Producción**: Completos (`CSP`, `HSTS`, `413` streaming, `429` anti-spoofing, `X-Admin-Key`, fail-fast en producción).
+- **Backend, Dominio, Criptografía y SQLite WAL**: Completos y verificados (`360` símbolos tipados sin errores en `56` módulos).
+- **Seguridad HTTP y Secretos de Producción**: Completos (`CSP`, `HSTS`, `400`/`413` payload & streaming, `429` anti-spoofing con memoria LRU acotada, `X-Admin-Key`, fail-fast en producción).
 - **Consola Frontend**: Completa y auditada visualmente con Playwright en escritorio (`1440x900`) y móvil (`375x812`).
-- **Tests y CI**: `65/65` tests E2E aprobados (orden normal y aleatorio, cero `ResourceWarning`) + `.github/workflows/ci.yml` listo.
+- **Tests y CI**: `69/69` tests E2E aprobados (orden normal y aleatorio, cero `ResourceWarning`) + `.github/workflows/ci.yml` listo.
 - **Git**: Repositorio local en rama `main` limpio (sin `push` remoto pendiente de configurar credenciales del repositorio destino).
 
 ### Próximos Módulos Opcionales para Futuras Sesiones con Argon
-- **Sesión A — Conector SDK Live de Checkout**: Conectar `BillingService.create_checkout_session` y `create_portal_session` contra las APIs REST reales de Stripe Checkout / LemonSqueezy Checkouts cuando `BILLING_MODE=live`.
-- **Sesión B — SDKs Cliente Multi-Lenguaje**: Portar `offline_validator.py` a paquetes ligeros en TypeScript (`@keyforge/verify` usando WebCrypto) y Go/Rust para binarios nativos.
-- **Sesión C — Panel Admin Multi-Producto**: Añadir tabla `products` y vista protegida por `X-Admin-Key` con métricas MRR, retención y revocaciones por lote.
+- **Sesión A — SDKs Cliente Multi-Lenguaje**: Portar `offline_validator.py` a paquetes ligeros en TypeScript (`@keyforge/verify` usando WebCrypto) y Go/Rust para binarios nativos.
+- **Sesión B — Panel Admin Multi-Producto**: Añadir tabla `products` y vista protegida por `X-Admin-Key` con métricas MRR, retención y revocaciones por lote.
+- **Sesión C — Adaptador Opcional PostgreSQL**: Implementar `PostgresLicenseRepo` / `PostgresQuotaRepo` sobre los puertos `app/domain/ports/` para despliegues multi-réplica horizontal.

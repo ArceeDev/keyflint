@@ -127,11 +127,90 @@ def _b64url_decode(s: str) -> bytes:
     return base64.b64decode((s + "=" * pad_len).encode("ascii"), altchars=b"-_", validate=True)
 
 
+def _normalize_domain_host(raw: Optional[str], *, allow_wildcard: bool = False) -> Optional[str]:
+    """Normalizes a hostname (optional :port, trailing FQDN dot, and IDNA punycode) using stdlib only."""
+    if not raw or not isinstance(raw, str):
+        return None
+    s = raw.strip()
+    if not s or any(ch in s for ch in ("/", "\\", "@", "?", "#", " ", "\t", "\r", "\n")):
+        return None
+
+    wildcard = False
+    if s.startswith("*."):
+        if not allow_wildcard:
+            return None
+        wildcard = True
+        s = s[2:]
+    elif "*" in s:
+        return None
+
+    if ":" in s:
+        host_part, port_part = s.rsplit(":", 1)
+        if not port_part.isdigit():
+            return None
+        port_num = int(port_part)
+        if port_num < 1 or port_num > 65535:
+            return None
+        s = host_part
+
+    s = s.rstrip(".")
+    if not s or s.startswith(".") or ".." in s:
+        return None
+
+    labels = s.split(".")
+    if wildcard and len(labels) < 2:
+        return None
+
+    ascii_labels: list[str] = []
+    for label in labels:
+        if not label:
+            return None
+        try:
+            enc = label.encode("idna").decode("ascii").lower()
+        except UnicodeError:
+            return None
+        if (
+            not enc
+            or any(not (ch.isalnum() or ch == "-") for ch in enc)
+            or enc.startswith("-")
+            or enc.endswith("-")
+        ):
+            return None
+        ascii_labels.append(enc)
+
+    normalized = ".".join(ascii_labels)
+    return f"*.{normalized}" if wildcard else normalized
+
+
+def _matches_allowed_domains(allowed: list[str], domain: Optional[str]) -> bool:
+    if not allowed:
+        return True
+    candidate = _normalize_domain_host(domain, allow_wildcard=False)
+    if not candidate:
+        return False
+    for pattern in allowed:
+        if not isinstance(pattern, str):
+            continue
+        pat = _normalize_domain_host(pattern, allow_wildcard=True)
+        if not pat:
+            continue
+        if pat == candidate:
+            return True
+        if pat.startswith("*."):
+            suffix = pat[2:]
+            if suffix and "." in suffix and (
+                candidate == suffix or candidate.endswith("." + suffix)
+            ):
+                return True
+    return False
+
+
 def validate_offline(
     license_token: Optional[str] = None,
     public_key_hex: str = "",
     current_time: Optional[int] = None,
     expected_machine_id: Optional[str] = None,
+    expected_domain: Optional[str] = None,
     *,
     license_key: Optional[str] = None,
     force_pure_python: bool = False,
@@ -143,6 +222,7 @@ def validate_offline(
         public_key_hex: 64-character hex string of 32-byte Ed25519 public key
         current_time: Optional Unix epoch seconds for expiration test (defaults to time.time())
         expected_machine_id: Optional local machine ID to enforce node-locking
+        expected_domain: Optional caller hostname/domain to enforce allowed_domains lock
         license_key: Alias for license_token
         force_pure_python: Force pure-stdlib RFC 8032 curve math even if cryptography is installed
 
@@ -243,13 +323,37 @@ def validate_offline(
     locked_machine = payload.get("machine_id")
     if locked_machine is not None and not isinstance(locked_machine, str):
         return False, payload, "ERR_INVALID_PAYLOAD_STRUCTURE"
-
-    if locked_machine is not None:
-        if expected_machine_id is None or not isinstance(expected_machine_id, str):
-            return False, payload, "ERR_NODE_LOCK_VIOLATION"
-        if locked_machine.strip().lower() != expected_machine_id.strip().lower():
-            return False, payload, "ERR_NODE_LOCK_VIOLATION"
-    elif expected_machine_id is not None:
+    if expected_machine_id is not None and not isinstance(expected_machine_id, str):
         return False, payload, "ERR_NODE_LOCK_VIOLATION"
+
+    norm_locked = (
+        locked_machine.strip().lower()
+        if isinstance(locked_machine, str) and locked_machine.strip()
+        else None
+    )
+    norm_expected_hw = (
+        expected_machine_id.strip().lower()
+        if isinstance(expected_machine_id, str) and expected_machine_id.strip()
+        else None
+    )
+
+    if norm_locked is not None:
+        if norm_expected_hw is None or norm_locked != norm_expected_hw:
+            return False, payload, "ERR_NODE_LOCK_VIOLATION"
+    elif norm_expected_hw is not None:
+        return False, payload, "ERR_NODE_LOCK_VIOLATION"
+
+    # 9. Domain lock enforcement
+    if expected_domain is not None and not isinstance(expected_domain, str):
+        return False, payload, "ERR_DOMAIN_LOCK_VIOLATION"
+
+    allowed_domains = payload.get("allowed_domains")
+    if allowed_domains is not None:
+        if not isinstance(allowed_domains, list) or any(
+            not isinstance(d, str) for d in allowed_domains
+        ):
+            return False, payload, "ERR_INVALID_PAYLOAD_STRUCTURE"
+        if allowed_domains and not _matches_allowed_domains(allowed_domains, expected_domain):
+            return False, payload, "ERR_DOMAIN_LOCK_VIOLATION"
 
     return True, payload, None

@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import sqlite3
 from typing import Any
 
 from fastapi import APIRouter, Depends, Query, Request
 
+from app.domain.entities.license import LicenseStatus
 from app.domain.exceptions import LicenseNotFoundError
 from app.infrastructure.repositories.sqlite_license_repo import SqliteLicenseRepo
 from app.presentation.dependencies import (
@@ -29,6 +31,15 @@ def list_events(
     license_entity = license_repo.get_by_key(license_key)
     if license_entity is None:
         raise LicenseNotFoundError("License not found.")
+
+    effective_status = license_entity.status
+    if (
+        effective_status
+        not in (LicenseStatus.REVOKED, LicenseStatus.SUSPENDED, LicenseStatus.EXPIRED)
+        and license_entity.is_expired(datetime.now(timezone.utc))
+    ):
+        license_repo.update_status(license_entity.id, LicenseStatus.EXPIRED)
+        effective_status = LicenseStatus.EXPIRED
 
     cur_events = conn.execute(
         """
@@ -55,7 +66,7 @@ def list_events(
         "data": {
             "license_id": license_entity.id,
             "tier": license_entity.tier.value,
-            "status": license_entity.status.value,
+            "status": effective_status.value,
             "events": events,
             "activations": activations,
             "count": len(events),

@@ -89,11 +89,33 @@ class SqliteLicenseRepo(ILicenseRepository):
         if row is not None:
             return self._row_to_entity(row)
 
-        # Fallback: check superseded keys preserved across tier upgrades
+        # Fast O(1) fallback: decode license_id from superseded LIC- token payload
         if license_key and license_key.startswith("LIC-"):
+            try:
+                header_part = license_key.split(".", 1)[0]
+                subparts = header_part.split("-", 2)
+                if len(subparts) == 3 and subparts[2]:
+                    b64_str = subparts[2]
+                    pad = "=" * ((4 - len(b64_str) % 4) % 4)
+                    payload_bytes = base64.urlsafe_b64decode((b64_str + pad).encode("ascii"))
+                    payload_dict = json.loads(payload_bytes.decode("utf-8"))
+                    if isinstance(payload_dict, dict) and payload_dict.get("license_id"):
+                        by_id = self.get_by_id(str(payload_dict["license_id"]))
+                        if by_id is not None:
+                            prev_keys = by_id.metadata.get("previous_license_keys", [])
+                            if isinstance(prev_keys, list) and license_key in prev_keys:
+                                return by_id
+            except Exception:
+                pass
+
+            escaped = (
+                license_key.replace("\\", "\\\\")
+                .replace("%", "\\%")
+                .replace("_", "\\_")
+            )
             cur_prev = self._conn.execute(
-                "SELECT * FROM licenses WHERE metadata_json LIKE ?",
-                (f"%{license_key}%",),
+                "SELECT * FROM licenses WHERE metadata_json LIKE ? ESCAPE '\\'",
+                (f"%{escaped}%",),
             )
             for candidate_row in cur_prev.fetchall():
                 entity = self._row_to_entity(candidate_row)

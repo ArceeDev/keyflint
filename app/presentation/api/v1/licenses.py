@@ -15,7 +15,7 @@ from app.application.dtos.license_dtos import (
     LicenseVerifyRequest,
 )
 from app.application.services.license_service import LicenseService
-from app.domain.entities.license import License, LicenseStatus, Tier
+from app.domain.entities.license import License, LicenseStatus, Tier, matches_allowed_domains
 from app.presentation.dependencies import (
     build_response_metadata,
     get_license_service,
@@ -23,25 +23,6 @@ from app.presentation.dependencies import (
 )
 
 router = APIRouter(prefix="/api/v1/licenses", tags=["Licenses"])
-
-
-def _domain_matches(allowed_domains: list[str], domain: str | None) -> bool:
-    if not allowed_domains:
-        return True
-    if not domain or not domain.strip():
-        return False
-    probe = domain.strip().lower()
-    for raw_pattern in allowed_domains:
-        pat = str(raw_pattern).strip().lower()
-        if not pat:
-            continue
-        if pat == probe:
-            return True
-        if pat.startswith("*."):
-            suffix = pat[2:]
-            if suffix and (probe == suffix or probe.endswith("." + suffix)):
-                return True
-    return False
 
 
 @router.get("/public-key")
@@ -260,8 +241,24 @@ def verify_license(
     ok, payload, err = license_service._signer.verify_token(raw_key)
     if not ok:
         ok_hmac, payload_hmac, err_hmac = license_service._hmac_signer.verify_token(raw_key)
-        if ok_hmac:
+        if ok_hmac or err_hmac == "ERR_LICENSE_EXPIRED":
             ok, payload, err = ok_hmac, payload_hmac, err_hmac
+
+    if isinstance(payload, dict) and (ok or err == "ERR_LICENSE_EXPIRED"):
+        lic_id_probe = str(payload.get("license_id") or "")
+        if lic_id_probe and license_service.is_revoked_id(lic_id_probe):
+            return {
+                "success": True,
+                "data": {
+                    "valid": False,
+                    "is_valid": False,
+                    "status": "revoked",
+                    "license_id": lic_id_probe,
+                    "tier": str(payload.get("tier") or Tier.COMMUNITY.value),
+                    "features": list(payload.get("features") or []),
+                },
+                "metadata": meta,
+            }
 
     if not ok or not isinstance(payload, dict):
         return {
@@ -339,7 +336,7 @@ def verify_license(
         }
 
     allowed_domains = payload.get("allowed_domains")
-    if isinstance(allowed_domains, list) and not _domain_matches(
+    if isinstance(allowed_domains, list) and not matches_allowed_domains(
         allowed_domains, request.domain
     ):
         return {

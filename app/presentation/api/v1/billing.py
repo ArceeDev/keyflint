@@ -33,6 +33,27 @@ def create_checkout(
     }
 
 
+@router.get("/checkout/{session_id}")
+def get_mock_checkout_session(
+    session_id: str,
+    http_request: Request,
+) -> dict[str, Any]:
+    """Resolves local mock checkout redirect sessions for zero-credential testing."""
+    settings = get_settings()
+    if settings.BILLING_MODE.strip().lower() == "live":
+        raise HTTPException(status_code=404, detail="Mock checkout sessions are disabled in live billing mode.")
+    return {
+        "success": True,
+        "data": {
+            "session_id": session_id,
+            "mode": "mock",
+            "status": "open",
+            "instructions": "Use POST /api/v1/billing/simulate-webhook to complete simulated payment provisioning.",
+        },
+        "metadata": build_response_metadata(http_request),
+    }
+
+
 @router.post("/portal")
 def create_portal(
     request: PortalRequest,
@@ -44,6 +65,26 @@ def create_portal(
     return {
         "success": True,
         "data": res.model_dump(),
+        "metadata": build_response_metadata(http_request),
+    }
+
+
+@router.get("/portal/{session_id}")
+def get_mock_portal_session(
+    session_id: str,
+    http_request: Request,
+) -> dict[str, Any]:
+    """Resolves local mock customer billing portal sessions."""
+    settings = get_settings()
+    if settings.BILLING_MODE.strip().lower() == "live":
+        raise HTTPException(status_code=404, detail="Mock portal sessions are disabled in live billing mode.")
+    return {
+        "success": True,
+        "data": {
+            "session_id": session_id,
+            "mode": "mock",
+            "status": "active",
+        },
         "metadata": build_response_metadata(http_request),
     }
 

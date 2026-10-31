@@ -22,7 +22,13 @@ from app.application.dtos.license_dtos import (
 )
 from app.config import get_settings
 from app.domain.entities.customer import Customer
-from app.domain.entities.license import License, LicenseStatus, Tier
+from app.domain.entities.license import (
+    License,
+    LicenseStatus,
+    Tier,
+    matches_allowed_domains,
+    normalize_domain_host,
+)
 from app.domain.entities.quota import QuotaLedger
 from app.domain.exceptions import (
     LicenseExpiredError,
@@ -122,7 +128,13 @@ class LicenseService:
 
         domains_norm: Optional[list[str]] = None
         if request.allowed_domains:
-            cleaned = [d.strip().lower() for d in request.allowed_domains if d and d.strip()]
+            cleaned: list[str] = []
+            for raw_dom in request.allowed_domains:
+                if raw_dom and raw_dom.strip():
+                    norm_dom = normalize_domain_host(raw_dom, allow_wildcard=True)
+                    if norm_dom is None:
+                        raise ValueError(f"Invalid allowed_domains pattern: {raw_dom!r}")
+                    cleaned.append(norm_dom)
             if cleaned:
                 domains_norm = cleaned
                 lic_metadata["allowed_domains"] = cleaned
@@ -212,9 +224,11 @@ class LicenseService:
         target_tier: Tier,
         customer_email: str,
     ) -> License:
-        """Upgrades an existing non-revoked license to a new tier and re-signs its token."""
-        if license_entity.status == LicenseStatus.REVOKED:
+        """Upgrades an existing non-revoked, non-suspended license to a new tier and re-signs its token."""
+        if license_entity.status == LicenseStatus.REVOKED or self.is_revoked_id(license_entity.id):
             raise LicenseRevokedError("Cannot upgrade a revoked license.")
+        if license_entity.status == LicenseStatus.SUSPENDED:
+            raise LicenseSuspendedError("Cannot upgrade a suspended license.")
 
         now = datetime.now(timezone.utc)
         old_key = license_entity.license_key
@@ -260,16 +274,77 @@ class LicenseService:
         return license_entity
 
     def verify(self, request: LicenseVerifyRequest) -> LicenseVerifyResponse:
-        """Validates a license key: checks database existence, status, expiration,
-
-        and optionally enforces hardware/domain locking.
+        """Validates a license key: checks database existence, revocation ledger, status,
+        expiration, and optionally enforces hardware/domain locking (with stateless fallback).
         """
+        req_hw = (
+            request.hardware_id.strip().lower()
+            if (request.hardware_id and request.hardware_id.strip())
+            else None
+        )
         license_entity = self._license_repo.get_by_key(request.license_key)
         if license_entity is None:
-            raise LicenseNotFoundError("License key not found.")
+            ok, payload, err = self._signer.verify_token(request.license_key)
+            if not ok:
+                ok_hmac, payload_hmac, err_hmac = self._hmac_signer.verify_token(
+                    request.license_key
+                )
+                if ok_hmac or err_hmac == "ERR_LICENSE_EXPIRED":
+                    ok, payload, err = ok_hmac, payload_hmac, err_hmac
 
-        # Check status
-        if license_entity.status == LicenseStatus.REVOKED:
+            if not isinstance(payload, dict) or (not ok and err != "ERR_LICENSE_EXPIRED"):
+                raise LicenseNotFoundError("License key not found.")
+
+            lic_id = str(payload.get("license_id") or "")
+            if lic_id and self.is_revoked_id(lic_id):
+                raise LicenseRevokedError("License has been revoked.")
+
+            if err == "ERR_LICENSE_EXPIRED":
+                raise LicenseExpiredError("License has expired.")
+
+            stateless_hw = payload.get("machine_id")
+            if stateless_hw:
+                if not req_hw or req_hw != str(stateless_hw).strip().lower():
+                    raise NodeLockViolationError(
+                        "License is node-locked to a specific hardware ID."
+                    )
+            elif req_hw:
+                raise NodeLockViolationError(
+                    f"Machine hardware ID '{request.hardware_id}' is not activated for this license."
+                )
+
+            allowed_domains = payload.get("allowed_domains")
+            if isinstance(allowed_domains, list) and not matches_allowed_domains(
+                allowed_domains, request.domain
+            ):
+                raise NodeLockViolationError(
+                    f"Domain '{request.domain or ''}' is not authorized for this license."
+                )
+
+            exp_ts = payload.get("expires_at")
+            exp_dt = (
+                datetime.fromtimestamp(exp_ts, tz=timezone.utc)
+                if isinstance(exp_ts, (int, float))
+                else None
+            )
+            max_seats_val = int(payload.get("max_seats") or 1)
+            return LicenseVerifyResponse(
+                valid=True,
+                is_valid=True,
+                license_id=lic_id,
+                tier=str(payload.get("tier") or Tier.COMMUNITY.value),
+                status=LicenseStatus.ACTIVE.value,
+                expires_at=exp_dt,
+                features=list(payload.get("features") or []),
+                current_activations=0,
+                max_seats=max_seats_val,
+                max_activations=max_seats_val,
+            )
+
+        # Check status & persistent revocation ledger
+        if license_entity.status == LicenseStatus.REVOKED or self.is_revoked_id(
+            license_entity.id
+        ):
             raise LicenseRevokedError("License has been revoked.")
         if license_entity.status == LicenseStatus.SUSPENDED:
             raise LicenseSuspendedError("License is suspended due to payment delinquency.")
@@ -283,7 +358,6 @@ class LicenseService:
 
         # Check embedded machine_id or activated hardware lock
         embedded_hw = license_entity.metadata.get("machine_id")
-        req_hw = request.hardware_id.strip().lower() if (request.hardware_id and request.hardware_id.strip()) else None
 
         if embedded_hw:
             if not req_hw or req_hw != str(embedded_hw).strip().lower():
@@ -331,7 +405,9 @@ class LicenseService:
         if license_entity is None:
             raise LicenseNotFoundError("License key not found.")
 
-        if license_entity.status == LicenseStatus.REVOKED:
+        if license_entity.status == LicenseStatus.REVOKED or self.is_revoked_id(
+            license_entity.id
+        ):
             raise LicenseRevokedError("Cannot activate a revoked license.")
         if license_entity.status == LicenseStatus.SUSPENDED:
             raise LicenseSuspendedError("Cannot activate a suspended license.")

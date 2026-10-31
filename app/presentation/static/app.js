@@ -83,18 +83,70 @@ document.addEventListener("DOMContentLoaded", () => {
             previewToken.textContent = newKey.length > 36 ? `${newKey.slice(0, 24)}...${newKey.slice(-10)}` : newKey;
         }
         if (previewEnt && seats && credits !== undefined) {
-            previewEnt.textContent = `${seats} nodos / ${credits} creditos (${(tierLabel || "pro").toUpperCase()})`;
+            previewEnt.textContent = `${seats} nodos / ${credits} créditos (${(tierLabel || "pro").toUpperCase()})`;
         }
         if (previewStatus) {
             previewStatus.textContent = "CLAVE ACTIVA";
         }
     }
 
+    function normalizeDomainHost(raw, allowWildcard = false) {
+        if (typeof raw !== "string") return null;
+        let s = raw.trim();
+        if (!s || /[\/\\@?#\s]/.test(s)) return null;
+        let wildcard = false;
+        if (s.startsWith("*.")) {
+            if (!allowWildcard) return null;
+            wildcard = true;
+            s = s.slice(2);
+        } else if (s.includes("*")) {
+            return null;
+        }
+        if (s.includes(":")) {
+            const idx = s.lastIndexOf(":");
+            const portPart = s.slice(idx + 1);
+            if (!/^\d+$/.test(portPart)) return null;
+            const portNum = Number(portPart);
+            if (portNum < 1 || portNum > 65535) return null;
+            s = s.slice(0, idx);
+        }
+        s = s.replace(/\.+$/, "");
+        if (!s || s.startsWith(".") || s.includes("..")) return null;
+        const labels = s.split(".");
+        if (wildcard && labels.length < 2) return null;
+        try {
+            const parsed = new URL(`https://${s}`);
+            const host = parsed.hostname.replace(/\.+$/, "").toLowerCase();
+            if (!host) return null;
+            return wildcard ? `*.${host}` : host;
+        } catch {
+            return null;
+        }
+    }
+
+    function matchesAllowedDomains(allowedList, domainInput) {
+        if (!Array.isArray(allowedList) || allowedList.length === 0) return true;
+        const candidate = normalizeDomainHost(domainInput, false);
+        if (!candidate) return false;
+        for (const rawPattern of allowedList) {
+            const pat = normalizeDomainHost(rawPattern, true);
+            if (!pat) continue;
+            if (pat === candidate) return true;
+            if (pat.startsWith("*.")) {
+                const suffix = pat.slice(2);
+                if (suffix && suffix.includes(".") && (candidate === suffix || candidate.endsWith(`.${suffix}`))) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     async function refreshTelemetry(targetKey) {
         const telemetryResult = document.getElementById("telemetryResult");
         const key = (targetKey || quotaKey.value || verifyKey.value || "").trim();
         if (!key) {
-            renderBox(telemetryResult, "Introduce o emite una clave de licencia antes de consultar la auditoria.", "warn");
+            renderBox(telemetryResult, "Introduce o emite una clave de licencia antes de consultar la auditoría.", "warn");
             return;
         }
         try {
@@ -151,7 +203,10 @@ document.addEventListener("DOMContentLoaded", () => {
             if (domainVal) {
                 payload.allowed_domains = [domainVal];
                 verifyDomain.value = domainVal.replace(/^\*\./, "app.");
+            } else {
+                verifyDomain.value = "";
             }
+            verifyHw.value = "";
             try {
                 const res = await fetch("/api/v1/licenses/issue", {
                     method: "POST",
@@ -288,11 +343,25 @@ document.addEventListener("DOMContentLoaded", () => {
                     return;
                 }
 
+                const tokenHw = typeof decoded.machine_id === "string" ? decoded.machine_id.trim().toLowerCase() : "";
                 const expectedHw = verifyHw.value.trim().toLowerCase();
-                if (decoded.machine_id && expectedHw && decoded.machine_id.toLowerCase() !== expectedHw) {
+                if (tokenHw && (!expectedHw || tokenHw !== expectedHw)) {
                     renderBox(
                         verifyResult,
-                        { valid: false, mode: "offline_webcrypto", error: "ERR_NODE_LOCK_MISMATCH" },
+                        { valid: false, mode: "offline_webcrypto", error: "ERR_NODE_LOCK_VIOLATION" },
+                        "err"
+                    );
+                    return;
+                }
+
+                if (
+                    Array.isArray(decoded.allowed_domains) &&
+                    decoded.allowed_domains.length > 0 &&
+                    !matchesAllowedDomains(decoded.allowed_domains, verifyDomain.value)
+                ) {
+                    renderBox(
+                        verifyResult,
+                        { valid: false, mode: "offline_webcrypto", error: "ERR_DOMAIN_LOCK_VIOLATION" },
                         "err"
                     );
                     return;
@@ -353,7 +422,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         license_key: verifyKey.value.trim(),
-                        reason: "Revocacion manual desde consola operativa",
+                        reason: "Revocación manual desde consola operativa",
                     }),
                 });
                 const data = await res.json();

@@ -5,7 +5,7 @@
 [![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](pyproject.toml)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
-[![Tests: 65/65 Pass](https://img.shields.io/badge/tests-65%2F65%20pass-brightgreen.svg)](run_tests.py)
+[![Tests: 69/69 Pass](https://img.shields.io/badge/tests-69%2F69%20pass-brightgreen.svg)](run_tests.py)
 
 ---
 
@@ -115,6 +115,7 @@ is_valid, payload, error_code = validate_offline(
     license_token="LIC-PRO-...",
     public_key_hex="0043b567534bfa2d55059a05642f75573d420899146f334a9f7fc5fba797bd0b",
     expected_machine_id="ws-node-01",
+    expected_domain="api.acme.ai",
 )
 
 if is_valid:

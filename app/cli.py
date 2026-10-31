@@ -191,6 +191,7 @@ def verify_license_cmd(
             license_token=resolved_key,
             public_key_hex=pk,
             expected_machine_id=hardware_id,
+            expected_domain=domain,
             force_pure_python=pure_python,
         )
         click.echo(
