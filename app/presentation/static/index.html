@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KeyForge v1.0.0 - Pasarela Criptográfica y Metering de Cuota</title>
+    <title>KeyForge v1.1.0 - Pasarela Criptográfica y Control de Cuotas para IA</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
         :root {
             color-scheme: dark;
@@ -73,7 +73,7 @@
             padding: 16px 0;
             position: sticky;
             top: 0;
-            background-color: rgba(11, 13, 23, 0.88);
+            background-color: rgba(11, 13, 23, 0.92);
             backdrop-filter: blur(16px);
             -webkit-backdrop-filter: blur(16px);
             z-index: 100;
@@ -199,11 +199,34 @@
             gap: 16px;
             align-items: center;
             flex-wrap: wrap;
+            margin-bottom: 24px;
         }
 
         .hero-actions .btn {
             width: auto;
             min-width: 208px;
+        }
+
+        .hero-trust-bar {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            font-size: 12px;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .trust-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .trust-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 8px;
+            background-color: var(--accent-primary);
         }
 
         .hero-mockup {
@@ -321,6 +344,155 @@
             max-width: 680px;
         }
 
+        /* Integration Showcase Tabs */
+        .showcase-card {
+            background-color: var(--bg-elevated);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 64px;
+        }
+
+        .code-tabs-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-subtle);
+            padding-bottom: 16px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .tab-btn-group {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            background: transparent;
+            color: var(--text-muted);
+            border: 1px solid transparent;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.24s var(--ease-out-elastic);
+        }
+
+        .tab-btn:hover {
+            color: var(--text-primary);
+            background-color: rgba(255, 255, 255, 0.05);
+        }
+
+        .tab-btn.active {
+            color: var(--accent-primary);
+            background-color: rgba(204, 255, 0, 0.08);
+            border-color: rgba(204, 255, 0, 0.35);
+            font-weight: 600;
+        }
+
+        .code-snippet-wrap {
+            position: relative;
+            background-color: #05060A;
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            padding: 24px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+            color: var(--text-secondary);
+            overflow-x: auto;
+        }
+
+        .code-snippet-wrap pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .code-snippet-wrap .hl-kw { color: #A5B4FC; font-weight: 600; }
+        .code-snippet-wrap .hl-fn { color: var(--accent-primary); }
+        .code-snippet-wrap .hl-str { color: #34D399; }
+        .code-snippet-wrap .hl-cm { color: #64748B; font-style: italic; }
+
+        .btn-copy-code {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background-color: rgba(255, 255, 255, 0.08);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-subtle);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s var(--ease-out-elastic);
+        }
+
+        .btn-copy-code:hover {
+            background-color: rgba(255, 255, 255, 0.16);
+            color: var(--text-primary);
+        }
+
+        /* Comparison Table */
+        .comparison-card {
+            background-color: var(--bg-elevated);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 64px;
+            overflow-x: auto;
+        }
+
+        .comp-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+            text-align: left;
+        }
+
+        .comp-table th {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-strong);
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-size: 11px;
+            letter-spacing: 0.05em;
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        .comp-table td {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+        }
+
+        .comp-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .comp-table .kf-col {
+            background-color: rgba(204, 255, 0, 0.03);
+            border-left: 1px solid rgba(204, 255, 0, 0.20);
+            border-right: 1px solid rgba(204, 255, 0, 0.20);
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .comp-table th.kf-col {
+            color: var(--accent-primary);
+            border-top: 2px solid var(--accent-primary);
+        }
+
+        /* Grid */
         .grid {
             display: grid;
             grid-template-columns: repeat(12, 1fr);
@@ -534,9 +706,10 @@
         }
 
         .is-hidden {
-            display: none;
+            display: none !important;
         }
 
+        /* Pricing Cards */
         .pricing-card {
             justify-content: space-between;
             gap: 24px;
@@ -593,6 +766,118 @@
             width: 8px;
             height: 1px;
             background-color: var(--accent-primary);
+        }
+
+        .guarantee-bar {
+            background-color: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 64px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 24px;
+            flex-wrap: wrap;
+        }
+
+        .guarantee-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 16px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .guarantee-desc {
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+
+        /* FAQ Accordion */
+        .faq-section {
+            margin-bottom: 64px;
+        }
+
+        .faq-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .faq-item {
+            background-color: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: border-color 0.24s var(--ease-out-elastic);
+        }
+
+        .faq-item:hover {
+            border-color: var(--border-strong);
+        }
+
+        .faq-question {
+            padding: 20px 24px;
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+            transition: color 0.2s var(--ease-out-elastic);
+        }
+
+        .faq-icon {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 18px;
+            color: var(--accent-primary);
+            transition: transform 0.24s var(--ease-spring);
+        }
+
+        .faq-item.open .faq-icon {
+            transform: rotate(45deg);
+        }
+
+        .faq-answer {
+            padding: 0 24px 20px 24px;
+            color: var(--text-secondary);
+            font-size: 14px;
+            line-height: 1.6;
+            display: none;
+        }
+
+        .faq-item.open .faq-answer {
+            display: block;
+        }
+
+        /* Floating Toast */
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background-color: #0B0D17;
+            border: 1px solid var(--accent-primary);
+            color: var(--accent-primary);
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            font-weight: 500;
+            z-index: 1000;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.75);
+            transition: opacity 0.24s var(--ease-out-elastic), transform 0.24s var(--ease-spring);
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .toast.is-hidden {
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(16px);
         }
 
         .btn-inline {
@@ -690,28 +975,36 @@
         <div class="container nav-inner">
             <div class="logo">
                 <span class="brand-font">KeyForge</span>
-                <span class="logo-badge">v1.0.0</span>
+                <span class="logo-badge">v1.1.0</span>
             </div>
             <nav class="nav-links" aria-label="Navegación Principal">
                 <span class="badge-live">GATEWAY ACTIVO</span>
+                <a href="#showcase-section" class="nav-link">SDKs</a>
                 <a href="#console-section" class="nav-link">Consola</a>
+                <a href="#comparison-section" class="nav-link">Ventajas</a>
                 <a href="#pricing-section" class="nav-link">Planes</a>
+                <a href="#faq-section" class="nav-link">FAQ</a>
                 <a href="/docs" class="nav-link">API Docs</a>
-                <a href="/healthz" class="nav-link" target="_blank" rel="noopener">Health</a>
-                <a href="/readyz" class="nav-link" target="_blank" rel="noopener">Readiness</a>
             </nav>
         </div>
     </header>
 
     <main class="container">
+        <!-- Hero Section -->
         <section class="hero">
             <div class="hero-copy">
-                <span class="hero-eyebrow">Licenciamiento Ed25519 + Metering Token-Bucket</span>
+                <span class="hero-eyebrow">Ed25519 RFC 8032 + Model Context Protocol + SQLite WAL</span>
                 <h1>Pasarela Criptográfica y Control de Cuota para Productos de <span class="highlight">IA</span></h1>
-                <p>Monetiza CLIs, agentes locales, SDKs y micro-SaaS en minutos. Firma asimétrica RFC 8032 verificable sin conexión, bloqueo por hardware o dominio y cobro atómico por uso compatible con Stripe y LemonSqueezy.</p>
+                <p>Monetiza servidores MCP, CLIs para desarrolladores, agentes locales y micro-SaaS en 2 líneas de código. Licencias Ed25519 verificables sin conexión, control de cuotas con cero sobregiros y cobros automatizados con Stripe y LemonSqueezy.</p>
                 <div class="hero-actions">
                     <button type="button" class="btn" id="btnHeroStart">Iniciar Prueba Gratuita</button>
                     <a href="/docs" class="btn btn-secondary">Explorar API Docs</a>
+                </div>
+                <div class="hero-trust-bar">
+                    <span class="trust-item"><span class="trust-dot"></span> RFC 8032 Asimétrico</span>
+                    <span class="trust-item"><span class="trust-dot"></span> Offline &lt; 0.1 ms</span>
+                    <span class="trust-item"><span class="trust-dot"></span> SQLite WAL ACID</span>
+                    <span class="trust-item"><span class="trust-dot"></span> Wrapper MCP Nativo</span>
                 </div>
             </div>
             <aside class="hero-mockup" aria-label="Inspección de Token Criptográfico">
@@ -738,6 +1031,7 @@
             </aside>
         </section>
 
+        <!-- Stat Grid -->
         <section class="stat-grid" aria-label="Métricas de Arquitectura">
             <div class="stat-box">
                 <div class="stat-label">Latencia Verificación</div>
@@ -752,11 +1046,89 @@
                 <div class="stat-value">SQLite WAL</div>
             </div>
             <div class="stat-box">
-                <div class="stat-label">Pasarelas Nativas</div>
-                <div class="stat-value">Stripe / LS</div>
+                <div class="stat-label">Soporte Protocolos</div>
+                <div class="stat-value">MCP + REST</div>
             </div>
         </section>
 
+        <!-- Integration Showcase Section -->
+        <section id="showcase-section" class="showcase-card">
+            <div class="code-tabs-header">
+                <div>
+                    <h3 class="card-title">Integración en 2 Líneas de Código</h3>
+                    <p style="color: var(--text-muted); font-size: 13px; margin-top: 4px;">Usa los paquetes oficiales de npm o PyPI para monetizar herramientas sin fricción.</p>
+                </div>
+                <div class="tab-btn-group">
+                    <button type="button" class="tab-btn active" data-tab="python-mcp">Python FastMCP</button>
+                    <button type="button" class="tab-btn" data-tab="ts-mcp">TypeScript MCP</button>
+                    <button type="button" class="tab-btn" data-tab="python-offline">Python Offline</button>
+                    <button type="button" class="tab-btn" data-tab="js-webcrypto">Node / WebCrypto</button>
+                </div>
+            </div>
+
+            <div class="code-snippet-wrap">
+                <button type="button" class="btn-copy-code" id="btnCopySnippet">Copiar Código</button>
+                <pre id="codeSnippet"><span class="hl-kw">from</span> keyforge_verify.mcp <span class="hl-kw">import</span> metered
+
+<span class="hl-cm"># Decorador oficial para servidores MCP en Python: descuenta 2 créditos por llamada</span>
+<span class="hl-fn">@mcp.tool</span>()
+<span class="hl-fn">@metered</span>(credits=2)
+<span class="hl-kw">async def</span> <span class="hl-fn">analizar_codigo</span>(repo_url: str) -&gt; str:
+    <span class="hl-kw">return await</span> run_ai_audit(repo_url)</pre>
+            </div>
+        </section>
+
+        <!-- Strategic Comparison Section -->
+        <section id="comparison-section" class="comparison-card">
+            <div class="section-head">
+                <h2>¿Por qué Elegir KeyForge?</h2>
+                <p>Compara el modelo autoalojado frente a las plataformas de licenciamiento tradicionales.</p>
+            </div>
+            <table class="comp-table">
+                <thead>
+                    <tr>
+                        <th>Característica</th>
+                        <th class="kf-col">KeyForge (Self-Hosted)</th>
+                        <th>SaaS Tradicional (Keygen.sh / Cryptolens)</th>
+                        <th>Desarrollo Propio (DIY)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Coste Recurrente</td>
+                        <td class="kf-col">$0 / mes (Tuyo para siempre)</td>
+                        <td>$49 a $499 USD / mes perpetuo</td>
+                        <td>60+ horas de desarrollo ($4.000+)</td>
+                    </tr>
+                    <tr>
+                        <td>Validación Offline / Sin Red</td>
+                        <td class="kf-col">Nativa Ed25519 (&lt; 0.1 ms)</td>
+                        <td>Imposible (requiere llamada HTTP)</td>
+                        <td>Propensa a fallos de maleabilidad</td>
+                    </tr>
+                    <tr>
+                        <td>Privacidad de tus Clientes</td>
+                        <td class="kf-col">100% en tu servidor privado</td>
+                        <td>Datos en bases de terceros</td>
+                        <td>En tu servidor</td>
+                    </tr>
+                    <tr>
+                        <td>Wrapper MCP para IA</td>
+                        <td class="kf-col">Nativo (@metered con JSON-RPC)</td>
+                        <td>Inexistente</td>
+                        <td>Debes implementarlo desde cero</td>
+                    </tr>
+                    <tr>
+                        <td>Dependencias en Cliente</td>
+                        <td class="kf-col">0 dependencias (Web Crypto / Stdlib)</td>
+                        <td>SDKs pesados con dependencias C</td>
+                        <td>Variable</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Live Operations Console Section -->
         <section id="console-section">
             <div class="section-head">
                 <h2>Consola Operativa en Tiempo Real</h2>
@@ -900,6 +1272,7 @@
             </div>
         </section>
 
+        <!-- Pricing Section -->
         <section id="pricing-section">
             <div class="section-head">
                 <h2>Arquitectura Comercial Lista para Monetizar</h2>
@@ -967,15 +1340,90 @@
                     <pre class="code-box state-ok" id="billingResult" aria-live="polite"></pre>
                 </div>
             </div>
+
+            <!-- Guarantee Bar -->
+            <div class="guarantee-bar">
+                <div>
+                    <div class="guarantee-title">Garantía de Satisfacción Técnica de 14 Días</div>
+                    <div class="guarantee-desc">Prueba KeyForge en tus propios servidores. Si no supera tus requisitos de rendimiento o seguridad, te devolvemos el 100% de tu dinero sin preguntas.</div>
+                </div>
+                <div class="hero-trust-bar" style="margin: 0;">
+                    <span class="trust-item"><span class="trust-dot"></span> Despliegue en 30 segundos</span>
+                    <span class="trust-item"><span class="trust-dot"></span> 100% Código Auditable</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ Section -->
+        <section id="faq-section" class="faq-section">
+            <div class="section-head">
+                <h2>Preguntas Frecuentes</h2>
+                <p>Todo lo que necesitas saber antes de desplegar o integrar KeyForge.</p>
+            </div>
+
+            <div class="faq-list">
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <span>¿Pueden mis usuarios validar su licencia en un avión o sin conexión a internet?</span>
+                        <span class="faq-icon">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        Sí, al 100%. Gracias a la criptografía asimétrica Ed25519 (RFC 8032), tus clientes reciben la clave pública y comprueban la firma matemática del token de forma local en menos de 0.1 milisegundos, sin enviar ninguna petición por internet.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <span>¿Qué infraestructura necesito para alojar el servidor de KeyForge?</span>
+                        <span class="faq-icon">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        Cualquier servidor básico con Docker (un VPS de $4 a $5 USD/mes en Hetzner o DigitalOcean, o incluso planes Always Free de Oracle Cloud). El backend consume menos de 60 MB de memoria RAM y no requiere bases de datos pesadas externas.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <span>¿Cómo funciona el cobro de créditos en servidores MCP de Inteligencia Artificial?</span>
+                        <span class="faq-icon">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        Solo tienes que añadir el decorador `@metered(credits=2)` sobre tus herramientas de MCP en Python o TypeScript. KeyForge descuenta los créditos de forma atómica con SQLite WAL. Si el cliente agota sus fichas, responde con el error estándar JSON-RPC -32042 y el enlace directo de recarga.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <span>¿Qué ocurre si la herramienta falla durante su ejecución?</span>
+                        <span class="faq-icon">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        La versión 1.1 incluye reembolso automático: si la función del servidor MCP lanza una excepción o devuelve un error, el SDK se comunica con el endpoint seguro `/api/v1/quota/refund` usando la clave de idempotencia original y restituye los créditos al cliente de inmediato.
+                    </div>
+                </div>
+
+                <div class="faq-item">
+                    <div class="faq-question">
+                        <span>¿Cómo recibo el dinero de las ventas?</span>
+                        <span class="faq-icon">+</span>
+                    </div>
+                    <div class="faq-answer">
+                        KeyForge se conecta directamente con tu cuenta de Stripe o LemonSqueezy. Los clientes pagan con tarjeta de crédito, Apple Pay o Google Pay, y el dinero va directo a tu cuenta bancaria sin comisiones abusivas de plataformas intermediarias.
+                    </div>
+                </div>
+            </div>
         </section>
 
         <footer>
             <div class="footer-inner">
-                <div>KeyForge Gateway v1.0.0 - Licenciamiento Criptográfico y Control de Cuota</div>
-                <div>Arquitectura Hexagonal Limpia / Python 3.14 / FastAPI / SQLite WAL</div>
+                <div>KeyForge Gateway v1.1.0 - Licenciamiento Criptográfico y Control de Cuota para IA</div>
+                <div>Arquitectura Hexagonal Limpia / Python 3.14 / FastAPI / SQLite WAL / Ed25519</div>
             </div>
         </footer>
     </main>
+
+    <!-- Floating Toast Notification -->
+    <div id="toast" class="toast is-hidden" role="status" aria-live="polite"></div>
 
     <script src="/static/app.js"></script>
 </body>

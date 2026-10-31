@@ -596,4 +596,111 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         })
     );
+
+    // 7. Toast Notification System
+    const toast = document.getElementById("toast");
+    let toastTimeout = null;
+    function showToast(message) {
+        if (!toast) return;
+        toast.textContent = message;
+        toast.classList.remove("is-hidden");
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => {
+            toast.classList.add("is-hidden");
+        }, 2800);
+    }
+
+    // 8. Interactive Code Showcase Tabs
+    const codeSnippet = document.getElementById("codeSnippet");
+    const btnCopySnippet = document.getElementById("btnCopySnippet");
+    const codeSnippets = {
+        "python-mcp": `<span class="hl-kw">from</span> keyforge_verify.mcp <span class="hl-kw">import</span> metered
+
+<span class="hl-cm"># Decorador oficial para servidores MCP en Python: descuenta 2 créditos por llamada</span>
+<span class="hl-fn">@mcp.tool</span>()
+<span class="hl-fn">@metered</span>(credits=2)
+<span class="hl-kw">async def</span> <span class="hl-fn">analizar_codigo</span>(repo_url: str) -> str:
+    <span class="hl-kw">return await</span> run_ai_audit(repo_url)`,
+
+        "ts-mcp": `<span class="hl-kw">import</span> { createMcpWrapper } <span class="hl-kw">from</span> <span class="hl-str">"keyforge-verify/mcp"</span>;
+
+<span class="hl-kw">const</span> kf = createMcpWrapper({ gatewayUrl: <span class="hl-str">"https://licenses.tu-dominio.com"</span> });
+
+<span class="hl-cm">// Protege herramientas en @modelcontextprotocol/sdk con cobro atómico</span>
+server.tool(<span class="hl-str">"analizar_codigo"</span>, schema, kf.metered(2, <span class="hl-kw">async</span> (args) => {
+    <span class="hl-kw">return await</span> runAiAudit(args);
+}));`,
+
+        "python-offline": `<span class="hl-kw">from</span> keyforge_verify <span class="hl-kw">import</span> validate_offline
+
+<span class="hl-cm"># Verificación matemática 100% offline sin llamadas de red (&lt; 0.1 ms)</span>
+is_valid, payload, err = validate_offline(
+    license_token=<span class="hl-str">"LIC-PRO-eyJ..."</span>,
+    public_key_hex=<span class="hl-str">"0043b567..."</span>,
+    expected_machine_id=<span class="hl-str">"nodo-prod-01"</span>
+)
+<span class="hl-kw">if not</span> is_valid:
+    sys.exit(<span class="hl-str">f"Licencia inválida: {err}"</span>)`,
+
+        "js-webcrypto": `<span class="hl-kw">import</span> { verifyLicense } <span class="hl-kw">from</span> <span class="hl-str">"keyforge-verify"</span>;
+
+<span class="hl-cm">// Validación en navegador o Node.js usando la Web Crypto API nativa</span>
+<span class="hl-kw">const</span> { valid, payload, errorCode } = <span class="hl-kw">await</span> verifyLicense(token, publicKeyHex);
+<span class="hl-kw">if</span> (!valid) {
+    <span class="hl-kw">throw new</span> Error(<span class="hl-str">\`Acceso denegado: \${errorCode}\`</span>);
+}`
+    };
+
+    document.querySelectorAll(".tab-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+            document.querySelectorAll(".tab-btn").forEach((b) => b.classList.remove("active"));
+            btn.classList.add("active");
+            const tabKey = btn.getAttribute("data-tab");
+            if (codeSnippet && codeSnippets[tabKey]) {
+                codeSnippet.innerHTML = codeSnippets[tabKey];
+            }
+        });
+    });
+
+    if (btnCopySnippet) {
+        btnCopySnippet.addEventListener("click", async () => {
+            const rawText = codeSnippet.textContent || codeSnippet.innerText;
+            try {
+                await navigator.clipboard.writeText(rawText);
+                showToast("Código copiado al portapapeles");
+            } catch (err) {
+                showToast("Selecciona el código para copiar");
+            }
+        });
+    }
+
+    // 9. Hero Token Copy Interaction
+    const heroPreviewToken = document.getElementById("heroPreviewToken");
+    if (heroPreviewToken) {
+        heroPreviewToken.style.cursor = "pointer";
+        heroPreviewToken.title = "Haz clic para copiar el token";
+        heroPreviewToken.addEventListener("click", async () => {
+            const val = verifyKey.value.trim() || heroPreviewToken.textContent.trim();
+            if (val && !val.includes("<")) {
+                try {
+                    await navigator.clipboard.writeText(val);
+                    showToast("Token copiado al portapapeles");
+                } catch {
+                    showToast("Error al copiar");
+                }
+            }
+        });
+    }
+
+    // 10. FAQ Accordion Interaction
+    document.querySelectorAll(".faq-question").forEach((q) => {
+        q.addEventListener("click", () => {
+            const parent = q.parentElement;
+            const isOpen = parent.classList.contains("open");
+            document.querySelectorAll(".faq-item").forEach((item) => item.classList.remove("open"));
+            if (!isOpen) {
+                parent.classList.add("open");
+            }
+        });
+    });
 });
