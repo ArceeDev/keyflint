@@ -189,7 +189,7 @@ def verify_license_cmd(
     resolved_key = _resolve_key(license_key, key_opt)
     if offline:
         settings = get_settings()
-        pk = public_key or settings.ED25519_PUBLIC_KEY_HEX
+        pk = public_key or settings.ED25519_PUBLIC_KEY_HEX or Ed25519Signer().get_public_key_hex()
         if not pk:
             _exit_cli_error(ValueError("Public key must be provided for offline verification."))
         valid, payload, err = validate_offline(
@@ -486,6 +486,11 @@ def init_cmd(environment: str, output: Path, template: Optional[Path], force: bo
         )
 
         generated = _generate_secrets()
+        # Empty webhook secrets make a production gateway refuse to start; fill them with random
+        # values (still listed in fill_manually) so the server boots before billing is connected.
+        for name, prefix in (("STRIPE_WEBHOOK_SECRET", "whsec_"), ("LEMONSQUEEZY_WEBHOOK_SECRET", "")):
+            if re.search(rf"^{name}=\s*$", base, re.MULTILINE):
+                generated[name] = prefix + secrets.token_urlsafe(32)
         content = _render_env(base, {"ENVIRONMENT": environment, **generated})
 
         output.parent.mkdir(parents=True, exist_ok=True)

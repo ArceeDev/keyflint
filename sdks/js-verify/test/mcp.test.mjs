@@ -106,7 +106,10 @@ test("CommonJS subpath export", async () => {
   const { createRequire } = await import("node:module");
   const m = createRequire(import.meta.url)("keyforge-verify/mcp");
   assert.equal(typeof m.createKeyForge, "function");
-  assert.equal(m.QUOTA_EXHAUSTED, -32042);
+  assert.deepEqual([m.LICENSE_INVALID, m.FEATURE_NOT_ENTITLED, m.QUOTA_EXHAUSTED, m.GATEWAY_ERROR], [-32060, -32061, -32062, -32063]);
+  assert.deepEqual(m.parseKeysEnv("aa, k2=bb"), { "legacy-0": "aa", k2: "bb" });
+  assert.equal(m.parseKeysEnv("aa"), "aa");
+  assert.deepEqual(m.parseKeysEnv("aa,bb"), ["aa", "bb"]);
 });
 
 test("metered refunds credits when the handler throws or returns isError", async () => {
@@ -124,4 +127,13 @@ test("metered refunds credits when the handler throws or returns isError", async
   } finally {
     gw.close();
   }
+});
+
+test("license errors carry an actionable message", async () => {
+  const expired = vectors.find((v) => v.name === "ring_kid_token_without_key");
+  const kf = createKeyForge({ licenseKey: expired.token, publicKeys: { legacy: keys.k1 }, checkoutUrl: "https://shop/renew" });
+  await assert.rejects(kf.check(), (e) =>
+    e.code === LICENSE_INVALID && e.data.reason === "ERR_UNKNOWN_KID" && /does not trust/.test(e.message) && !e.message.includes("https://shop/renew"));
+  const kf2 = createKeyForge({ licenseKey: "", publicKeys: keys.k1, checkoutUrl: "https://shop/renew" });
+  await assert.rejects(kf2.check(), (e) => e.message === "No KeyForge license is configured. Set KEYFORGE_LICENSE. Get or renew a license: https://shop/renew");
 });

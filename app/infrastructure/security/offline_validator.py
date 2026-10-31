@@ -116,6 +116,9 @@ def _pure_ed25519_verify(sig: bytes, m: bytes, pk: bytes) -> bool:
     return (x1 * z2 - x2 * z1) % _Q == 0 and (y1 * z2 - y2 * z1) % _Q == 0
 
 
+# Tolerated difference between the issuer's clock and the local clock for `issued_at`.
+CLOCK_SKEW_LEEWAY_SECONDS = 300
+
 _B64URL_PATTERN = re.compile(r"^[A-Za-z0-9_-]+$")
 
 
@@ -318,6 +321,13 @@ def validate_offline(
             return False, payload, "ERR_MALFORMED_EXPIRATION"
         if now > expires_at:
             return False, payload, "ERR_LICENSE_EXPIRED"
+
+    # 7b. Clock sanity: a local clock earlier than the signed issuance time (beyond the
+    # tolerated skew) means the clock was rolled back or is badly wrong.
+    issued_at = payload.get("issued_at")
+    if isinstance(issued_at, (int, float)) and not isinstance(issued_at, bool):
+        if now + CLOCK_SKEW_LEEWAY_SECONDS < issued_at:
+            return False, payload, "ERR_CLOCK_BEFORE_ISSUANCE"
 
     # 8. Node lock / Machine ID enforcement
     locked_machine = payload.get("machine_id")

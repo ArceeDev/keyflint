@@ -16,7 +16,7 @@ from typing import Any, Mapping, Optional, Sequence, Union
 from ._validator import validate_offline
 
 __all__ = ["validate_offline", "verify_license", "decode_payload", "VerifyResult", "PublicKeys"]
-__version__ = "0.1.0"
+__version__ = "1.1.0"
 
 PublicKeys = Union[str, Sequence[str], Mapping[str, str]]
 
@@ -65,6 +65,12 @@ def decode_payload(token: str) -> Optional[dict[str, Any]]:
         return None
 
 
+_PRE_SIGNATURE_ERRORS = frozenset({
+    "ERR_EMPTY_TOKEN", "ERR_INVALID_TOKEN_FORMAT", "ERR_INVALID_TOKEN_PREFIX", "ERR_INVALID_PUBLIC_KEY",
+    "ERR_MALFORMED_BASE64_PAYLOAD", "ERR_MALFORMED_BASE64_SIGNATURE", "ERR_INVALID_SIGNATURE_LENGTH",
+})
+
+
 def _peek_kid(token: str) -> Optional[str]:
     kid = (decode_payload(token) or {}).get("kid")
     return kid if isinstance(kid, str) else None
@@ -81,8 +87,10 @@ def verify_license(
 ) -> VerifyResult:
     """Verifies a token against one or more trusted public keys.
 
-    Tokens without ``kid`` (all KeyForge v1.0 tokens) are tried against every key;
-    tokens with a signed ``kid`` try the matching key first.
+    Tokens without ``kid`` (all KeyForge v1.0 tokens) are tried against every key.
+    With a ``{kid: hex}`` mapping, a token with a signed ``kid`` is checked only against
+    that key (``ERR_UNKNOWN_KID`` when the mapping has no such kid). A single key or a
+    list has no names, so every key is tried.
     """
     ring = _normalize_keys(public_keys)
     if ring is None:
@@ -91,8 +99,14 @@ def verify_license(
         return VerifyResult(False, None, err)
 
     kid = _peek_kid(token) if isinstance(token, str) else None
-    if kid is not None:
-        ring.sort(key=lambda e: e[0] != kid)
+    if kid is not None and isinstance(public_keys, Mapping):
+        matching = [e for e in ring if e[0] == kid]
+        if not matching:
+            # Report structural errors first (same order as the npm package), then the kid.
+            _, _, err = validate_offline(token, ring[0][1], now, machine_id, domain,
+                                         force_pure_python=force_pure_python)
+            return VerifyResult(False, None, err if err in _PRE_SIGNATURE_ERRORS else "ERR_UNKNOWN_KID")
+        ring = matching
 
     last = VerifyResult(False, None, "ERR_SIGNATURE_TAMPERED")
     for key_id, hex_key in ring:

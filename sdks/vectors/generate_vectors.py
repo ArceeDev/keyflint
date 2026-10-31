@@ -123,11 +123,19 @@ add("domain_idna", tok(K1, base(allowed_domains=["bücher.example"])), [PK1], do
 add("domain_empty_list_allows_any", tok(K1, base(allowed_domains=[])), [PK1], domain="anything.com")
 add("domain_list_not_strings", tok(K1, base(allowed_domains=[1])), [PK1], domain="a.com")
 
+# clock sanity (issued_at is signed; 300 s of tolerated skew)
+iss = tok(K1, base(issued_at=NOW))
+add("clock_before_issuance", iss, [PK1], now=NOW - 301)
+add("clock_skew_within_leeway", iss, [PK1], now=NOW - 300)
+add("issued_at_not_number_ignored", tok(K1, base(issued_at="2027-01-15")), [PK1])
+
 # key ring / rotation
 rot = tok(K2, base(kid="k2"))
 add("ring_legacy_token_old_key", good, [PK2, PK1])
 add("ring_kid_token_new_key", rot, [PK1, PK2])
 add("ring_kid_token_without_key", rot, [PK1])
+# token claiming kid "k2" but signed by the k1 key (kid binding is checked with named key maps)
+add("kid_claim_signed_by_other_key", tok(K1, base(kid="k2")), [PK2])
 
 # RFC 8032 adversarial
 sig_b = bytearray(K1.sign_bytes(json.dumps(base(), sort_keys=True, separators=(",", ":")).encode()))

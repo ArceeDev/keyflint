@@ -36,7 +36,7 @@ def require_admin_access(
     """Enforces X-Admin-Key authentication on privileged administrative routes.
 
     - In ENVIRONMENT='production': X-Admin-Key is strictly mandatory and compared in constant time.
-    - In development/test: seamless local demo calls without X-Admin-Key are permitted,
+    - In development/test: unauthenticated local demo calls without X-Admin-Key are permitted,
       while explicitly supplied invalid keys are rejected with 401.
     """
     settings = get_settings()

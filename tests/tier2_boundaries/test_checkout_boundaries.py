@@ -140,6 +140,7 @@ class TestCheckoutBoundaries(BaseKeyForgeTestCase):
             ENVIRONMENT="production",
             SECRET_KEY="prod_hmac_secret_key_with_high_entropy_9876543210",
             ED25519_PRIVATE_KEY_HEX=strong_priv,
+            ED25519_PUBLIC_KEY_HEX="",  # derived from the private key
             STRIPE_WEBHOOK_SECRET="whsec_live_unique_stripe_secret_999999",
             LEMONSQUEEZY_WEBHOOK_SECRET="whsec_live_unique_ls_secret_999999",
             ADMIN_API_KEY="kf_live_admin_secret_key_987654321",

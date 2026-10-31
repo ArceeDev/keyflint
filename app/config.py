@@ -36,7 +36,8 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///data/keyforge.db"
     SECRET_KEY: str = "test_super_secret_key_32_characters_long_1234"
     ED25519_PRIVATE_KEY_HEX: Optional[str] = "a01fd194d15178191f62e570962a579e61bf728945f79655d9df145eada811ec"
-    ED25519_PUBLIC_KEY_HEX: Optional[str] = "0043b567534bfa2d55059a05642f75573d420899146f334a9f7fc5fba797bd0b"
+    # Derived from ED25519_PRIVATE_KEY_HEX when unset; if set, it must match the private key.
+    ED25519_PUBLIC_KEY_HEX: Optional[str] = None
     # Key rotation (v1.1). ED25519_KID unset = legacy tokens without "kid" (v1.0 compatible).
     ED25519_KID: Optional[str] = None
     # Retired verification keys kept for old tokens: "kid=hex,kid2=hex" or bare "hex" (pre-kid key).
@@ -103,6 +104,14 @@ class Settings(BaseSettings):
                 bytes.fromhex(priv)
             except ValueError:
                 problems.append("ED25519_PRIVATE_KEY_HEX is not valid hexadecimal")
+            else:
+                pub = (self.ED25519_PUBLIC_KEY_HEX or "").strip().lower()
+                if pub:
+                    from app.infrastructure.security.ed25519_signer import Ed25519Signer
+                    try:
+                        Ed25519Signer(private_key_hex=priv, public_key_hex=pub)
+                    except ValueError:
+                        problems.append("ED25519_PUBLIC_KEY_HEX does not match ED25519_PRIVATE_KEY_HEX (leave it empty to derive it)")
 
         if self.STRIPE_WEBHOOK_SECRET in _INSECURE_WEBHOOK_SECRETS:
             problems.append("STRIPE_WEBHOOK_SECRET must not use test default in production")

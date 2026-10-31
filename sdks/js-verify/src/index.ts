@@ -24,6 +24,10 @@ export type ErrorCode =
   | "ERR_LICENSE_EXPIRED"
   | "ERR_NODE_LOCK_VIOLATION"
   | "ERR_DOMAIN_LOCK_VIOLATION"
+  /** The local clock is earlier than the signed `issued_at` minus the tolerated skew (300 s). */
+  | "ERR_CLOCK_BEFORE_ISSUANCE"
+  /** The token has a `kid` that is not in the `{ kid: hex }` key map. */
+  | "ERR_UNKNOWN_KID"
   /** SDK-only: the runtime has no Web Crypto Ed25519 support. */
   | "ERR_CRYPTO_UNAVAILABLE";
 
@@ -43,7 +47,8 @@ export interface LicensePayload {
  * - historical keys:         ["new...", "old..."]
  * - keys indexed by key id:  { k2026: "new...", legacy: "old..." }
  * Tokens without `kid` (all tokens issued by KeyForge v1.0) are checked against every key.
- * Tokens with a `kid` in the signed payload are checked against that key first.
+ * With a `{ kid: hex }` map, a token with a signed `kid` is checked only against that key
+ * (`ERR_UNKNOWN_KID` if the map has no such kid). Strings and arrays have no names: every key is tried.
  */
 export type PublicKeys = string | readonly string[] | Readonly<Record<string, string>>;
 
@@ -80,6 +85,9 @@ export interface Verifier {
 // ---------------------------------------------------------------------------
 // Encoding helpers
 // ---------------------------------------------------------------------------
+
+/** Tolerated difference (seconds) between the issuer's clock and the local clock for `issued_at`. */
+export const CLOCK_SKEW_LEEWAY_SECONDS = 300;
 
 const B64URL_RE = /^[A-Za-z0-9_-]+$/;
 const B64_ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_";
@@ -254,23 +262,28 @@ class CryptoUnavailable extends Error {}
 
 interface KeyEntry {
   id: string | undefined;
+  /** True when the id comes from a `{ kid: hex }` map (binding to `kid` is enforced). */
+  named: boolean;
   bytes: Uint8Array;
   imported?: Promise<CryptoKey | null> | undefined;
 }
 
 function normalizeKeys(keys: PublicKeys): KeyEntry[] | null {
   let pairs: [string | undefined, unknown][];
+  let named = false;
   if (typeof keys === "string") pairs = [[undefined, keys]];
   else if (Array.isArray(keys)) pairs = keys.map((k, i) => [String(i), k]);
-  else if (keys && typeof keys === "object") pairs = Object.entries(keys);
-  else return null;
+  else if (keys && typeof keys === "object") {
+    pairs = Object.entries(keys);
+    named = true;
+  } else return null;
   if (pairs.length === 0) return null;
 
   const out: KeyEntry[] = [];
   for (const [id, hex] of pairs) {
     const bytes = hexToBytes(hex as string);
     if (!bytes) return null;
-    out.push({ id, bytes });
+    out.push({ id, bytes, named });
   }
   return out;
 }
@@ -308,9 +321,13 @@ async function verifySignature(
   ring: KeyEntry[],
   sig: Uint8Array,
   msg: Uint8Array,
-): Promise<KeyEntry | null> {
+): Promise<KeyEntry | null | "unknown_kid"> {
   const kid = peekKid(msg);
-  const ordered = kid === undefined ? ring : [...ring].sort((a, b) => Number(b.id === kid) - Number(a.id === kid));
+  let ordered = ring;
+  if (kid !== undefined && ring[0]?.named) {
+    ordered = ring.filter((e) => e.id === kid);
+    if (ordered.length === 0) return "unknown_kid";
+  }
   for (const entry of ordered) {
     if (!isStrictSignature(sig, entry.bytes)) continue;
     const key = await importKey(subtle, entry);
@@ -402,13 +419,14 @@ async function verifyWithRing(
   // 4. Signature
   const subtle = await getSubtle(options.subtle);
   if (!subtle) return fail("ERR_CRYPTO_UNAVAILABLE");
-  let matched: KeyEntry | null;
+  let matched: KeyEntry | null | "unknown_kid";
   try {
     matched = await verifySignature(subtle, ring, sig, payloadBytes);
   } catch (e) {
     if (e instanceof CryptoUnavailable) return fail("ERR_CRYPTO_UNAVAILABLE");
     throw e;
   }
+  if (matched === "unknown_kid") return fail("ERR_UNKNOWN_KID");
   if (!matched) return fail("ERR_SIGNATURE_TAMPERED");
 
   // 5. JSON payload
@@ -432,6 +450,12 @@ async function verifyWithRing(
   if (exp !== undefined && exp !== null) {
     if (typeof exp !== "number") return fail("ERR_MALFORMED_EXPIRATION", payload);
     if (now > exp) return fail("ERR_LICENSE_EXPIRED", payload);
+  }
+
+  // 7b. Clock sanity: local clock earlier than the signed issuance time (beyond tolerated skew)
+  const iat = (payload as { issued_at?: unknown }).issued_at;
+  if (typeof iat === "number" && now + CLOCK_SKEW_LEEWAY_SECONDS < iat) {
+    return fail("ERR_CLOCK_BEFORE_ISSUANCE", payload);
   }
 
   // 8. Node lock

@@ -86,6 +86,33 @@ class TestKidRotation(BaseKeyForgeTestCase):
         self.assertFalse(ok)
         self.assertEqual(err, "ERR_SIGNATURE_TAMPERED")
 
+    def test_kid_is_bound_to_its_key(self):
+        from app.infrastructure.security.ed25519_signer import Ed25519Signer
+        old_priv, old_pub = Ed25519Signer.generate_keypair()
+        old = Ed25519Signer(old_priv, old_pub, kid="k1")
+        priv, pub = Ed25519Signer.generate_keypair()
+        server = Ed25519Signer(priv, pub, kid="k2", retired_public_keys=f"k1={old_pub}")
+        # Retired key k1 signing a token that claims kid "k2" must not verify.
+        forged = Ed25519Signer(old_priv, old_pub).sign_token({"tier": "pro", "license_id": "x", "kid": "k2"})
+        self.assertEqual(server.verify_token(forged)[2], "ERR_SIGNATURE_TAMPERED")
+        self.assertTrue(server.verify_token(old.sign_token({"tier": "pro", "license_id": "y"}))[0])
+
+    def test_mismatched_public_key_is_rejected(self):
+        from app.config import Settings
+        from app.infrastructure.security.ed25519_signer import Ed25519Signer
+        priv, _ = Ed25519Signer.generate_keypair()
+        _, other_pub = Ed25519Signer.generate_keypair()
+        with self.assertRaises(ValueError):
+            Ed25519Signer(private_key_hex=priv, public_key_hex=other_pub)
+        derived = Ed25519Signer(private_key_hex=priv).get_public_key_hex()
+        self.assertEqual(Ed25519Signer(private_key_hex=priv, public_key_hex=derived).get_public_key_hex(), derived)
+        with self.assertRaises(RuntimeError) as cm:
+            Settings(ENVIRONMENT="production", SECRET_KEY="s" * 48, ED25519_PRIVATE_KEY_HEX=priv,
+                     ED25519_PUBLIC_KEY_HEX=other_pub, ADMIN_API_KEY="kf_" + "a" * 30,
+                     STRIPE_WEBHOOK_SECRET="whsec_real", LEMONSQUEEZY_WEBHOOK_SECRET="ls_real",
+                     ).validate_production_secrets()
+        self.assertIn("does not match", str(cm.exception))
+
     def test_invalid_kid_and_retired_key_rejected(self):
         from app.infrastructure.security.ed25519_signer import Ed25519Signer
         with self.assertRaises(ValueError):
@@ -121,6 +148,23 @@ class TestMeteredRefund(BaseKeyForgeTestCase):
         self.assertEqual(replay.status_code, 200)
         self.assertTrue(replay.json()["data"]["is_cached"])
         self.assertEqual(self._balance(key), 500)
+
+    def test_deduct_replay_after_refund_is_rejected(self):
+        key = self.issue_license_api(customer_email="replay@acme.ai", tier="pro")["license_key"]
+        idem = str(uuid.uuid4())
+        self.assertEqual(self.deduct_quota_api(key, credits=5, idempotency_key=idem).status_code, 200)
+        self.assertEqual(self.client.post("/api/v1/quota/refund",
+                                          json={"license_key": key, "idempotency_key": idem}).status_code, 200)
+        before = self._balance(key)
+        replay = self.deduct_quota_api(key, credits=5, idempotency_key=idem)
+        self.assertEqual(replay.status_code, 409, replay.text)
+        self.assertEqual(replay.json()["error"]["details"]["reason"], "KEY_REFUNDED")
+        self.assertEqual(self._balance(key), before)
+
+    def test_deduct_rejects_reserved_refund_prefix(self):
+        key = self.issue_license_api(customer_email="prefix@acme.ai")["license_key"]
+        res = self.deduct_quota_api(key, credits=1, idempotency_key=f"refund:{uuid.uuid4()}")
+        self.assertIn(res.status_code, (400, 422))
 
     def test_refund_unknown_or_cross_license_key_is_404(self):
         a = self.issue_license_api(customer_email="a_ref@acme.ai")["license_key"]

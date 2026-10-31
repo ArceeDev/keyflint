@@ -43,7 +43,20 @@ class TestKeyRing(unittest.TestCase):
     def test_untrusted_kid_rejected(self) -> None:
         v = BY_NAME["ring_kid_token_new_key"]
         self.assertEqual(verify_license(v["token"], {"legacy": KEYS["k1"]}, now=v["now"]).error,
-                         "ERR_SIGNATURE_TAMPERED")
+                         "ERR_UNKNOWN_KID")
+
+    def test_kid_is_bound_to_its_key_in_maps(self) -> None:
+        v = BY_NAME["kid_claim_signed_by_other_key"]
+        ring = {"legacy": KEYS["k1"], "k2": KEYS["k2"]}
+        self.assertEqual(verify_license(v["token"], ring, now=v["now"]).error, "ERR_SIGNATURE_TAMPERED")
+        # Lists carry no names, so every key is tried (v1.0 behaviour).
+        self.assertTrue(verify_license(v["token"], [KEYS["k2"], KEYS["k1"]], now=v["now"]).valid)
+
+    def test_structural_error_wins_over_unknown_kid(self) -> None:
+        v = BY_NAME["ring_kid_token_new_key"]
+        head, sig = v["token"].split(".")
+        self.assertEqual(verify_license(head + "." + sig[:-4], {"legacy": KEYS["k1"]}, now=v["now"]).error,
+                         "ERR_INVALID_SIGNATURE_LENGTH")
 
     def test_empty_ring(self) -> None:
         v = BY_NAME["valid_basic"]

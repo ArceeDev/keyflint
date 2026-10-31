@@ -44,7 +44,22 @@ test("key map: token with kid selects its key", async () => {
 test("key map: kid not trusted is rejected", async () => {
   const v = byName.ring_kid_token_new_key;
   const r = await verifyLicense(v.token, { legacy: keys.k1 }, { now: v.now });
+  assert.equal(r.error, "ERR_UNKNOWN_KID");
+});
+
+test("key map: kid is bound to its key", async () => {
+  const v = byName.kid_claim_signed_by_other_key;
+  const r = await verifyLicense(v.token, { legacy: keys.k1, k2: keys.k2 }, { now: v.now });
   assert.equal(r.error, "ERR_SIGNATURE_TAMPERED");
+  // Arrays carry no names, so every key is tried (v1.0 behaviour).
+  assert.equal((await verifyLicense(v.token, [keys.k2, keys.k1], { now: v.now })).valid, true);
+});
+
+test("key map: structural error wins over unknown kid", async () => {
+  const v = byName.ring_kid_token_new_key;
+  const [head, sig] = v.token.split(".");
+  const r = await verifyLicense(`${head}.${sig.slice(0, -4)}`, { legacy: keys.k1 }, { now: v.now });
+  assert.equal(r.error, "ERR_INVALID_SIGNATURE_LENGTH");
 });
 
 test("empty key ring is ERR_INVALID_PUBLIC_KEY", async () => {

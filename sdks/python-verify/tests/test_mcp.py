@@ -12,10 +12,12 @@ from pathlib import Path
 
 from keyforge_verify.mcp import (
     FEATURE_NOT_ENTITLED,
+    GATEWAY_ERROR,
     LICENSE_INVALID,
     QUOTA_EXHAUSTED,
     KeyForge,
     LicenseError,
+    _parse_keys_env,
 )
 
 DATA = json.loads((Path(__file__).resolve().parents[1].parent / "vectors" / "vectors.json").read_text("utf-8"))
@@ -193,6 +195,29 @@ except ImportError:  # pragma: no cover
     MCPServer = None  # type: ignore[assignment,misc]
 
 
+class TestKeysEnvAndMessages(unittest.TestCase):
+    def test_mixed_legacy_and_kid_entries(self) -> None:
+        k1, k2 = DATA["keys"]["k1"], DATA["keys"]["k2"]
+        self.assertEqual(_parse_keys_env(f"{k1}, k2={k2}"), {"legacy-0": k1, "k2": k2})
+        self.assertEqual(_parse_keys_env(k1), k1)
+        self.assertEqual(_parse_keys_env(f"{k1},{k2}"), [k1, k2])
+        kf = KeyForge(license_key=V["ring_kid_token_new_key"]["token"], public_keys=_parse_keys_env(f"{k1},k2={k2}"))
+        self.assertTrue(kf.check().valid)
+
+    def test_expired_message_is_actionable(self) -> None:
+        from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+        import base64
+        b64 = lambda b: base64.urlsafe_b64encode(b).rstrip(b"=").decode()  # noqa: E731
+        body = json.dumps({"tier": "pro", "license_id": "x", "expires_at": 1_000_000_000}).encode()
+        sig = Ed25519PrivateKey.from_private_bytes(bytes.fromhex("11" * 32)).sign(body)  # vectors key k1
+        token = f"LIC-PRO-{b64(body)}.{b64(sig)}"
+        kf = KeyForge(license_key=token, public_keys=PK, checkout_url="https://shop.example/renew")
+        with self.assertRaises(LicenseError) as cm:
+            kf.check()
+        self.assertEqual(cm.exception.reason, "ERR_LICENSE_EXPIRED")
+        self.assertRegex(str(cm.exception), r"^Your license expired on \d{4}-\d{2}-\d{2}\. Get or renew a license: https://shop\.example/renew$")
+
+
 @unittest.skipIf(MCPServer is None, "mcp>=2 not installed")
 class TestMCPServerIntegration(unittest.TestCase):
     def test_tools_over_mcp(self) -> None:
@@ -224,7 +249,7 @@ class TestMCPServerIntegration(unittest.TestCase):
                         self.assertEqual(cm.exception.code, code)
 
             asyncio.run(run())
-            self.assertEqual(LICENSE_INVALID, -32040)
+            self.assertEqual((LICENSE_INVALID, FEATURE_NOT_ENTITLED, QUOTA_EXHAUSTED, GATEWAY_ERROR), (-32060, -32061, -32062, -32063))
         finally:
             gw.close()
 

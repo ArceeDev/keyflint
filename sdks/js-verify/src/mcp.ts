@@ -14,10 +14,39 @@
 
 import { decodeLicense, verifyLicense, type PublicKeys, type VerifyResult } from "./index.js";
 
-export const LICENSE_INVALID = -32040;
-export const FEATURE_NOT_ENTITLED = -32041;
-export const QUOTA_EXHAUSTED = -32042;
-export const GATEWAY_ERROR = -32043;
+// JSON-RPC server error range, same values as the Python package. -32042 is avoided because
+// MCP itself uses it for URLElicitationRequired.
+export const LICENSE_INVALID = -32060;
+export const FEATURE_NOT_ENTITLED = -32061;
+export const QUOTA_EXHAUSTED = -32062;
+export const GATEWAY_ERROR = -32063;
+
+const LICENSE_MESSAGES: Record<string, string> = {
+  ERR_EMPTY_TOKEN: "No KeyForge license is configured. Set KEYFORGE_LICENSE.",
+  ERR_SIGNATURE_TAMPERED:
+    "This license was not issued for this server (signature check failed). Check KEYFORGE_LICENSE and KEYFORGE_PUBLIC_KEYS.",
+  ERR_UNKNOWN_KID: "This license was signed with a key this server does not trust. Check KEYFORGE_PUBLIC_KEYS.",
+  ERR_NODE_LOCK_VIOLATION: "This license is locked to another machine.",
+  ERR_DOMAIN_LOCK_VIOLATION: "This license is not valid for this domain.",
+  ERR_CLOCK_BEFORE_ISSUANCE: "The system clock is earlier than the license issue date. Correct the clock and retry.",
+};
+const NO_CHECKOUT_HINT = new Set(["ERR_CLOCK_BEFORE_ISSUANCE", "ERR_UNKNOWN_KID", "ERR_SIGNATURE_TAMPERED"]);
+
+/** Plain-language reason plus the next step; this text is what MCP clients show. */
+function licenseMessage(error: string | null, payload: VerifyResult["payload"], checkoutUrl?: string): string {
+  const code = error ?? "ERR_LICENSE_INVALID";
+  let text: string;
+  if (code === "ERR_LICENSE_EXPIRED") {
+    const exp = payload?.expires_at;
+    text = typeof exp === "number"
+      ? `Your license expired on ${new Date(exp * 1000).toISOString().slice(0, 10)}.`
+      : "Your license has expired.";
+  } else {
+    text = LICENSE_MESSAGES[code] ?? `The KeyForge license is invalid (${code}).`;
+  }
+  if (checkoutUrl && !NO_CHECKOUT_HINT.has(code)) text += ` Get or renew a license: ${checkoutUrl}`;
+  return text;
+}
 
 export interface KeyForgeErrorData {
   reason: string;
@@ -99,10 +128,16 @@ function env(name: string): string | undefined {
   return v && v.trim() ? v.trim() : undefined;
 }
 
-function parseKeysEnv(raw: string | undefined): PublicKeys {
+/** Parses `hex`, `hex,hex` or `kid=hex` entries; bare keys in a named list become `legacy-<i>`. */
+export function parseKeysEnv(raw: string | undefined): PublicKeys {
   const items = (raw ?? "").split(",").map((s) => s.trim()).filter(Boolean);
-  if (items.length && items.every((s) => s.includes("="))) {
-    return Object.fromEntries(items.map((s) => [s.slice(0, s.indexOf("=")).trim(), s.slice(s.indexOf("=") + 1).trim()]));
+  if (items.some((s) => s.includes("="))) {
+    return Object.fromEntries(
+      items.map((s, i) => {
+        const at = s.lastIndexOf("=");
+        return [(at > 0 ? s.slice(0, at).trim() : "") || `legacy-${i}`, s.slice(at + 1).trim()];
+      }),
+    );
   }
   return items.length === 1 ? (items[0] as string) : items;
 }
@@ -148,7 +183,7 @@ export function createKeyForge(options: KeyForgeOptions = {}): KeyForge {
       if (domain !== undefined) opts.domain = domain;
       const r = await verifyLicense(licenseKey, publicKeys, opts);
       if (!r.valid) {
-        fail(LICENSE_INVALID, `KeyForge license rejected: ${r.error}.`, { reason: r.error ?? "ERR_LICENSE_INVALID", checkoutUrl });
+        fail(LICENSE_INVALID, licenseMessage(r.error, r.payload, checkoutUrl), { reason: r.error ?? "ERR_LICENSE_INVALID", checkoutUrl });
       }
       const exp = r.payload?.expires_at;
       cached = r;
@@ -159,7 +194,9 @@ export function createKeyForge(options: KeyForgeOptions = {}): KeyForge {
       const have = new Set(Array.isArray(result.payload?.features) ? result.payload.features : []);
       const missing = gate.features.filter((f) => !have.has(f));
       if (missing.length) {
-        fail(FEATURE_NOT_ENTITLED, `This tool requires the feature(s) ${missing.join(", ")}, which your plan does not include.`, {
+        const tier = result.payload?.tier || "current";
+        const text = `This tool requires the feature(s) ${missing.join(", ")}, which the ${tier} plan does not include.`;
+        fail(FEATURE_NOT_ENTITLED, checkoutUrl ? `${text} Upgrade: ${checkoutUrl}` : text, {
           reason: "FEATURE_NOT_ENTITLED",
           missingFeatures: missing,
           tier: result.payload?.tier,
@@ -201,7 +238,14 @@ export function createKeyForge(options: KeyForgeOptions = {}): KeyForge {
       const code = json.error?.code ?? `HTTP_${res.status}`;
       const message = json.error?.message ?? `Gateway returned HTTP ${res.status}.`;
       if (res.status === 402 || code === "QUOTA_EXHAUSTED") {
-        fail(QUOTA_EXHAUSTED, `Credits exhausted for this license.${checkoutUrl ? ` Upgrade or top up here: ${checkoutUrl}` : ""}`, {
+        const det = (json.error?.details ?? {}) as { requested_credits?: unknown; remaining_credits?: unknown };
+        const need = det.requested_credits;
+        const left = det.remaining_credits;
+        let text = typeof need === "number" && typeof left === "number"
+          ? `Credits exhausted: this tool needs ${need} credits and the license has ${left} left.`
+          : "Credits exhausted for this license.";
+        if (checkoutUrl) text += ` Top up: ${checkoutUrl}`;
+        fail(QUOTA_EXHAUSTED, `${text} The tool did not run and no credits were charged.`, {
           reason: "QUOTA_EXHAUSTED",
           status: 402,
           checkoutUrl,
@@ -210,9 +254,13 @@ export function createKeyForge(options: KeyForgeOptions = {}): KeyForge {
       if (res.status === 401 || res.status === 403 || res.status === 404) {
         fail(LICENSE_INVALID, `KeyForge license rejected: ${message}`, { reason: code, status: res.status, checkoutUrl });
       }
-      fail(GATEWAY_ERROR, `KeyForge gateway error: ${message}`, { reason: code, status: res.status });
+      fail(GATEWAY_ERROR, `KeyForge gateway error: ${message} The tool did not run.`, { reason: code, status: res.status });
     }
-    return fail(GATEWAY_ERROR, `KeyForge gateway unreachable: ${String(lastErr)}.`, { reason: "GATEWAY_UNREACHABLE" });
+    return fail(
+      GATEWAY_ERROR,
+      `Could not reach the KeyForge license server at ${gatewayUrl} (${String(lastErr)}). The tool did not run.`,
+      { reason: "GATEWAY_UNREACHABLE" },
+    );
   }
 
   async function refund(idempotencyKey: string, reason?: string): Promise<boolean> {

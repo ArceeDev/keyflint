@@ -24,7 +24,7 @@ server.registerTool("summarize", { inputSchema: { url: z.string() } },
 ```
 
 - `requireLicense` is 100% offline. `metered` also calls `POST /api/v1/quota/deduct` **before** running the handler, with an automatic `Idempotency-Key` that it reuses on its single network retry.
-- Failures throw `KeyForgeMcpError` (`code`, `message`, `data`, the same shape as the SDK's `McpError`). Codes: `-32040` invalid license, `-32041` feature not in plan, `-32042` credits exhausted (HTTP 402, with `data.checkoutUrl`), `-32043` gateway error. `McpServer` returns it to the model as an `isError` tool result, with the upgrade link in the text.
+- Failures throw `KeyForgeMcpError` (`code`, `message`, `data`, the same shape as the SDK's `McpError`). Codes: `-32060` invalid license, `-32061` feature not in plan, `-32062` credits exhausted (HTTP 402, with `data.checkoutUrl`), `-32063` gateway error (`-32042` is reserved by MCP for URL elicitation). `McpServer` returns the error to the model as an `isError` tool result containing only `message`, so every message states the cause, whether credits were charged, and the next step (with `checkoutUrl` when set).
 - The wrappers keep the handler's arguments and types, so they work with `registerTool`, `tool()` or low-level handlers. No runtime dependency on the SDK.
 
 ## Key rotation
@@ -37,7 +37,7 @@ verifyLicense(t, [newKey, oldKey]);                     // historical keys
 verifyLicense(t, { k2026: newKey, legacy: oldKey });    // keys indexed by kid
 ```
 
-Tokens without `kid` (every token issued by KeyForge v1.0) are checked against all the keys. Tokens with a signed `kid` in the payload try that key first. `result.keyId` tells you which key verified the token.
+Tokens without `kid` (every token issued by KeyForge v1.0) are checked against all the keys. With a `{ kid: hex }` map, a token with a signed `kid` is checked only against that key (`ERR_UNKNOWN_KID` if absent); strings and arrays have no names, so every key is tried. `KEYFORGE_PUBLIC_KEYS` accepts the gateway's published keyring (`k2=hex,legacy-1=hex`) and mixed lists (`oldhex,k2=newhex`). To contain a leaked key, remove it from the ring: a retired key keeps verifying the tokens it signed. `result.keyId` tells you which key verified the token.
 
 When verifying many tokens, use `createVerifier(keys, defaults)`, which imports each key only once.
 

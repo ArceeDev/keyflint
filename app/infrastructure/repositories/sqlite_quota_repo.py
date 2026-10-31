@@ -100,6 +100,8 @@ class SqliteQuotaRepo(IQuotaRepository):
             raise ValueError(f"Credits to deduct must be a positive integer; got {credits}")
         if not idempotency_key or not idempotency_key.strip():
             raise ValueError("idempotency_key must not be empty or whitespace")
+        if idempotency_key.startswith("refund:"):
+            raise ValueError("idempotency_key must not use the reserved 'refund:' prefix")
 
         import random
         import time
@@ -119,6 +121,15 @@ class SqliteQuotaRepo(IQuotaRepository):
                     )
                     existing_event = cur_idemp.fetchone()
                     if existing_event is not None:
+                        # A refunded deduct must not be replayed as a free, already-paid success.
+                        if self._conn.execute(
+                            "SELECT 1 FROM usage_events WHERE license_id = ? AND idempotency_key = ?",
+                            (license_id, f"refund:{idempotency_key}"),
+                        ).fetchone() is not None:
+                            raise IdempotencyConflictError(
+                                f"Idempotency key '{idempotency_key}' was already refunded; use a new key.",
+                                details={"idempotency_key": idempotency_key, "reason": "KEY_REFUNDED"},
+                            )
                         if existing_event["credits_consumed"] != credits:
                             raise IdempotencyConflictError(
                                 f"Idempotency key '{idempotency_key}' was previously used with conflicting parameters.",

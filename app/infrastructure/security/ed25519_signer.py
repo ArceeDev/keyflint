@@ -282,9 +282,12 @@ class Ed25519Signer:
             except ImportError:
                 self._has_crypto = False
 
-        # Derive public key if private is present and public is missing
-        if self.private_key_bytes and not self.public_key_bytes:
-            self.public_key_bytes = self._derive_public_key(self.private_key_bytes)
+        # The public key is always derived from the private key; a configured one must match it.
+        if self.private_key_bytes:
+            derived = self._derive_public_key(self.private_key_bytes)
+            if self.public_key_bytes and self.public_key_bytes != derived:
+                raise ValueError("ED25519_PUBLIC_KEY_HEX does not match ED25519_PRIVATE_KEY_HEX.")
+            self.public_key_bytes = derived
 
         # Key rotation: active kid (None = v1.0 tokens without kid) + retired verification keys.
         self.kid: Optional[str] = _validate_kid(kid) if kid else None
@@ -348,12 +351,16 @@ class Ed25519Signer:
         return _pure_sign(data, self.private_key_bytes, self.public_key_bytes)
 
     def verify_bytes(self, sig: bytes, data: bytes, kid: Optional[str] = None) -> bool:
-        """Verifies a signature against the key ring (matching kid first, then every key)."""
+        """Verifies a signature against the key ring.
+
+        A token with ``kid`` is checked only against the key with that kid; tokens without
+        ``kid`` (v1.0) are checked against every key.
+        """
         ring = self.key_ring()
         if not ring:
             raise ValueError("Public key is required to verify signatures.")
         if kid is not None:
-            ring.sort(key=lambda e: e[0] != kid)
+            ring = [e for e in ring if e[0] == kid]
         return any(self._verify_with(pk, sig, data) for _, pk in ring)
 
     def _verify_with(self, pk_bytes: bytes, sig: bytes, data: bytes) -> bool:

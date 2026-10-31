@@ -1,140 +1,154 @@
 # KeyForge v1.1.0
 
-**Cryptographic Licensing Gateway & Atomic Quota-Metering for AI Agents, MCP Servers, CLIs, and Micro-SaaS**
+Self-hosted license issuing and credit metering for MCP servers, CLIs and desktop apps.
+The gateway signs Ed25519 license tokens; your code verifies them offline with a 32-byte
+public key and debits credits with one HTTP call per metered tool.
 
 [![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](pyproject.toml)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/)
 [![Node.js >=18.4](https://img.shields.io/badge/node-%3E%3D18.4-brightgreen.svg)](https://nodejs.org/)
 [![Server License: BSL 1.1](https://img.shields.io/badge/gateway%20license-BSL--1.1-orange.svg)](LICENSE)
 [![SDK License: MIT](https://img.shields.io/badge/sdk%20license-MIT-green.svg)](sdks/js-verify/LICENSE)
-[![Tests: 152/152 Pass](https://img.shields.io/badge/tests-152%2F152%20pass-brightgreen.svg)](run_tests.py)
+[![Tests: 167/167 Pass](https://img.shields.io/badge/tests-167%2F167%20pass-brightgreen.svg)](run_tests.py)
 [![Docker: GHCR](https://img.shields.io/badge/docker-ghcr.io%2Farceedev%2Fkeyforge%3A1.1.0-blue.svg)](https://github.com/ArceeDev/keyforge/pkgs/container/keyforge)
-
----
-
-## Overview
-
-**KeyForge** is a self-hosted licensing gateway and atomic usage-metering engine engineered for developers monetizing Model Context Protocol (MCP) servers, autonomous AI agents, developer CLIs, desktop applications, and vertical micro-SaaS.
-
-Traditional licensing SaaS platforms (such as Keygen or Cryptolens) charge **$49 to $499 every month**, demand third-party dependency, and introduce blocking network hops on every tool invocation. KeyForge issues compact, tamper-proof **RFC 8032 Ed25519 signed tokens** (`LIC-<TIER>-<PAYLOAD>.<SIGNATURE>`) that client SDKs verify **100% offline in under 1 millisecond** with zero runtime network requirements.
-
-For cloud operations and tool gating, KeyForge provides an embedded ACID quota engine backed by SQLite WAL with immediate serialization. When an agent or MCP client invokes a metered tool, KeyForge decrements usage atomically with zero overdraft risk under high concurrency, supports dynamic key rotation by `kid`, and includes a 900-second execution refund window if an downstream LLM call fails.
-
----
-
-## Architecture & Guarantees
-
-```text
-┌────────────────────────────────────────────────────────────────────────┐
-│                          KEYFORGE ARCHITECTURE                         │
-├────────────────────────────────────────────────────────────────────────┤
-│                                                                        │
-│  [Issuer / Billing Gateway]                                            │
-│   ├── Stripe / LemonSqueezy HMAC-signed webhooks                       │
-│   ├── Ed25519 Asymmetric Signer (RFC 8032 §5.1.3 + OpenSSL / pure-py) │
-│   ├── Key ID ('kid') dynamic rotation & active signing ring            │
-│   └── SQLite WAL Quota Ledger (BEGIN IMMEDIATE + ACID debit/refund)   │
-│                                │                                       │
-│                                ▼                                       │
-│                   LIC-PRO-<PAYLOAD>.<SIGNATURE>                        │
-│                                │                                       │
-│          ┌─────────────────────┴─────────────────────┐                 │
-│          ▼                                           ▼                 │
-│  [Air-Gapped Offline Verify]              [Metered MCP Tool Execution] │
-│   ├── Zero network calls                   ├── Offline signature check │
-│   ├── Hardware seat fingerprint            ├── POST /quota/deduct      │
-│   ├── Domain origin match                  │   (atomic SQLite WAL)     │
-│   ├── Feature flag bitmask                 ├── Run downstream tool/LLM │
-│   └── Execution time: < 1 ms               └── If tool throws error:   │
-│                                                POST /quota/refund (900s)│
-└────────────────────────────────────────────────────────────────────────┘
-```
-
-- **Asymmetric Security**: The Ed25519 private key never leaves your server. Clients possess only the 32-byte public key hex, making token forgery mathematically impossible.
-- **Air-Gapped Speed (< 1 ms)**: Verification runs locally via the Web Crypto API (Node.js, Bun, Deno, browser) or Python standard library without C compiler dependencies.
-- **ACID Quota Metering**: Zero race conditions or double-spending under concurrent loads via SQLite WAL `BEGIN IMMEDIATE` transactions and tenant-scoped `UNIQUE(license_id, idempotency_key)` deduplication.
-- **MCP Auto-Refunds**: If a metered AI generation or tool handler fails after debiting credits, client wrappers automatically execute an atomic refund within a 900-second window.
 
 ---
 
 ## Quickstart
 
-### 1. Run the Gateway Server (Docker)
-
-Run the official container directly from GitHub Container Registry:
+### 1. Start the gateway
 
 ```bash
-docker pull ghcr.io/arceedev/keyforge:1.1.0
+cat > keyforge.env <<EOF
+ENVIRONMENT=production
+SECRET_KEY=$(openssl rand -hex 32)
+ADMIN_API_KEY=kf_$(openssl rand -hex 24)
+ED25519_PRIVATE_KEY_HEX=$(openssl rand -hex 32)
+ED25519_PUBLIC_KEY_HEX=
+STRIPE_WEBHOOK_SECRET=whsec_$(openssl rand -hex 24)
+LEMONSQUEEZY_WEBHOOK_SECRET=$(openssl rand -hex 24)
+EOF
 
-docker run -d \
-  --name keyforge \
-  -p 8788:8788 \
-  -v keyforge_data:/data \
-  -e ENVIRONMENT=production \
-  -e SECRET_KEY=$(openssl rand -hex 32) \
-  -e ADMIN_API_KEY=$(openssl rand -hex 24) \
-  ghcr.io/arceedev/keyforge:1.1.0
+docker run -d --name keyforge -p 8000:8000 -v keyforge_data:/app/data \
+  --env-file keyforge.env ghcr.io/arceedev/keyforge:1.1.0
+
+curl -s localhost:8000/readyz
 ```
 
-- **Interactive Console & Live Verifier**: `http://127.0.0.1:8788`
-- **OpenAPI Schema & Docs**: `http://127.0.0.1:8788/docs`
-- **Health Probes**: `http://127.0.0.1:8788/healthz` and `http://127.0.0.1:8788/readyz`
+`ED25519_PUBLIC_KEY_HEX` is left empty on purpose: the gateway derives it from the private key
+(if you set it, it must match). Back up `keyforge.env`: without `ED25519_PRIVATE_KEY_HEX` you cannot
+issue tokens that existing clients accept. Replace the two webhook secrets with the real ones when you
+connect Stripe or LemonSqueezy.
 
----
+Console: `http://127.0.0.1:8000` · OpenAPI: `/docs` · Probes: `/healthz`, `/readyz`
 
-## Client SDKs & MCP Integration
-
-KeyForge provides zero-dependency, type-safe client SDKs for TypeScript and Python.
-
-### TypeScript / JavaScript SDK (`keyforge-verify`)
+### 2. Issue a license and fetch the public key
 
 ```bash
-# Direct from Release Asset:
+ADMIN=$(grep ^ADMIN_API_KEY keyforge.env | cut -d= -f2)
+
+curl -s -X POST localhost:8000/api/v1/licenses/issue \
+  -H "X-Admin-Key: $ADMIN" -H "Content-Type: application/json" \
+  -d '{"customer_email":"dev@example.com","tier":"pro","features":["premium"]}' \
+  | jq -r .data.license_key            # -> KEYFORGE_LICENSE
+
+curl -s localhost:8000/api/v1/licenses/public-key \
+  | jq -r .data.keyring                # -> KEYFORGE_PUBLIC_KEYS
+```
+
+### 3. Protect an MCP tool (TypeScript)
+
+```bash
 npm install https://github.com/ArceeDev/keyforge/releases/download/v1.1.0/keyforge-verify-1.1.0.tgz
-
-# Or via Git:
-npm install git+https://github.com/ArceeDev/keyforge.git#subdirectory=sdks/js-verify
+export KEYFORGE_LICENSE=LIC-PRO-...  KEYFORGE_PUBLIC_KEYS=<keyring>  KEYFORGE_URL=http://localhost:8000
 ```
 
-#### 1. Air-Gapped Offline Verification (< 1 ms)
-```typescript
-import { verifyLicense } from "keyforge-verify";
-
-const result = await verifyLicense("LIC-PRO-eyJ...", PUBLIC_KEY_HEX, {
-  machineId: "ws-node-01" // Optional: required only for node-locked licenses
-});
-
-if (!result.valid) {
-  throw new Error(`License rejected: ${result.error}`);
-}
-
-console.log(`Tier: ${result.payload.tier}, Features:`, result.payload.features);
-```
-
-#### 2. Gating Model Context Protocol (MCP) Tools
 ```typescript
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { createKeyForge } from "keyforge-verify/mcp";
 import { z } from "zod";
 
-const server = new McpServer({ name: "ResearchAgent", version: "1.0.0" });
-const kf = createKeyForge(); // Reads KEYFORGE_LICENSE, KEYFORGE_PUBLIC_KEYS, KEYFORGE_URL
+const server = new McpServer({ name: "research", version: "1.0.0" });
+const kf = createKeyForge(); // KEYFORGE_LICENSE, KEYFORGE_PUBLIC_KEYS, KEYFORGE_URL
 
-// Feature-gated tool (100% offline check, zero network calls):
+// Offline check only. Rejects licenses without the "premium" feature.
 server.registerTool("code_review", { inputSchema: { repo: z.string() } },
-  kf.requireLicense(async ({ repo }) => ({
-    content: [{ type: "text", text: `Reviewing ${repo}` }]
-  }, { features: ["premium"] })
+  kf.requireLicense(
+    async ({ repo }) => ({ content: [{ type: "text", text: `Reviewing ${repo}` }] }),
+    { features: ["premium"] },
+  ),
 );
 
-// Quota-metered tool (atomic debit + auto-refund on handler failure):
+// Debits 5 credits before running; refunds them if the handler throws or returns isError.
 server.registerTool("deep_research", { inputSchema: { query: z.string() } },
-  kf.metered(5, async ({ query }) => {
-    // Costs 5 credits. Automatically refunded if an exception is thrown here.
-    return { content: [{ type: "text", text: `Results for: ${query}` }] };
-  })
+  kf.metered(5, async ({ query }) => ({ content: [{ type: "text", text: `Results for ${query}` }] })),
 );
 ```
+
+Python (FastMCP) uses the same environment variables: see [Python SDK](#python-sdk-keyforge_verify).
+
+### What is enforced where
+
+| Check | Where it runs | Network |
+| :--- | :--- | :--- |
+| Signature, expiry, issued_at, tier, features, machine/domain lock | Your process (`keyforge-verify`) | None |
+| Credit debit / refund | Gateway (`/api/v1/quota/*`) | 1 request per call |
+
+Metering is enforceable only when the metered tool runs on infrastructure you control (for example a
+remote MCP server). If the MCP server runs on the customer's machine, the customer can remove the
+`deduct` call; use licensing (features, expiry) for that case. Refunds are accepted for 900 s after a
+deduct (`QUOTA_REFUND_WINDOW_SECONDS`, `0` disables them). A refunded idempotency key cannot be
+deducted again (HTTP 409, `KEY_REFUNDED`).
+
+---
+
+## Architecture
+
+```text
+[Gateway]  Stripe / LemonSqueezy HMAC webhooks
+           Ed25519 signer (RFC 8032; OpenSSL or pure Python) with kid key ring
+           SQLite WAL quota ledger (BEGIN IMMEDIATE debit / refund)
+               |
+               v   LIC-PRO-<PAYLOAD>.<SIGNATURE>
+               |
+   +-----------+------------------------+
+   v                                    v
+[Offline verify]                  [Metered MCP tool]
+ signature, expiry, issued_at      offline check
+ machine lock, domain lock         POST /quota/deduct
+ features                          run tool; on error POST /quota/refund
+```
+
+- **Signatures**: the private key stays on the gateway. Forging a token requires it (Ed25519, ~128-bit security level).
+- **Verification cost**: about 0.13 ms with OpenSSL (`cryptography`) or Web Crypto; about 3 ms in pure Python. No network call.
+- **Credit debits**: each debit is one conditional `UPDATE … WHERE balance >= ?` inside `BEGIN IMMEDIATE`, so the balance never goes negative on a single SQLite file. Replays with the same key are deduplicated by `UNIQUE(license_id, idempotency_key)`.
+- **Refunds**: the SDK wrappers call `POST /quota/refund` once (best effort, no retry) when the handler throws or returns `isError`.
+- **Key rotation**: a token with `kid` verifies only against the key with that `kid`; tokens without `kid` (v1.0) verify against every key in the ring. To contain a leaked key, remove it from the ring.
+- **Clock**: tokens whose signed `issued_at` is more than 300 s ahead of the local clock fail with `ERR_CLOCK_BEFORE_ISSUANCE`. Offline checks cannot stop a determined clock rollback; use short expirations with online renewal when that matters.
+
+---
+
+## Client SDKs
+
+Both SDKs have no runtime dependencies (Python uses `cryptography` when installed, for speed).
+
+### TypeScript / JavaScript SDK (`keyforge-verify`)
+
+```bash
+npm install https://github.com/ArceeDev/keyforge/releases/download/v1.1.0/keyforge-verify-1.1.0.tgz
+```
+
+```typescript
+import { verifyLicense } from "keyforge-verify";
+
+const result = await verifyLicense("LIC-PRO-eyJ...", PUBLIC_KEYS);
+if (!result.valid) throw new Error(`License rejected: ${result.error}`);
+console.log(`Tier: ${result.payload.tier}, Features:`, result.payload.features);
+```
+
+Pass `{ machineId }` only for node-locked licenses; passing it for a floating license returns `ERR_NODE_LOCK_VIOLATION`.
+
+MCP errors use the JSON-RPC codes `-32060` invalid license, `-32061` feature not in plan, `-32062` credits exhausted, `-32063` gateway error (`-32042` is reserved by MCP). MCP clients show the message text, so each message states the cause, whether credits were charged, and the next step (with `KEYFORGE_CHECKOUT_URL` when set).
 
 ---
 
@@ -152,7 +166,7 @@ pip install git+https://github.com/ArceeDev/keyforge.git#subdirectory=sdks/pytho
 ```python
 from keyforge_verify import verify_license
 
-res = verify_license("LIC-PRO-eyJ...", PUBLIC_KEY_HEX, machine_id="ws-node-01")
+res = verify_license("LIC-PRO-eyJ...", PUBLIC_KEYS)  # machine_id=... only for node-locked licenses
 if not res:
     raise SystemExit(f"Access Denied: {res.error}")
 
@@ -186,41 +200,41 @@ async def analyze_document(url: str) -> str:
 
 | Feature | KeyForge (Self-Hosted) | Keygen.sh / Cryptolens | Stripe Metered Billing |
 | :--- | :--- | :--- | :--- |
-| **Pricing Model** | **One-time payment ($149 / $349)** | **$49 – $499 / month recurring** | 0.5% – 0.8% + monthly minimums |
-| **Verification Speed** | **< 1 ms (Local Ed25519)** | ~150 – 400 ms (HTTP API call) | N/A (Billing only) |
-| **Air-Gapped Offline Mode** | **Native (RFC 8032 standard-lib)** | Requires complex cached leasing | No (Requires active network) |
+| **Pricing Model** | **One-time payment ($149 / $349)** | Monthly subscription | Per-usage fee |
+| **Verification** | **Local Ed25519, ~0.13 ms (OpenSSL)** | HTTP API call (offline mode varies by plan) | N/A (billing only) |
+| **Offline Mode** | **Native (RFC 8032, standard library)** | Cached / leased validation | No |
 | **MCP Integration** | **Native `@metered` & auto-refund** | Manual custom code | Manual custom webhook polling |
-| **Data Sovereignty** | **100% On-Premise / Your VPS** | Hosted US/EU SaaS servers | Third-party cloud |
+| **Data Sovereignty** | **Your server** | Hosted US/EU SaaS servers | Third-party cloud |
 | **Key Rotation** | **Zero-downtime `kid` ring** | Platform dependent | N/A |
-| **Client Footprint** | **Zero third-party dependencies** | Heavy proprietary SDKs | Heavy HTTP SDKs |
+| **Client Runtime Dependencies** | **None** | Vendor SDK | Vendor SDK |
 
 ---
 
 ## Production Verification & Test Suite
 
-KeyForge enforces a mandatory 7-gate architectural verification suite prior to all releases.
+Every release runs `verify_production.py` (7 gates) and the three test suites below.
 
 ```bash
 # 1. Run the Gatekeeper Verification Suite (7 Gates)
 python verify_production.py
 
-# 2. Run the Full Backend E2E Suite (79 Tests)
+# 2. Run the Full Backend E2E Suite (83 Tests)
 python -W error::ResourceWarning run_tests.py
 
-# 3. Run the TypeScript SDK Conformance Suite (57 Tests)
+# 3. Run the TypeScript SDK Conformance Suite (64 Tests, 47 vectors)
 cd sdks/js-verify && npm test
 
-# 4. Run the Python SDK Conformance Suite (16 Tests)
-cd sdks/python-verify && python -m unittest discover -s tests
+# 4. Run the Python SDK Conformance Suite (20 Tests)
+cd sdks/python-verify && PYTHONPATH=src python -m unittest discover -s tests
 ```
 
-**Verification Status: 152 / 152 Tests Passing (100% Deterministic Approval)**.
+**Status: 167/167 tests pass; 7/7 release gates pass.**
 
 ---
 
 ## Licensing
 
-KeyForge is distributed under a sustainable dual-license model:
+KeyForge uses two licenses:
 
 1. **Client SDKs (`sdks/js-verify`, `sdks/python-verify`)**: Licensed under the permissive **[MIT License](sdks/js-verify/LICENSE)**. You can freely vendor, bundle, and distribute them with any commercial product.
 2. **Server Gateway (`app/`)**: Licensed under the **[Business Source License 1.1 (BSL 1.1)](LICENSE)**.

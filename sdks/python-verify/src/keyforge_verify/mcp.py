@@ -55,11 +55,38 @@ __all__ = [
     "GATEWAY_ERROR",
 ]
 
-# JSON-RPC server error range (-32000..-32099), stable across SDKs.
-LICENSE_INVALID = -32040
-FEATURE_NOT_ENTITLED = -32041
-QUOTA_EXHAUSTED = -32042
-GATEWAY_ERROR = -32043
+# JSON-RPC server error range (-32000..-32099), stable across SDKs. -32042 is avoided because
+# MCP itself uses it for URLElicitationRequired.
+LICENSE_INVALID = -32060
+FEATURE_NOT_ENTITLED = -32061
+QUOTA_EXHAUSTED = -32062
+GATEWAY_ERROR = -32063
+
+_LICENSE_MESSAGES = {
+    "ERR_EMPTY_TOKEN": "No KeyForge license is configured. Set KEYFORGE_LICENSE.",
+    "ERR_SIGNATURE_TAMPERED": "This license was not issued for this server (signature check failed). "
+    "Check KEYFORGE_LICENSE and KEYFORGE_PUBLIC_KEYS.",
+    "ERR_UNKNOWN_KID": "This license was signed with a key this server does not trust. "
+    "Check KEYFORGE_PUBLIC_KEYS.",
+    "ERR_NODE_LOCK_VIOLATION": "This license is locked to another machine.",
+    "ERR_DOMAIN_LOCK_VIOLATION": "This license is not valid for this domain.",
+    "ERR_CLOCK_BEFORE_ISSUANCE": "The system clock is earlier than the license issue date. "
+    "Correct the clock and retry.",
+}
+
+
+def _license_message(error: Optional[str], payload: Optional[Mapping[str, Any]], checkout_url: Optional[str]) -> str:
+    """Plain-language reason plus the next step; this text is what MCP clients show."""
+    code = error or "ERR_LICENSE_INVALID"
+    if code == "ERR_LICENSE_EXPIRED":
+        exp = (payload or {}).get("expires_at")
+        when = time.strftime("%Y-%m-%d", time.gmtime(exp)) if isinstance(exp, (int, float)) else None
+        text = f"Your license expired on {when}." if when else "Your license has expired."
+    else:
+        text = _LICENSE_MESSAGES.get(code, f"The KeyForge license is invalid ({code}).")
+    if checkout_url and code not in ("ERR_CLOCK_BEFORE_ISSUANCE", "ERR_UNKNOWN_KID", "ERR_SIGNATURE_TAMPERED"):
+        text += f" Get or renew a license: {checkout_url}"
+    return text
 
 F = TypeVar("F", bound=Callable[..., Any])
 
@@ -110,9 +137,14 @@ def _error(code: int, reason: str, message: str, **extra: Any) -> LicenseError:
 
 
 def _parse_keys_env(raw: str) -> PublicKeys:
+    """Parses ``hex``, ``hex,hex`` or ``kid=hex`` entries; bare keys in a named list become ``legacy-<i>``."""
     items = [p.strip() for p in raw.split(",") if p.strip()]
-    if items and all("=" in p for p in items):
-        return {k.strip(): v.strip() for k, v in (p.split("=", 1) for p in items)}
+    if any("=" in p for p in items):
+        ring: dict[str, str] = {}
+        for i, p in enumerate(items):
+            kid, _, hex_key = p.rpartition("=")
+            ring[kid.strip() or f"legacy-{i}"] = hex_key.strip()
+        return ring
     return items[0] if len(items) == 1 else items
 
 
@@ -167,7 +199,7 @@ class KeyForge:
                 raise _error(
                     LICENSE_INVALID,
                     result.error or "ERR_LICENSE_INVALID",
-                    f"KeyForge license rejected: {result.error}.",
+                    _license_message(result.error, result.payload, self.checkout_url),
                     checkout_url=self.checkout_url,
                 )
             exp = (result.payload or {}).get("expires_at")
@@ -178,10 +210,14 @@ class KeyForge:
             have = set((result.payload or {}).get("features") or [])
             missing = [f for f in features if f not in have]
             if missing:
+                tier = (result.payload or {}).get("tier") or "current"
+                text = f"This tool requires the feature(s) {', '.join(missing)}, which the {tier} plan does not include."
+                if self.checkout_url:
+                    text += f" Upgrade: {self.checkout_url}"
                 raise _error(
                     FEATURE_NOT_ENTITLED,
                     "FEATURE_NOT_ENTITLED",
-                    f"This tool requires the feature(s) {', '.join(missing)}, which your plan does not include.",
+                    text,
                     missing_features=missing,
                     tier=(result.payload or {}).get("tier"),
                     checkout_url=self.checkout_url,
@@ -226,7 +262,9 @@ class KeyForge:
                 raise self._http_error(exc.code, exc.read()) from None
             except (urllib.error.URLError, TimeoutError, OSError) as exc:
                 last_exc = exc
-        raise _error(GATEWAY_ERROR, "GATEWAY_UNREACHABLE", f"KeyForge gateway unreachable: {last_exc}.")
+        raise _error(GATEWAY_ERROR, "GATEWAY_UNREACHABLE",
+                     f"Could not reach the KeyForge license server at {self.gateway_url} ({last_exc}). "
+                     "The tool did not run.")
 
     def refund(self, idempotency_key: str, reason: Optional[str] = None) -> bool:
         """Best-effort POST /api/v1/quota/refund for a previous deduct. Never raises; True on success."""
@@ -255,15 +293,21 @@ class KeyForge:
         code = str(err.get("code") or f"HTTP_{status}")
         message = str(err.get("message") or f"Gateway returned HTTP {status}.")
         if status == 402 or code == "QUOTA_EXHAUSTED":
-            text = "Credits exhausted for this license."
+            det = err.get("details") or {}
+            need, left = det.get("requested_credits"), det.get("remaining_credits")
+            if isinstance(need, int) and isinstance(left, int):
+                text = f"Credits exhausted: this tool needs {need} credits and the license has {left} left."
+            else:
+                text = "Credits exhausted for this license."
             if self.checkout_url:
-                text += f" Upgrade or top up here: {self.checkout_url}"
+                text += f" Top up: {self.checkout_url}"
+            text += " The tool did not run and no credits were charged."
             return _error(QUOTA_EXHAUSTED, "QUOTA_EXHAUSTED", text, status=402, checkout_url=self.checkout_url,
                           gateway_details=err.get("details") or None)
         if status in (401, 403, 404):
             return _error(LICENSE_INVALID, code, f"KeyForge license rejected: {message}", status=status,
                           checkout_url=self.checkout_url)
-        return _error(GATEWAY_ERROR, code, f"KeyForge gateway error: {message}", status=status)
+        return _error(GATEWAY_ERROR, code, f"KeyForge gateway error: {message} The tool did not run.", status=status)
 
     # --------------------------------------------------------------- decorators
 
