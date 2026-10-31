@@ -1,6 +1,41 @@
-# KeyForge v1.1.0 — Guía de Publicación Oficial (npm, PyPI y Docker GHCR)
+# KeyForge v1.1.0 — Guía de Publicación Oficial
 
-> **Estado**: Todas las versiones sincronizadas en `1.1.0` (Servidor, SDK JS y SDK Python). Árbol de Git 100% limpio.
+> **Estado Actual**:
+> - ✅ Repositorio público en GitHub: `https://github.com/ArceeDev/keyforge`
+> - ✅ GitHub Release v1.1.0 creada y publicada: `https://github.com/ArceeDev/keyforge/releases/tag/v1.1.0`
+> - ✅ Contenedor Docker v1.1.0 compilado y publicado en GHCR: `ghcr.io/arceedev/keyforge:1.1.0`
+> - ✅ Binarios SDK (.whl, .tar.gz, .tgz) generados y subidos como Release Assets
+> - ✅ Instalación directa lista para usuarios:
+>   - `pip install https://github.com/ArceeDev/keyforge/releases/download/v1.1.0/keyforge_verify-1.1.0-py3-none-any.whl`
+>   - `npm install https://github.com/ArceeDev/keyforge/releases/download/v1.1.0/keyforge-verify-1.1.0.tgz`
+
+---
+
+## Para publicar en los registros públicos globales (npm y PyPI)
+
+Cuando tengas 30 segundos, dispones de dos caminos automáticos:
+
+### Método 1: Script local rápido en 1 línea
+En la raíz de `monetizable_project`:
+
+```powershell
+# Para publicar en npm usando tu código de 6 dígitos del móvil:
+.\publish_registries.ps1 -NpmOtp 123456
+
+# O para publicar en PyPI con tu token:
+.\publish_registries.ps1 -PypiToken pypi-xxxxxxxx
+
+# O ambos a la vez:
+.\publish_registries.ps1 -NpmOtp 123456 -PypiToken pypi-xxxxxxxx
+```
+
+### Método 2: 100% Automático vía GitHub Actions
+Si prefieres no tocar más la consola:
+1. Ve a `https://github.com/ArceeDev/keyforge/settings/secrets/actions`
+2. Añade los dos secretos:
+   - `NPM_TOKEN`: Tu Granular Access Token de npmjs.com (con permiso Read/Write y Bypass 2FA).
+   - `PYPI_API_TOKEN`: Tu token de API de pypi.org (`pypi-...`).
+3. Ve a la pestaña **Actions** -> **Publish Client SDKs to npm and PyPI** -> Clic en **Run workflow**. Se publicará solo en la nube.
 
 ---
 
