@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KeyForge v1.0.0 - Pasarela Criptográfica y Metering de Cuota</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            color-scheme: dark;
+            --bg-base: #0B0D17;
+            --bg-elevated: rgba(255, 255, 255, 0.03);
+            --bg-elevated-hover: rgba(255, 255, 255, 0.06);
+            --bg-input: #0B0D17;
+            --bg-code: #05070E;
+            --border-subtle: rgba(255, 255, 255, 0.10);
+            --border-strong: rgba(255, 255, 255, 0.20);
+            --border-focus: #CCFF00;
+            --text-primary: #FFFFFF;
+            --text-secondary: #CBD5E1;
+            --text-muted: #94A3B8;
+            --accent-primary: #CCFF00;
+            --accent-indigo: #4F46E5;
+            --accent-indigo-text: #A5B4FC;
+            --status-success: #34D399;
+            --status-warning: #FBBF24;
+            --status-error: #F87171;
+            --status-error-border: rgba(239, 68, 68, 0.55);
+            --status-warn-border: rgba(251, 191, 36, 0.55);
+            --status-ok-border: rgba(204, 255, 0, 0.35);
+            --ease-out-elastic: cubic-bezier(0.22, 1, 0.36, 1);
+            --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            scroll-behavior: smooth;
+            background-color: var(--bg-base);
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        h1, h2, h3, h4, .brand-font {
+            font-family: 'Space Grotesk', sans-serif;
+            letter-spacing: -0.03em;
+            color: var(--text-primary);
+        }
+
+        .container {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 0 32px;
+        }
+
+        header {
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 16px 0;
+            position: sticky;
+            top: 0;
+            background-color: rgba(11, 13, 23, 0.88);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            z-index: 100;
+        }
+
+        .nav-inner {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 20px;
+            font-weight: 700;
+            line-height: 1.2;
+        }
+
+        .logo-badge {
+            background-color: rgba(204, 255, 0, 0.10);
+            color: var(--accent-primary);
+            border: 1px solid rgba(204, 255, 0, 0.35);
+            font-size: 12px;
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            line-height: 1;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 500;
+            transition: color 0.24s var(--ease-out-elastic), transform 0.24s var(--ease-spring);
+        }
+
+        .nav-link:hover,
+        .nav-link:focus-visible {
+            color: var(--text-primary);
+        }
+
+        .badge-live {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--status-success);
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+        }
+
+        .badge-live::before {
+            content: '';
+            width: 8px;
+            height: 8px;
+            border-radius: 8px;
+            background-color: var(--status-success);
+        }
+
+        .hero {
+            padding-top: 96px;
+            padding-bottom: 64px;
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 32px;
+            align-items: center;
+        }
+
+        .hero-copy {
+            grid-column: span 7;
+        }
+
+        .hero-eyebrow {
+            display: inline-block;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--accent-indigo-text);
+            background-color: rgba(79, 70, 229, 0.16);
+            border: 1px solid rgba(165, 180, 252, 0.30);
+            padding: 8px 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .hero h1 {
+            font-size: 48px;
+            font-weight: 700;
+            line-height: 1.12;
+            margin-bottom: 24px;
+            color: var(--text-primary);
+        }
+
+        .hero h1 .highlight {
+            color: var(--accent-primary);
+        }
+
+        .hero p {
+            color: var(--text-secondary);
+            font-size: 16px;
+            line-height: 1.6;
+            margin-bottom: 32px;
+            max-width: 600px;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .hero-actions .btn {
+            width: auto;
+            min-width: 208px;
+        }
+
+        .hero-mockup {
+            grid-column: span 5;
+            background-color: var(--bg-elevated);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 24px;
+            transition: transform 0.32s var(--ease-out-elastic), border-color 0.32s var(--ease-out-elastic);
+        }
+
+        .hero-mockup:hover {
+            border-color: var(--border-strong);
+            transform: scale(1.01);
+        }
+
+        .mockup-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 16px;
+            margin-bottom: 16px;
+            border-bottom: 1px solid var(--border-subtle);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .mockup-tag {
+            color: var(--accent-primary);
+            font-weight: 600;
+        }
+
+        .mockup-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            gap: 16px;
+        }
+
+        .mockup-row:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+
+        .mockup-key {
+            color: var(--text-muted);
+        }
+
+        .mockup-val {
+            color: var(--text-primary);
+            text-align: right;
+            word-break: break-all;
+        }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+            margin-bottom: 64px;
+        }
+
+        .stat-box {
+            background-color: var(--bg-elevated);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-subtle);
+            padding: 24px;
+            border-radius: 16px;
+            transition: transform 0.28s var(--ease-out-elastic), border-color 0.28s var(--ease-out-elastic);
+        }
+
+        .stat-box:hover {
+            border-color: var(--border-strong);
+            transform: scale(1.01);
+        }
+
+        .stat-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            line-height: 1.2;
+            font-family: 'Space Grotesk', sans-serif;
+            color: var(--text-primary);
+        }
+
+        .section-head {
+            margin-bottom: 32px;
+        }
+
+        .section-head h2 {
+            font-size: 28px;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 8px;
+        }
+
+        .section-head p {
+            color: var(--text-secondary);
+            font-size: 15px;
+            max-width: 680px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 24px;
+            margin-bottom: 64px;
+        }
+
+        .col-3 { grid-column: span 3; }
+        .col-6 { grid-column: span 6; }
+        .col-12 { grid-column: span 12; }
+
+        .card {
+            background-color: var(--bg-elevated);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            transition: transform 0.28s var(--ease-out-elastic), border-color 0.28s var(--ease-out-elastic), background-color 0.28s var(--ease-out-elastic), box-shadow 0.28s var(--ease-out-elastic);
+        }
+
+        .card:hover {
+            border-color: var(--border-strong);
+            background-color: var(--bg-elevated-hover);
+        }
+
+        .card.pulse-focus {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 1px var(--accent-primary);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .card-title {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 18px;
+            font-weight: 600;
+            line-height: 1.25;
+            color: var(--text-primary);
+        }
+
+        .card-step {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            color: var(--text-muted);
+            padding: 8px 16px;
+            border: 1px solid var(--border-subtle);
+            border-radius: 8px;
+            line-height: 1;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        label {
+            display: block;
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            color-scheme: dark;
+            background-color: var(--bg-input);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+            padding: 8px 16px;
+            min-height: 40px;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 13px;
+            transition: border-color 0.2s var(--ease-out-elastic), box-shadow 0.2s var(--ease-out-elastic);
+        }
+
+        select option {
+            background-color: #0B0D17;
+            color: #FFFFFF;
+        }
+
+        input::placeholder {
+            color: var(--text-muted);
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 1px rgba(204, 255, 0, 0.35);
+        }
+
+        .action-row {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .action-row .btn {
+            flex: 1 1 144px;
+        }
+
+        .btn {
+            background-color: var(--accent-primary);
+            color: #0B0D17;
+            border: 1px solid transparent;
+            padding: 8px 24px;
+            min-height: 40px;
+            border-radius: 8px;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            will-change: transform;
+            transition: transform 0.24s var(--ease-spring), background-color 0.24s var(--ease-out-elastic), border-color 0.24s var(--ease-out-elastic), opacity 0.24s var(--ease-out-elastic);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            text-align: center;
+            width: 100%;
+        }
+
+        .btn:hover:not(:disabled) {
+            transform: scale(1.02);
+        }
+
+        .btn:active:not(:disabled) {
+            transform: scale(0.98);
+        }
+
+        .btn:focus-visible {
+            outline: 2px solid var(--accent-primary);
+            outline-offset: 2px;
+        }
+
+        .btn:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background-color: rgba(255, 255, 255, 0.05);
+            color: var(--text-primary);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background-color: rgba(255, 255, 255, 0.10);
+            border-color: var(--border-strong);
+        }
+
+        .btn-danger {
+            background-color: rgba(239, 68, 68, 0.14);
+            color: var(--status-error);
+            border: 1px solid var(--status-error-border);
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background-color: rgba(239, 68, 68, 0.24);
+        }
+
+        .code-box {
+            background-color: var(--bg-code);
+            border: 1px solid var(--status-ok-border);
+            padding: 16px;
+            border-radius: 8px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            color: var(--accent-primary);
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-word;
+            margin-top: 16px;
+            max-height: 224px;
+            overflow-y: auto;
+        }
+
+        .code-box.state-ok {
+            color: var(--accent-primary);
+            border-color: var(--status-ok-border);
+        }
+
+        .code-box.state-warn {
+            color: var(--status-warning);
+            border-color: var(--status-warn-border);
+        }
+
+        .code-box.state-err {
+            color: var(--status-error);
+            border-color: var(--status-error-border);
+        }
+
+        .is-hidden {
+            display: none;
+        }
+
+        .pricing-card {
+            justify-content: space-between;
+            gap: 24px;
+        }
+
+        .pricing-card.featured {
+            border-color: rgba(204, 255, 0, 0.45);
+        }
+
+        .tier-name {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .tier-price {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 32px;
+            font-weight: 700;
+            line-height: 1.15;
+            color: var(--text-primary);
+            margin-bottom: 16px;
+        }
+
+        .tier-price span {
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 400;
+            color: var(--text-muted);
+        }
+
+        .tier-specs {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 24px;
+            color: var(--text-secondary);
+            font-size: 13px;
+        }
+
+        .tier-specs li {
+            padding-left: 16px;
+            position: relative;
+        }
+
+        .tier-specs li::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 8px;
+            width: 8px;
+            height: 2px;
+            background-color: var(--accent-primary);
+        }
+
+        .btn-inline {
+            width: auto;
+        }
+
+        footer {
+            border-top: 1px solid var(--border-subtle);
+            padding: 32px 0;
+            color: var(--text-muted);
+            font-size: 13px;
+        }
+
+        .footer-inner {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        @media (max-width: 1024px) {
+            .hero-copy,
+            .hero-mockup,
+            .col-6 {
+                grid-column: span 12;
+            }
+            .col-3 {
+                grid-column: span 6;
+            }
+            .stat-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 640px) {
+            .container {
+                padding: 0 16px;
+            }
+            .hero {
+                padding-top: 64px;
+                padding-bottom: 48px;
+                gap: 24px;
+            }
+            .hero h1 {
+                font-size: 32px;
+            }
+            .hero-actions .btn,
+            .btn-inline {
+                width: 100%;
+                min-width: 0;
+            }
+            .stat-grid {
+                grid-template-columns: 1fr;
+                gap: 16px;
+                margin-bottom: 48px;
+            }
+            .grid {
+                gap: 16px;
+                margin-bottom: 48px;
+            }
+            .col-3,
+            .col-6,
+            .col-12 {
+                grid-column: span 12;
+            }
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            .card {
+                padding: 16px;
+            }
+            .card-header {
+                flex-wrap: wrap;
+            }
+            .nav-links {
+                gap: 16px;
+            }
+            .footer-inner {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after {
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container nav-inner">
+            <div class="logo">
+                <span class="brand-font">KeyForge</span>
+                <span class="logo-badge">v1.0.0</span>
+            </div>
+            <nav class="nav-links" aria-label="Navegación Principal">
+                <span class="badge-live">GATEWAY ACTIVO</span>
+                <a href="#console-section" class="nav-link">Consola</a>
+                <a href="#pricing-section" class="nav-link">Planes</a>
+                <a href="/docs" class="nav-link">API Docs</a>
+                <a href="/healthz" class="nav-link" target="_blank" rel="noopener">Health</a>
+                <a href="/readyz" class="nav-link" target="_blank" rel="noopener">Readiness</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="hero">
+            <div class="hero-copy">
+                <span class="hero-eyebrow">Licenciamiento Ed25519 + Metering Token-Bucket</span>
+                <h1>Pasarela Criptográfica y Control de Cuota para Productos de <span class="highlight">IA</span></h1>
+                <p>Monetiza CLIs, agentes locales, SDKs y micro-SaaS en minutos. Firma asimétrica RFC 8032 verificable sin conexión, bloqueo por hardware o dominio y cobro atómico por uso compatible con Stripe y LemonSqueezy.</p>
+                <div class="hero-actions">
+                    <button type="button" class="btn" id="btnHeroStart">Iniciar Prueba Gratuita</button>
+                    <a href="/docs" class="btn btn-secondary">Explorar API Docs</a>
+                </div>
+            </div>
+            <aside class="hero-mockup" aria-label="Inspección de Token Criptográfico">
+                <div class="mockup-header">
+                    <span>TOKEN RFC 8032</span>
+                    <span class="mockup-tag" id="heroPreviewStatus">VERIFICABLE OFFLINE</span>
+                </div>
+                <div class="mockup-row">
+                    <span class="mockup-key">Formato</span>
+                    <span class="mockup-val" id="heroPreviewToken">LIC-PRO-&lt;payload&gt;.&lt;sig_ed25519&gt;</span>
+                </div>
+                <div class="mockup-row">
+                    <span class="mockup-key">Asientos / Cuota</span>
+                    <span class="mockup-val" id="heroPreviewEntitlements">3 nodos / 500 créditos</span>
+                </div>
+                <div class="mockup-row">
+                    <span class="mockup-key">Persistencia</span>
+                    <span class="mockup-val">SQLite WAL BEGIN IMMEDIATE</span>
+                </div>
+                <div class="mockup-row">
+                    <span class="mockup-key">Idempotencia</span>
+                    <span class="mockup-val">UNIQUE(license_id, key)</span>
+                </div>
+            </aside>
+        </section>
+
+        <section class="stat-grid" aria-label="Métricas de Arquitectura">
+            <div class="stat-box">
+                <div class="stat-label">Latencia Verificación</div>
+                <div class="stat-value">&lt; 1 ms</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Firma Asimétrica</div>
+                <div class="stat-value">Ed25519</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Motor Transaccional</div>
+                <div class="stat-value">SQLite WAL</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Pasarelas Nativas</div>
+                <div class="stat-value">Stripe / LS</div>
+            </div>
+        </section>
+
+        <section id="console-section">
+            <div class="section-head">
+                <h2>Consola Operativa en Tiempo Real</h2>
+                <p>Emite claves firmadas, comprueba firmas Ed25519 en línea o en el navegador sin red, consume créditos con idempotencia y simula webhooks firmados.</p>
+            </div>
+
+            <div class="grid">
+                <div class="card col-6" id="cardIssue">
+                    <div class="card-header">
+                        <h3 class="card-title">Emisión de Licencias Criptográficas</h3>
+                        <span class="card-step">PASO 01</span>
+                    </div>
+                    <div class="form-group">
+                        <label for="issueEmail">Correo Electrónico del Cliente</label>
+                        <input type="email" id="issueEmail" value="demo@empresa.com" autocomplete="email">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="issueTier">Nivel de Suscripción</label>
+                            <select id="issueTier">
+                                <option value="community">Community (25 créditos, 1 asiento)</option>
+                                <option value="pro" selected>Pro (500 créditos, 3 asientos)</option>
+                                <option value="studio">Studio (5.000 créditos, 25 asientos)</option>
+                                <option value="lifetime">Lifetime (10.000 créditos, 5 asientos)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="issueAlgo">Algoritmo de Firma</label>
+                            <select id="issueAlgo">
+                                <option value="ed25519" selected>Ed25519 (Asimétrico RFC 8032)</option>
+                                <option value="hmac-sha256">HMAC-SHA256 (Simétrico)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="issueDomain">Dominio Autorizado (Opcional)</label>
+                        <input type="text" id="issueDomain" placeholder="ej. *.empresa.com">
+                    </div>
+                    <button type="button" class="btn" id="btnIssue">Emitir Clave de Licencia</button>
+                    <pre class="code-box state-ok is-hidden" id="issueResult" aria-live="polite"></pre>
+                </div>
+
+                <div class="card col-6">
+                    <div class="card-header">
+                        <h3 class="card-title">Verificador Dual, Nodos y Revocación</h3>
+                        <span class="card-step">PASO 02</span>
+                    </div>
+                    <div class="form-group">
+                        <label for="verifyKey">Clave de Licencia (Token)</label>
+                        <input type="text" id="verifyKey" placeholder="LIC-PRO-eyJ...">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="verifyHw">Hardware ID (Nodo)</label>
+                            <input type="text" id="verifyHw" placeholder="hw-node-001 (Opcional)">
+                        </div>
+                        <div class="form-group">
+                            <label for="verifyDomain">Dominio (Opcional)</label>
+                            <input type="text" id="verifyDomain" placeholder="app.empresa.com">
+                        </div>
+                    </div>
+                    <div class="action-row">
+                        <button type="button" class="btn btn-secondary" id="btnVerifyOnline">Verificar Online</button>
+                        <button type="button" class="btn btn-secondary" id="btnVerifyOffline">Verificar Offline</button>
+                        <button type="button" class="btn" id="btnActivate">Activar Nodo</button>
+                        <button type="button" class="btn btn-danger" id="btnRevoke">Revocar</button>
+                    </div>
+                    <pre class="code-box state-ok is-hidden" id="verifyResult" aria-live="polite"></pre>
+                </div>
+
+                <div class="card col-6">
+                    <div class="card-header">
+                        <h3 class="card-title">Metering Atómico Token-Bucket</h3>
+                        <span class="card-step">PASO 03</span>
+                    </div>
+                    <div class="form-group">
+                        <label for="quotaKey">Clave de Licencia Activa</label>
+                        <input type="text" id="quotaKey" placeholder="LIC-PRO-eyJ...">
+                    </div>
+                    <div class="form-group">
+                        <label for="quotaCredits">Créditos a Operar</label>
+                        <input type="number" id="quotaCredits" value="5" min="1">
+                    </div>
+                    <div class="action-row">
+                        <button type="button" class="btn btn-secondary" id="btnQuotaBalance">Consultar Saldo</button>
+                        <button type="button" class="btn" id="btnQuotaDeduct">Deducir Créditos</button>
+                        <button type="button" class="btn btn-secondary" id="btnQuotaReplenish">Recargar Cuota</button>
+                    </div>
+                    <pre class="code-box state-ok is-hidden" id="quotaResult" aria-live="polite"></pre>
+                </div>
+
+                <div class="card col-6">
+                    <div class="card-header">
+                        <h3 class="card-title">Simulador de Pasarela y Webhooks</h3>
+                        <span class="card-step">PASO 04</span>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="simEmail">Correo Objetivo</label>
+                            <input type="email" id="simEmail" value="demo@empresa.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="simTier">Nivel Objetivo</label>
+                            <select id="simTier">
+                                <option value="community">Community</option>
+                                <option value="pro" selected>Pro</option>
+                                <option value="studio">Studio</option>
+                                <option value="lifetime">Lifetime</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="simProvider">Proveedor</label>
+                            <select id="simProvider">
+                                <option value="stripe" selected>Stripe (HMAC t=, v1=)</option>
+                                <option value="lemonsqueezy">LemonSqueezy (X-Signature)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="simEvent">Evento de Facturación</label>
+                            <select id="simEvent">
+                                <option value="checkout.session.completed">checkout.session.completed (Upgrade / Alta)</option>
+                                <option value="invoice.payment_succeeded">invoice.payment_succeeded (Renovación Ciclo)</option>
+                                <option value="invoice.payment_failed">invoice.payment_failed (Periodo de Gracia)</option>
+                                <option value="customer.subscription.deleted">customer.subscription.deleted (Revocación)</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="button" class="btn" id="btnSimulate">Ejecutar Webhook Firmado</button>
+                    <pre class="code-box state-ok is-hidden" id="simResult" aria-live="polite"></pre>
+                </div>
+
+                <div class="card col-12">
+                    <div class="card-header">
+                        <h3 class="card-title">Registro de Telemetría y Auditoría de Consumo</h3>
+                        <button type="button" class="btn btn-secondary btn-inline" id="btnTelemetryRefresh">Actualizar Auditoría</button>
+                    </div>
+                    <pre class="code-box state-ok" id="telemetryResult" aria-live="polite">Emite o selecciona una licencia para inspeccionar activaciones y eventos idempotentes en tiempo real.</pre>
+                </div>
+            </div>
+        </section>
+
+        <section id="pricing-section">
+            <div class="section-head">
+                <h2>Arquitectura Comercial Lista para Monetizar</h2>
+                <p>Cuatro niveles preconfigurados con límites de asientos, créditos mensuales y generación instantánea de sesiones de Checkout y Portal.</p>
+            </div>
+
+            <div class="grid">
+                <div class="card col-3 pricing-card">
+                    <div>
+                        <div class="tier-name">Community</div>
+                        <div class="tier-price">$0 <span>/ mes</span></div>
+                        <ul class="tier-specs">
+                            <li>25 créditos por ciclo</li>
+                            <li>1 asiento de nodo activo</li>
+                            <li>Verificación online estándar</li>
+                        </ul>
+                    </div>
+                    <button type="button" class="btn btn-secondary js-checkout-tier" data-tier="community">Probar Community</button>
+                </div>
+
+                <div class="card col-3 pricing-card featured">
+                    <div>
+                        <div class="tier-name">Pro</div>
+                        <div class="tier-price">$29 <span>/ mes</span></div>
+                        <ul class="tier-specs">
+                            <li>500 créditos por ciclo</li>
+                            <li>3 asientos concurrentes</li>
+                            <li>Validación Ed25519 sin red</li>
+                        </ul>
+                    </div>
+                    <button type="button" class="btn js-checkout-tier" data-tier="pro">Activar Plan Pro</button>
+                </div>
+
+                <div class="card col-3 pricing-card">
+                    <div>
+                        <div class="tier-name">Studio</div>
+                        <div class="tier-price">$89 <span>/ mes</span></div>
+                        <ul class="tier-specs">
+                            <li>5.000 créditos por ciclo</li>
+                            <li>25 asientos para equipos</li>
+                            <li>Telemetría y prioridad API</li>
+                        </ul>
+                    </div>
+                    <button type="button" class="btn btn-secondary js-checkout-tier" data-tier="studio">Escalar a Studio</button>
+                </div>
+
+                <div class="card col-3 pricing-card">
+                    <div>
+                        <div class="tier-name">Lifetime</div>
+                        <div class="tier-price">$199 <span>/ pago único</span></div>
+                        <ul class="tier-specs">
+                            <li>10.000 créditos incluidos</li>
+                            <li>3 asientos perpetuos</li>
+                            <li>Despliegue self-hosted perpetuo</li>
+                        </ul>
+                    </div>
+                    <button type="button" class="btn btn-secondary js-checkout-tier" data-tier="lifetime">Obtener Lifetime</button>
+                </div>
+
+                <div class="card col-12 is-hidden" id="billingActionCard">
+                    <div class="card-header">
+                        <h3 class="card-title">Sesión de Checkout y Portal de Cliente</h3>
+                        <button type="button" class="btn btn-secondary btn-inline" id="btnBillingPortal">Abrir Portal de Facturación</button>
+                    </div>
+                    <pre class="code-box state-ok" id="billingResult" aria-live="polite"></pre>
+                </div>
+            </div>
+        </section>
+
+        <footer>
+            <div class="footer-inner">
+                <div>KeyForge Gateway v1.0.0 - Licenciamiento Criptográfico y Control de Cuota</div>
+                <div>Arquitectura Hexagonal Limpia / Python 3.14 / FastAPI / SQLite WAL</div>
+            </div>
+        </footer>
+    </main>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
