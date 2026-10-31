@@ -13,21 +13,31 @@ const TOKEN = vectors.find((v) => v.name === "valid_perpetual").token;
 
 async function fakeGateway(balance) {
   const requests = [];
+  const refunds = [];
+  const deducts = new Map();
   const server = createServer((req, res) => {
     let raw = "";
     req.on("data", (c) => (raw += c));
     req.on("end", () => {
       const body = JSON.parse(raw);
+      if (req.url.endsWith("/quota/refund")) {
+        refunds.push(body);
+        balance += deducts.get(body.idempotency_key) ?? 0;
+        deducts.delete(body.idempotency_key);
+        res.writeHead(200, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ success: true, data: { remaining_balance: balance } }));
+        return;
+      }
       requests.push({ body, header: req.headers["idempotency-key"] });
       const ok = body.credits <= balance;
-      if (ok) balance -= body.credits;
+      if (ok) { balance -= body.credits; deducts.set(body.idempotency_key, body.credits); }
       res.writeHead(ok ? 200 : 402, { "Content-Type": "application/json" });
       res.end(JSON.stringify(ok ? { success: true, data: { remaining_balance: balance } }
         : { success: false, error: { code: "QUOTA_EXHAUSTED", message: "0 left", status_code: 402, details: {} } }));
     });
   });
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
-  return { url: `http://127.0.0.1:${server.address().port}`, requests, close: () => server.close() };
+  return { url: `http://127.0.0.1:${server.address().port}`, requests, refunds, balance: () => balance, close: () => server.close() };
 }
 
 test("requireLicense is offline and keeps arguments", async () => {
@@ -97,4 +107,21 @@ test("CommonJS subpath export", async () => {
   const m = createRequire(import.meta.url)("keyforge-verify/mcp");
   assert.equal(typeof m.createKeyForge, "function");
   assert.equal(m.QUOTA_EXHAUSTED, -32042);
+});
+
+test("metered refunds credits when the handler throws or returns isError", async () => {
+  const gw = await fakeGateway(10);
+  try {
+    const kf = createKeyForge({ licenseKey: TOKEN, publicKeys: keys.k1, gatewayUrl: gw.url });
+    await assert.rejects(kf.metered(3, async () => { throw new Error("upstream down"); })(), /upstream down/);
+    const soft = await kf.metered(2, async () => ({ isError: true, content: [] }))();
+    assert.equal(soft.isError, true);
+    assert.equal(gw.balance(), 10);
+    assert.deepEqual(gw.refunds.map((r) => r.idempotency_key), gw.requests.map((r) => r.body.idempotency_key));
+    assert.deepEqual(gw.refunds.map((r) => r.reason), ["tool_error", "tool_error_result"]);
+    await assert.rejects(kf.metered(4, async () => { throw new Error("x"); }, { refundOnError: false })(), /x/);
+    assert.equal(gw.balance(), 6);
+  } finally {
+    gw.close();
+  }
 });

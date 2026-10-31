@@ -14,6 +14,7 @@ from typing import Any, Optional
 from app.domain.entities.quota import CreditDeductResult, QuotaBalance, QuotaLedger
 from app.domain.entities.usage import UsageEvent
 from app.domain.exceptions import (
+    DomainError,
     IdempotencyConflictError,
     LicenseNotFoundError,
     QuotaExceededError,
@@ -207,6 +208,82 @@ class SqliteQuotaRepo(IQuotaRepository):
                     time.sleep(random.uniform(0.005, 0.025))
                     continue
                 raise
+
+    def atomic_refund(
+        self,
+        license_id: str,
+        idempotency_key: str,
+        window_seconds: int,
+        reason: Optional[str] = None,
+    ) -> CreditDeductResult:
+        """Compensates a previous deduct (same idempotency key) exactly once, within a time window.
+
+        The refund is stored as a usage event (event_type ``refund``, key ``refund:<key>``, credits
+        returned as a positive amount), so replays are idempotent and the audit trail stays append-only.
+        """
+        if not idempotency_key or not idempotency_key.strip() or idempotency_key.startswith("refund:"):
+            raise ValueError("idempotency_key must reference an original deduct")
+        refund_key = f"refund:{idempotency_key}"
+        with transaction(self._conn):
+            done = self._conn.execute(
+                "SELECT id, credits_consumed FROM usage_events WHERE license_id = ? AND idempotency_key = ?",
+                (license_id, refund_key),
+            ).fetchone()
+            if done is not None:
+                bal = self._conn.execute(
+                    "SELECT balance, consumed FROM quotas WHERE license_id = ?", (license_id,)
+                ).fetchone()
+                return CreditDeductResult(
+                    success=True, remaining_balance=bal["balance"] if bal else 0,
+                    consumed_credits=done["credits_consumed"], consumed_total=bal["consumed"] if bal else 0,
+                    is_cached=True, event_id=done["id"], reason="idempotent_replay",
+                )
+
+            orig = self._conn.execute(
+                """
+                SELECT id, event_type, credits_consumed,
+                       (julianday('now') - julianday(timestamp)) * 86400.0 AS age_s
+                FROM usage_events WHERE license_id = ? AND idempotency_key = ?
+                """,
+                (license_id, idempotency_key),
+            ).fetchone()
+            if orig is None or orig["credits_consumed"] <= 0 or orig["event_type"] == "refund":
+                raise DomainError("No deduction found for this idempotency key.",
+                                  details={"idempotency_key": idempotency_key},
+                                  status_code=404, code="DEDUCTION_NOT_FOUND")
+            if window_seconds <= 0 or orig["age_s"] > window_seconds:
+                raise DomainError("Refund window expired for this deduction.",
+                                  details={"idempotency_key": idempotency_key, "window_seconds": window_seconds},
+                                  status_code=409, code="REFUND_WINDOW_EXPIRED")
+
+            credits = int(orig["credits_consumed"])
+            row = self._conn.execute(
+                """
+                UPDATE quotas
+                SET balance = MIN(balance + ?, total_allowance),
+                    consumed = MAX(consumed - ?, 0),
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE license_id = ?
+                RETURNING balance, consumed
+                """,
+                (credits, credits, license_id),
+            ).fetchone()
+            if row is None:
+                raise LicenseNotFoundError(f"Quota record for license '{license_id}' not found.")
+
+            event_id = str(uuid.uuid4())
+            meta = {"refund_of": orig["id"], "reason": reason} if reason else {"refund_of": orig["id"]}
+            self._conn.execute(
+                """
+                INSERT INTO usage_events (id, license_id, event_type, credits_consumed, idempotency_key, metadata_json)
+                VALUES (?, ?, 'refund', ?, ?, ?)
+                """,
+                (event_id, license_id, credits, refund_key, json.dumps(meta)),
+            )
+            return CreditDeductResult(
+                success=True, remaining_balance=row["balance"], consumed_credits=credits,
+                consumed_total=row["consumed"], is_cached=False, event_id=event_id, reason="refund",
+            )
 
     def replenish(
         self, license_id: str, credits: int, reset_cycle: bool = False

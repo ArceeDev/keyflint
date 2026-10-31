@@ -37,6 +37,12 @@ class Settings(BaseSettings):
     SECRET_KEY: str = "test_super_secret_key_32_characters_long_1234"
     ED25519_PRIVATE_KEY_HEX: Optional[str] = "a01fd194d15178191f62e570962a579e61bf728945f79655d9df145eada811ec"
     ED25519_PUBLIC_KEY_HEX: Optional[str] = "0043b567534bfa2d55059a05642f75573d420899146f334a9f7fc5fba797bd0b"
+    # Key rotation (v1.1). ED25519_KID unset = legacy tokens without "kid" (v1.0 compatible).
+    ED25519_KID: Optional[str] = None
+    # Retired verification keys kept for old tokens: "kid=hex,kid2=hex" or bare "hex" (pre-kid key).
+    ED25519_RETIRED_PUBLIC_KEYS: Optional[str] = None
+    # Seconds after a deduct during which /quota/refund may compensate it (0 disables refunds).
+    QUOTA_REFUND_WINDOW_SECONDS: int = 900
 
     STRIPE_WEBHOOK_SECRET: str = "whsec_test_stripe_secret_12345"
     LEMONSQUEEZY_WEBHOOK_SECRET: str = "whsec_test_lemonsqueezy_secret_12345"

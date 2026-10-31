@@ -12,6 +12,8 @@ from app.application.dtos.quota_dtos import (
     QuotaBalanceResponse,
     QuotaDeductRequest,
     QuotaDeductResponse,
+    QuotaRefundRequest,
+    QuotaRefundResponse,
     QuotaReplenishRequest,
     QuotaReplenishResponse,
 )
@@ -80,6 +82,30 @@ class QuotaService:
             transaction_id=result.event_id,
             idempotency_key=request.idempotency_key,
             license_status=license_entity.status.value,
+        )
+
+    def refund(self, request: QuotaRefundRequest) -> QuotaRefundResponse:
+        """Compensates a deduct made with the same idempotency key (once, within the refund window)."""
+        license_entity = self._license_repo.get_by_key(request.license_key)
+        if license_entity is None:
+            raise LicenseNotFoundError("License key not found.")
+        from app.config import get_settings
+
+        result = self._quota_repo.atomic_refund(
+            license_id=license_entity.id,
+            idempotency_key=request.idempotency_key,
+            window_seconds=get_settings().QUOTA_REFUND_WINDOW_SECONDS,
+            reason=request.reason,
+        )
+        return QuotaRefundResponse(
+            success=True,
+            license_id=license_entity.id,
+            refunded=result.consumed_credits,
+            remaining_balance=result.remaining_balance,
+            consumed_total=result.cumulative_consumed,
+            is_cached=result.is_cached,
+            event_id=result.event_id,
+            idempotency_key=request.idempotency_key,
         )
 
     def replenish(self, request: QuotaReplenishRequest) -> QuotaReplenishResponse:

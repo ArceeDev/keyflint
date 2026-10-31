@@ -71,6 +71,8 @@ class LicenseService:
         self._signer = signer or Ed25519Signer(
             private_key_hex=settings.ED25519_PRIVATE_KEY_HEX,
             public_key_hex=settings.ED25519_PUBLIC_KEY_HEX,
+            kid=settings.ED25519_KID,
+            retired_public_keys=settings.ED25519_RETIRED_PUBLIC_KEYS,
         )
         self._hmac_signer = hmac_signer or HmacSha256Signer(
             secret_key=settings.SECRET_KEY
@@ -159,6 +161,9 @@ class LicenseService:
         # 4. Select signer based on algorithm requested
         algo = (request.signing_algorithm or "ed25519").lower()
         active_signer = self._hmac_signer if ("hmac" in algo) else self._signer
+
+        if active_signer is self._signer and hasattr(active_signer, "stamp_kid"):
+            active_signer.stamp_kid(payload)
 
         # 5. Sign payload and format token (performed in-memory BEFORE taking DB write lock)
         signature = active_signer.sign(payload)
@@ -254,6 +259,8 @@ class LicenseService:
         if license_entity.metadata.get("allowed_domains"):
             payload["allowed_domains"] = license_entity.metadata["allowed_domains"]
 
+        if hasattr(self._signer, "stamp_kid"):
+            self._signer.stamp_kid(payload)
         new_sig = self._signer.sign(payload)
         new_key = self._signer.format_token(target_tier.value, payload, new_sig)
 

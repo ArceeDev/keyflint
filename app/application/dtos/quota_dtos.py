@@ -34,6 +34,27 @@ class QuotaDeductResponse(BaseModel):
     license_status: str = "active"
 
 
+class QuotaRefundRequest(BaseModel):
+    """Payload to compensate a previous deduct (e.g. the metered tool failed)."""
+
+    license_key: str
+    idempotency_key: str = Field(min_length=1, max_length=200)
+    reason: Optional[str] = Field(default=None, max_length=200)
+
+
+class QuotaRefundResponse(BaseModel):
+    """Result of a refund."""
+
+    success: bool
+    license_id: str
+    refunded: int
+    remaining_balance: int
+    consumed_total: int = 0
+    is_cached: bool = False
+    event_id: Optional[str] = None
+    idempotency_key: str
+
+
 class QuotaReplenishRequest(BaseModel):
     """Payload to add credits to a license."""
 

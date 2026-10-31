@@ -28,6 +28,8 @@ class FakeGateway:
     def __init__(self, balance: int) -> None:
         self.balance = balance
         self.requests: list[tuple[dict, str]] = []
+        self.deducts: dict[str, int] = {}
+        self.refunds: list[dict] = []
         gw = self
 
         class Handler(BaseHTTPRequestHandler):
@@ -36,12 +38,23 @@ class FakeGateway:
 
             def do_POST(self):  # noqa: N802
                 body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+                if self.path.endswith("/quota/refund"):
+                    gw.refunds.append(body)
+                    gw.balance += gw.deducts.pop(body["idempotency_key"], 0)
+                    status, out = 200, {"success": True, "data": {"remaining_balance": gw.balance}}
+                    raw = json.dumps(out).encode()
+                    self.send_response(status)
+                    self.send_header("Content-Length", str(len(raw)))
+                    self.end_headers()
+                    self.wfile.write(raw)
+                    return
                 gw.requests.append((body, self.headers.get("Idempotency-Key", "")))
                 if body["credits"] > gw.balance:
                     status, out = 402, {"success": False, "error": {"code": "QUOTA_EXHAUSTED", "message": "0 left",
                                                                    "status_code": 402, "details": {}}}
                 else:
                     gw.balance -= body["credits"]
+                    gw.deducts[body["idempotency_key"]] = body["credits"]
                     status, out = 200, {"success": True, "data": {"remaining_balance": gw.balance}}
                 raw = json.dumps(out).encode()
                 self.send_response(status)
@@ -133,6 +146,33 @@ class TestDecorators(unittest.TestCase):
 
         self.assertEqual(tool(), "ok")
         self.assertEqual(self.gw.balance, 0)
+
+    def test_metered_refunds_on_exception_and_error_result(self) -> None:
+        @self.kf.metered(credits=3)
+        async def boom() -> str:
+            raise RuntimeError("upstream down")
+
+        @self.kf.metered(credits=2)
+        def soft() -> dict:
+            return {"isError": True, "content": []}
+
+        with self.assertRaises(RuntimeError):
+            asyncio.run(boom())
+        self.assertEqual(soft()["isError"], True)
+        self.assertEqual(self.gw.balance, 10)
+        keys = [b["idempotency_key"] for b, _ in self.gw.requests]
+        self.assertEqual([r["idempotency_key"] for r in self.gw.refunds], keys)
+        self.assertEqual([r["reason"] for r in self.gw.refunds], ["tool_error", "tool_error_result"])
+
+    def test_metered_refund_disabled(self) -> None:
+        @self.kf.metered(credits=3, refund_on_error=False)
+        def boom() -> None:
+            raise RuntimeError("x")
+
+        with self.assertRaises(RuntimeError):
+            boom()
+        self.assertEqual(self.gw.balance, 7)
+        self.assertEqual(self.gw.refunds, [])
 
     def test_gateway_unreachable(self) -> None:
         kf = KeyForge(license_key=TOKEN, public_keys=PK, gateway_url="http://127.0.0.1:9", timeout=0.5)

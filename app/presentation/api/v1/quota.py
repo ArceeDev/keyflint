@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from app.application.dtos.quota_dtos import (
     QuotaBalanceRequest,
     QuotaDeductRequest,
+    QuotaRefundRequest,
     QuotaReplenishRequest,
 )
 from app.application.services.quota_service import QuotaService
@@ -38,6 +39,21 @@ def deduct_quota(
     if res.license_status == "grace_period":
         response.headers["X-Subscription-Warning"] = "Account in payment grace period"
 
+    return {
+        "success": True,
+        "data": res.model_dump(),
+        "metadata": build_response_metadata(http_request),
+    }
+
+
+@router.post("/refund")
+def refund_quota(
+    request: QuotaRefundRequest,
+    http_request: Request,
+    quota_service: QuotaService = Depends(get_quota_service),
+) -> dict[str, Any]:
+    """Compensates a previous deduct (same idempotency key) when the metered operation failed."""
+    res = quota_service.refund(request)
     return {
         "success": True,
         "data": res.model_dump(),

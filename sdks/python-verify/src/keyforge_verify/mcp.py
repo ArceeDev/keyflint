@@ -228,6 +228,25 @@ class KeyForge:
                 last_exc = exc
         raise _error(GATEWAY_ERROR, "GATEWAY_UNREACHABLE", f"KeyForge gateway unreachable: {last_exc}.")
 
+    def refund(self, idempotency_key: str, reason: Optional[str] = None) -> bool:
+        """Best-effort POST /api/v1/quota/refund for a previous deduct. Never raises; True on success."""
+        if not self.gateway_url:
+            return False
+        body: dict[str, Any] = {"license_key": self.license_key, "idempotency_key": idempotency_key}
+        if reason:
+            body["reason"] = reason
+        req = urllib.request.Request(
+            f"{self.gateway_url}/api/v1/quota/refund",
+            data=json.dumps(body).encode("utf-8"),
+            headers={"Content-Type": "application/json", "Accept": "application/json"},
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=self.timeout):  # noqa: S310 - configured URL
+                return True
+        except Exception:
+            return False
+
     def _http_error(self, status: int, raw: bytes) -> LicenseError:
         try:
             err = json.loads(raw.decode("utf-8")).get("error", {})
@@ -264,39 +283,67 @@ class KeyForge:
         *,
         features: Optional[Sequence[str]] = None,
         event_type: Optional[str] = None,
+        refund_on_error: bool = True,
     ) -> Callable[[F], F]:
-        """Decorator: offline license check, then debit ``credits`` before the tool runs."""
+        """Decorator: offline license check, then debit ``credits`` before the tool runs.
+
+        With ``refund_on_error`` (default) the credits are given back via /quota/refund if the
+        tool raises or returns an MCP error result (``isError: True``).
+        """
         if credits <= 0:
             raise ValueError("credits must be a positive integer")
 
         def decorate(func: F) -> F:
             name = event_type or f"mcp:{func.__name__}"
-            return _wrap(
-                func,
-                lambda: self.check(features),
-                lambda: self.deduct(credits, event_type=name),
-            )
+
+            def charge() -> Optional[Callable[[str], Any]]:
+                key = f"mcp-{uuid.uuid4().hex}"
+                self.deduct(credits, idempotency_key=key, event_type=name)
+                return (lambda reason: self.refund(key, reason)) if refund_on_error else None
+
+            return _wrap(func, lambda: self.check(features), charge)
 
         return decorate
 
 
+def _is_error_result(out: Any) -> bool:
+    if isinstance(out, Mapping):
+        return out.get("isError") is True
+    return getattr(out, "isError", None) is True
+
+
 def _wrap(func: F, check: Callable[[], Any], charge: Optional[Callable[[], Any]]) -> F:
+    """``charge`` debits and may return a ``refund(reason)`` callback used if the tool fails."""
     if inspect.iscoroutinefunction(func):
 
         @functools.wraps(func)
         async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
             check()
-            if charge is not None:
-                await asyncio.to_thread(charge)
-            return await func(*args, **kwargs)
+            undo = await asyncio.to_thread(charge) if charge is not None else None
+            try:
+                out = await func(*args, **kwargs)
+            except BaseException:
+                if undo is not None:
+                    await asyncio.to_thread(undo, "tool_error")
+                raise
+            if undo is not None and _is_error_result(out):
+                await asyncio.to_thread(undo, "tool_error_result")
+            return out
 
         return cast(F, async_wrapper)
 
     @functools.wraps(func)
     def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
         check()
-        if charge is not None:
-            charge()
-        return func(*args, **kwargs)
+        undo = charge() if charge is not None else None
+        try:
+            out = func(*args, **kwargs)
+        except BaseException:
+            if undo is not None:
+                undo("tool_error")
+            raise
+        if undo is not None and _is_error_result(out):
+            undo("tool_error_result")
+        return out
 
     return cast(F, sync_wrapper)

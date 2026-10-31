@@ -213,6 +213,31 @@ def canonical_json_bytes(payload: dict[str, Any]) -> bytes:
     return json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode("utf-8")
 
 
+_KID_RE = re.compile(r"^[A-Za-z0-9._-]{1,64}$")
+
+
+def _validate_kid(kid: str) -> str:
+    kid = kid.strip()
+    if not _KID_RE.match(kid):
+        raise ValueError(f"Invalid kid {kid!r}: use 1-64 chars [A-Za-z0-9._-].")
+    return kid
+
+
+def parse_key_ring(raw: Optional[str]) -> list[tuple[Optional[str], bytes]]:
+    """Parses "kid=hex,kid2=hex" or bare "hex" entries (bare = legacy key without kid)."""
+    out: list[tuple[Optional[str], bytes]] = []
+    for item in (raw or "").split(","):
+        item = item.strip()
+        if not item:
+            continue
+        kid, _, hex_key = item.rpartition("=")
+        pk = bytes.fromhex(hex_key.strip())
+        if len(pk) != 32:
+            raise ValueError("Ed25519 public keys must be 32 bytes (64 hex chars).")
+        out.append((_validate_kid(kid) if kid else None, pk))
+    return out
+
+
 # ----------------------------------------------------------------------
 # High-Level Ed25519 Signer Class
 # ----------------------------------------------------------------------
@@ -227,6 +252,8 @@ class Ed25519Signer:
         private_key_hex: Optional[str] = None,
         public_key_hex: Optional[str] = None,
         *,
+        kid: Optional[str] = None,
+        retired_public_keys: Optional[str] = None,
         force_pure_python: bool = False,
     ) -> None:
         if private_key_hex is None and public_key_hex is None:
@@ -235,6 +262,9 @@ class Ed25519Signer:
                 settings = get_settings()
                 private_key_hex = settings.ED25519_PRIVATE_KEY_HEX
                 public_key_hex = settings.ED25519_PUBLIC_KEY_HEX
+                kid = kid if kid is not None else settings.ED25519_KID
+                if retired_public_keys is None:
+                    retired_public_keys = settings.ED25519_RETIRED_PUBLIC_KEYS
             except Exception:
                 pass
             if not private_key_hex:
@@ -255,6 +285,31 @@ class Ed25519Signer:
         # Derive public key if private is present and public is missing
         if self.private_key_bytes and not self.public_key_bytes:
             self.public_key_bytes = self._derive_public_key(self.private_key_bytes)
+
+        # Key rotation: active kid (None = v1.0 tokens without kid) + retired verification keys.
+        self.kid: Optional[str] = _validate_kid(kid) if kid else None
+        self.retired_keys: list[tuple[Optional[str], bytes]] = parse_key_ring(retired_public_keys)
+
+    def key_ring(self) -> list[tuple[Optional[str], bytes]]:
+        """Active key first, then retired keys. Entries are (kid_or_None, raw_public_key)."""
+        ring: list[tuple[Optional[str], bytes]] = []
+        if self.public_key_bytes:
+            ring.append((self.kid, self.public_key_bytes))
+        ring.extend(self.retired_keys)
+        return ring
+
+    def public_keys(self) -> list[dict[str, Any]]:
+        """Publishable key set (JWKS-like) for SDK key rings."""
+        return [
+            {"kid": k, "public_key_hex": pk.hex(), "status": "active" if i == 0 else "retired"}
+            for i, (k, pk) in enumerate(self.key_ring())
+        ]
+
+    def stamp_kid(self, payload: dict[str, Any]) -> dict[str, Any]:
+        """Adds the active kid to a payload before signing (no-op when no kid is configured)."""
+        if self.kid and "kid" not in payload:
+            payload["kid"] = self.kid
+        return payload
 
     @classmethod
     def generate_keypair(cls, *, force_pure_python: bool = False) -> tuple[str, str]:
@@ -292,19 +347,24 @@ class Ed25519Signer:
         assert self.public_key_bytes is not None
         return _pure_sign(data, self.private_key_bytes, self.public_key_bytes)
 
-    def verify_bytes(self, sig: bytes, data: bytes) -> bool:
-        """Verifies signature against raw bytes using public key."""
-        if not self.public_key_bytes:
+    def verify_bytes(self, sig: bytes, data: bytes, kid: Optional[str] = None) -> bool:
+        """Verifies a signature against the key ring (matching kid first, then every key)."""
+        ring = self.key_ring()
+        if not ring:
             raise ValueError("Public key is required to verify signatures.")
+        if kid is not None:
+            ring.sort(key=lambda e: e[0] != kid)
+        return any(self._verify_with(pk, sig, data) for _, pk in ring)
+
+    def _verify_with(self, pk_bytes: bytes, sig: bytes, data: bytes) -> bool:
         if self._has_crypto:
             from cryptography.hazmat.primitives.asymmetric import ed25519
             try:
-                pk = ed25519.Ed25519PublicKey.from_public_bytes(self.public_key_bytes)
-                pk.verify(sig, data)
+                ed25519.Ed25519PublicKey.from_public_bytes(pk_bytes).verify(sig, data)
                 return True
             except Exception:
                 return False
-        return _pure_verify(sig, data, self.public_key_bytes)
+        return _pure_verify(sig, data, pk_bytes)
 
     def sign(self, payload: dict[str, Any]) -> str:
         """Signs canonical JSON dictionary payload and returns unpadded base64url signature."""
@@ -317,7 +377,8 @@ class Ed25519Signer:
         try:
             canon_bytes = canonical_json_bytes(payload)
             sig_bytes = b64url_decode(signature)
-            return self.verify_bytes(sig_bytes, canon_bytes)
+            kid = payload.get("kid")
+            return self.verify_bytes(sig_bytes, canon_bytes, kid if isinstance(kid, str) else None)
         except Exception:
             return False
 
@@ -330,6 +391,7 @@ class Ed25519Signer:
     def sign_token(self, payload: dict[str, Any]) -> str:
         """Computes signature and emits formatted license token."""
         tier = str(payload.get("tier", "community")).upper()
+        payload = self.stamp_kid(dict(payload))
         sig_b64 = self.sign(payload)
         return self.format_token(tier, payload, sig_b64)
 
@@ -375,7 +437,8 @@ class Ed25519Signer:
             sig_bytes = b64url_decode(sig_b64)
             if len(sig_bytes) != 64:
                 return False, payload, "ERR_INVALID_SIGNATURE"
-            if not self.verify_bytes(sig_bytes, payload_bytes):
+            tok_kid = payload.get("kid")
+            if not self.verify_bytes(sig_bytes, payload_bytes, tok_kid if isinstance(tok_kid, str) else None):
                 return False, payload, "ERR_SIGNATURE_TAMPERED"
         except Exception:
             return False, payload, "ERR_INVALID_SIGNATURE"

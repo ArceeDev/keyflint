@@ -38,6 +38,12 @@ class IQuotaRepository(Protocol):
         """Atomically deducts credits from balance and logs usage event with ACID guarantees."""
         ...
 
+    def atomic_refund(
+        self, license_id: str, idempotency_key: str, window_seconds: int, reason: Optional[str] = None
+    ) -> CreditDeductResult:
+        """Compensates a previous deduct exactly once within ``window_seconds``."""
+        ...
+
     def replenish(
         self, license_id: str, credits: int, reset_cycle: bool = False
     ) -> QuotaLedger:

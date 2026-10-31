@@ -75,6 +75,8 @@ export interface GateOptions {
 
 export interface MeteredOptions extends GateOptions {
   eventType?: string;
+  /** Give the credits back (POST /quota/refund) if the handler throws or returns { isError: true }. Default true. */
+  refundOnError?: boolean;
 }
 
 type AnyFn = (...args: never[]) => unknown;
@@ -85,6 +87,8 @@ export interface KeyForge {
   check(options?: GateOptions): Promise<VerifyResult>;
   /** POST /api/v1/quota/deduct with an automatic idempotency key. Throws KeyForgeMcpError. */
   deduct(credits?: number, options?: DeductOptions): Promise<Record<string, unknown>>;
+  /** Best-effort POST /api/v1/quota/refund for a previous deduct. Never throws; resolves true on success. */
+  refund(idempotencyKey: string, reason?: string): Promise<boolean>;
   requireLicense<F extends AnyFn>(handler: F, options?: GateOptions): Wrapped<F>;
   metered<F extends AnyFn>(credits: number, handler: F, options?: MeteredOptions): Wrapped<F>;
 }
@@ -211,9 +215,25 @@ export function createKeyForge(options: KeyForgeOptions = {}): KeyForge {
     return fail(GATEWAY_ERROR, `KeyForge gateway unreachable: ${String(lastErr)}.`, { reason: "GATEWAY_UNREACHABLE" });
   }
 
+  async function refund(idempotencyKey: string, reason?: string): Promise<boolean> {
+    if (!gatewayUrl || !doFetch) return false;
+    try {
+      const res = await (doFetch as typeof fetch)(`${gatewayUrl}/api/v1/quota/refund`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify(strip({ license_key: licenseKey, idempotency_key: idempotencyKey, reason })),
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+      return res.ok;
+    } catch {
+      return false;
+    }
+  }
+
   return {
     check,
     deduct,
+    refund,
     requireLicense(handler, gate = {}) {
       return (async (...args) => {
         await check(gate);
@@ -225,8 +245,20 @@ export function createKeyForge(options: KeyForgeOptions = {}): KeyForge {
       const eventType = opts.eventType ?? (handler.name ? `mcp:${handler.name}` : defaultEvent);
       return (async (...args) => {
         await check(opts);
-        await deduct(credits, { eventType });
-        return (await handler(...args)) as never;
+        const idempotencyKey = randomKey();
+        await deduct(credits, { eventType, idempotencyKey });
+        if (opts.refundOnError === false) return (await handler(...args)) as never;
+        let out: unknown;
+        try {
+          out = await handler(...args);
+        } catch (e) {
+          await refund(idempotencyKey, "tool_error");
+          throw e;
+        }
+        if (out && typeof out === "object" && (out as { isError?: unknown }).isError === true) {
+          await refund(idempotencyKey, "tool_error_result");
+        }
+        return out as never;
       }) as Wrapped<typeof handler>;
     },
   };

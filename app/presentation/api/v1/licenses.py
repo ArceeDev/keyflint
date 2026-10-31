@@ -31,12 +31,24 @@ def get_public_key(
     license_service: LicenseService = Depends(get_license_service),
 ) -> dict[str, Any]:
     """Returns the Ed25519 public verification key for air-gapped client SDKs."""
-    pub_hex = ""
-    if hasattr(license_service._signer, "get_public_key_hex"):
-        pub_hex = license_service._signer.get_public_key_hex()
+    signer = license_service._signer
+    pub_hex = signer.get_public_key_hex() if hasattr(signer, "get_public_key_hex") else ""
+    keys = signer.public_keys() if hasattr(signer, "public_keys") else []
+    # KEYFORGE_PUBLIC_KEYS-compatible string: all "kid=hex" (kid-less keys labelled "legacy-N")
+    # or all bare hex when no key has a kid. SDKs try every key for tokens without kid.
+    if any(k["kid"] for k in keys):
+        ring_env = ",".join(f"{k['kid'] or f'legacy-{i}'}={k['public_key_hex']}" for i, k in enumerate(keys))
+    else:
+        ring_env = ",".join(k["public_key_hex"] for k in keys)
     return {
         "success": True,
-        "data": {"algorithm": "Ed25519", "public_key_hex": pub_hex},
+        "data": {
+            "algorithm": "Ed25519",
+            "public_key_hex": pub_hex,
+            "kid": getattr(signer, "kid", None),
+            "keys": keys,
+            "keyring": ring_env,
+        },
         "metadata": build_response_metadata(http_request),
     }
 
