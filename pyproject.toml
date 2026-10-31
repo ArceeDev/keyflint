@@ -1,0 +1,43 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "keyforge"
+version = "1.0.0"
+description = "Cryptographic Licensing & Quota-Metering Gateway for AI tools and micro-SaaS"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+    { name = "KeyForge Team", email = "dev@keyforge.local" }
+]
+dependencies = [
+    "fastapi>=0.115.0",
+    "pydantic>=2.10.0",
+    "pydantic-settings>=2.6.0",
+    "click>=8.1.0",
+    "cryptography>=43.0.0",
+    "uvicorn>=0.30.0",
+    "httpx>=0.27.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=5.0.0",
+    "httpx>=0.27.0",
+    "ruff>=0.7.0",
+]
+
+[project.scripts]
+keyforge = "app.cli:cli"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v"

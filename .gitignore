@@ -1,0 +1,44 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Environment files
+.env
+.env.local
+
+# Databases & local persistent storage
+data/*.db
+data/*.db-wal
+data/*.db-shm
+*.sqlite3
+*.db
+*.db-wal
+*.db-shm
+!data/.gitkeep
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Teamwork metadata
+.agents/teamwork/
