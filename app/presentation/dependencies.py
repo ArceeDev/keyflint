@@ -15,6 +15,7 @@ from app.application.services.license_service import LicenseService
 from app.application.services.quota_service import QuotaService
 from app.config import get_settings
 from app.infrastructure.database.connection import create_connection
+from app.infrastructure.email.transactional_email_service import TransactionalEmailService
 from app.infrastructure.repositories.sqlite_customer_repo import SqliteCustomerRepo
 from app.infrastructure.repositories.sqlite_license_repo import SqliteLicenseRepo
 from app.infrastructure.repositories.sqlite_quota_repo import SqliteQuotaRepo
@@ -110,6 +111,11 @@ def get_quota_service(
     )
 
 
+def get_email_sender() -> TransactionalEmailService:
+    """Returns singleton transactional email service adapter."""
+    return TransactionalEmailService()
+
+
 def get_billing_service(
     customer_repo: SqliteCustomerRepo = Depends(get_customer_repo),
     license_repo: SqliteLicenseRepo = Depends(get_license_repo),
@@ -117,6 +123,7 @@ def get_billing_service(
     webhook_repo: SqliteWebhookRepo = Depends(get_webhook_repo),
     license_service: LicenseService = Depends(get_license_service),
     quota_service: QuotaService = Depends(get_quota_service),
+    email_sender: TransactionalEmailService = Depends(get_email_sender),
 ) -> BillingService:
     return BillingService(
         customer_repo=customer_repo,
@@ -125,4 +132,5 @@ def get_billing_service(
         webhook_repo=webhook_repo,
         license_service=license_service,
         quota_service=quota_service,
+        email_sender=email_sender,
     )

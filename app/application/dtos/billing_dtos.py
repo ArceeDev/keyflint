@@ -109,3 +109,43 @@ class BillingStatusResponse(BaseModel):
     credit_balance: int = 0
     total_allowance: int = 0
     consumed: int = 0
+
+
+class CustomerLicenseSummary(BaseModel):
+    """Per-license overview for buyer self-service management."""
+
+    license_id: str
+    license_key: str
+    tier: str
+    status: str
+    current_activations: int
+    max_seats: int
+    credit_balance: int
+    total_allowance: int
+    expires_at: Optional[str] = None
+    created_at: str
+
+
+class CustomerPortalLookupRequest(BaseModel):
+    """Request payload to query licenses by email or license token."""
+
+    query: str = Field(min_length=1, description="Customer email address or license key")
+
+    @field_validator("query")
+    @classmethod
+    def validate_query(cls, v: str) -> str:
+        s = v.strip()
+        if not s:
+            raise ValueError("Query string cannot be empty")
+        return s
+
+
+class CustomerPortalLookupResponse(BaseModel):
+    """Aggregated self-service view with token balances and code snippets."""
+
+    customer_email: str
+    public_key_hex: str
+    total_licenses: int
+    licenses: list[CustomerLicenseSummary]
+    python_snippet: str
+    typescript_snippet: str

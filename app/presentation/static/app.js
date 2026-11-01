@@ -660,6 +660,70 @@ document.addEventListener("DOMContentLoaded", () => {
         }, 2800);
     }
 
+    // 8. Self-Service Buyer Portal Lookup
+    const btnPortalLookup = document.getElementById("btnPortalLookup");
+    const portalQuery = document.getElementById("portalQuery");
+    const portalResults = document.getElementById("portalResults");
+    const portalError = document.getElementById("portalError");
+    const portalCustomerEmail = document.getElementById("portalCustomerEmail");
+    const portalCustomerCount = document.getElementById("portalCustomerCount");
+    const portalLicensesContainer = document.getElementById("portalLicensesContainer");
+    const portalPySnippet = document.getElementById("portalPySnippet");
+    const portalTsSnippet = document.getElementById("portalTsSnippet");
+
+    if (btnPortalLookup && portalQuery) {
+        btnPortalLookup.addEventListener("click", () =>
+            withButtonLock(btnPortalLookup, "Consultando...", async () => {
+                const q = portalQuery.value.trim();
+                if (!q) {
+                    showToast("Por favor introduce un email o token de licencia.");
+                    return;
+                }
+                portalResults.classList.add("is-hidden");
+                portalError.classList.add("is-hidden");
+
+                try {
+                    const res = await fetch("/api/v1/billing/portal/lookup", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ query: q }),
+                    });
+                    const json = await res.json();
+                    if (!res.ok || !json.success) {
+                        portalError.textContent = json.detail || json.error || "No se encontraron licencias para la consulta introducida.";
+                        portalError.classList.remove("is-hidden");
+                        return;
+                    }
+                    const data = json.data;
+                    portalCustomerEmail.textContent = `Licencias de ${data.customer_email}`;
+                    portalCustomerCount.textContent = `${data.total_licenses} licencia(s) · Clave pública Ed25519: ${data.public_key_hex.slice(0, 16)}...`;
+
+                    portalLicensesContainer.innerHTML = data.licenses.map(lic => `
+                        <div style="background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; margin-bottom: 12px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                                <strong style="color: var(--ink);">${lic.tier.toUpperCase()}</strong>
+                                <span class="tag ${lic.status === 'active' ? '' : 'tag-warn'}">${lic.status}</span>
+                            </div>
+                            <div style="font-family: var(--mono); font-size: 11px; word-break: break-all; background: var(--sunken); padding: 8px; border-radius: 4px; margin-bottom: 8px; color: var(--ink);">${lic.license_key}</div>
+                            <div style="display: flex; gap: 16px; font-size: 13px; color: var(--muted); flex-wrap: wrap;">
+                                <span>Saldo créditos: <b style="color: var(--ink);">${Number(lic.credit_balance).toLocaleString()}</b></span>
+                                <span>Nodos activos: <b style="color: var(--ink);">${lic.current_activations} / ${lic.max_seats}</b></span>
+                                <span>Caducidad: <b style="color: var(--ink);">${lic.expires_at ? lic.expires_at.split('T')[0] : 'Permanente'}</b></span>
+                            </div>
+                        </div>
+                    `).join("");
+
+                    portalPySnippet.textContent = data.python_snippet;
+                    portalTsSnippet.textContent = data.typescript_snippet;
+                    portalResults.classList.remove("is-hidden");
+                } catch (err) {
+                    portalError.textContent = `Consulta no disponible en modo estático sin backend. Requiere gateway KeyForge activo en Railway/Render: ${err.message}`;
+                    portalError.classList.remove("is-hidden");
+                }
+            })
+        );
+    }
+
     // 8. Interactive Code Showcase Tabs
     const codeSnippet = document.getElementById("codeSnippet");
     const btnCopySnippet = document.getElementById("btnCopySnippet");

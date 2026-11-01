@@ -1,0 +1,59 @@
+services:
+  keyforge:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ghcr.io/arceedev/keyforge:1.1.0
+    container_name: keyforge_gateway
+    restart: unless-stopped
+    environment:
+      - ENVIRONMENT=production
+      - BILLING_MODE=live
+      - HOST=0.0.0.0
+      - PORT=8000
+      - DATABASE_URL=sqlite:////app/data/keyforge.db
+      - SECRET_KEY=${SECRET_KEY}
+      - ED25519_PRIVATE_KEY_HEX=${ED25519_PRIVATE_KEY_HEX}
+      - ED25519_PUBLIC_KEY_HEX=${ED25519_PUBLIC_KEY_HEX:-}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - ADMIN_API_KEY=${ADMIN_API_KEY}
+      - RESEND_API_KEY=${RESEND_API_KEY:-}
+      - EMAIL_FROM=${EMAIL_FROM:-KeyForge <licenses@arceedev.com>}
+    volumes:
+      - keyforge_data:/app/data
+    networks:
+      - keyforge_net
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: keyforge_caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - DOMAIN=${DOMAIN:-licenses.arceedev.com}
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - keyforge_net
+    depends_on:
+      - keyforge
+    command: >
+      caddy reverse-proxy --from https://${DOMAIN:-licenses.arceedev.com} --to http://keyforge:8000
+
+volumes:
+  keyforge_data:
+    name: keyforge_prod_data
+  caddy_data:
+  caddy_config:
+
+networks:
+  keyforge_net:
+    driver: bridge

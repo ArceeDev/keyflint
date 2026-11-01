@@ -54,6 +54,16 @@ class Settings(BaseSettings):
     BILLING_PORTAL_RETURN_URL: str = "http://127.0.0.1:8000/"
     ADMIN_API_KEY: str = "kf_dev_admin_key_change_in_prod"
 
+    # Transactional Email Dispatch (Resend / SMTP)
+    EMAIL_ENABLED: bool = False
+    EMAIL_FROM: str = "KeyForge <licenses@arceedev.com>"
+    RESEND_API_KEY: Optional[str] = None
+    SMTP_HOST: Optional[str] = None
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
+    SMTP_USE_TLS: bool = True
+
     BILLING_MODE: str = "mock"
     ENVIRONMENT: str = "development"
     HOST: str = "0.0.0.0"

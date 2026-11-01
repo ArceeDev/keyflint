@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: keyforge-gateway
+    runtime: docker
+    dockerfilePath: Dockerfile
+    plan: starter
+    region: frankfurt
+    healthCheckPath: /healthz
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: BILLING_MODE
+        value: live
+      - key: DATABASE_URL
+        value: sqlite:////app/data/keyforge.db
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ED25519_PRIVATE_KEY_HEX
+        sync: false
+      - key: ED25519_PUBLIC_KEY_HEX
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: ADMIN_API_KEY
+        generateValue: true
+      - key: RATE_LIMIT_ENABLED
+        value: "true"
+    disk:
+      name: keyforge-data
+      mountPath: /app/data
+      sizeGB: 1

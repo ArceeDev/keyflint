@@ -485,3 +485,11 @@ class LicenseService:
         if hasattr(self._license_repo, "is_revoked"):
             return self._license_repo.is_revoked(license_id)
         return False
+
+    def get_public_key_hex(self) -> str:
+        """Returns the active hex-encoded Ed25519 public verification key."""
+        if hasattr(self._signer, "get_public_key_hex"):
+            return self._signer.get_public_key_hex()
+        if hasattr(self._signer, "public_key_bytes") and self._signer.public_key_bytes:
+            return self._signer.public_key_bytes.hex()
+        return ""

@@ -21,6 +21,9 @@ from app.application.dtos.billing_dtos import (
     BillingStatusResponse,
     CheckoutRequest,
     CheckoutResponse,
+    CustomerLicenseSummary,
+    CustomerPortalLookupRequest,
+    CustomerPortalLookupResponse,
     PortalRequest,
     PortalResponse,
     WebhookSimulationRequest,
@@ -40,6 +43,7 @@ from app.domain.entities.license import LicenseStatus, Tier
 from app.domain.entities.webhook import WebhookRecord
 from app.domain.exceptions import DomainError, LicenseNotFoundError
 from app.domain.interfaces.customer_repository import ICustomerRepository
+from app.domain.interfaces.email_sender import IEmailSender, LicenseEmailPayload
 from app.domain.interfaces.license_repository import ILicenseRepository
 from app.domain.interfaces.quota_repository import IQuotaRepository
 from app.domain.interfaces.webhook_repository import IWebhookRepository
@@ -71,6 +75,7 @@ class BillingService:
         quota_service: QuotaService,
         stripe_webhook_secret: Optional[str] = None,
         lemonsqueezy_webhook_secret: Optional[str] = None,
+        email_sender: Optional[IEmailSender] = None,
     ) -> None:
         self._customer_repo = customer_repo
         self._license_repo = license_repo
@@ -78,6 +83,7 @@ class BillingService:
         self._webhook_repo = webhook_repo
         self._license_service = license_service
         self._quota_service = quota_service
+        self._email_sender = email_sender
 
         settings = get_settings()
         self._stripe_secret = stripe_webhook_secret or settings.STRIPE_WEBHOOK_SECRET
@@ -470,6 +476,23 @@ class BillingService:
                 )
                 license_key = issue_resp.license_key
 
+            if self._email_sender and license_key:
+                try:
+                    pub_key = self._license_service.get_public_key_hex()
+                    self._email_sender.send_license_issued(
+                        LicenseEmailPayload(
+                            recipient_email=resolved_email,
+                            tier=target_tier.value,
+                            license_key=license_key,
+                            token=license_key,
+                            public_key_hex=pub_key,
+                            seats=target_tier.max_seats,
+                            credits=target_tier.default_allowance,
+                        )
+                    )
+                except Exception:
+                    pass
+
         elif event_type in renewal_events:
             if customer_email:
                 customer = self._customer_repo.get_by_email(customer_email)
@@ -489,7 +512,7 @@ class BillingService:
                         elif lic.status == LicenseStatus.GRACE_PERIOD:
                             lic.status = LicenseStatus.ACTIVE
                             self._license_repo.update_status(lic.id, LicenseStatus.ACTIVE)
-                        self._quota_service.replenish(
+                        replenish_resp = self._quota_service.replenish(
                             QuotaReplenishRequest(
                                 license_key=lic.license_key,
                                 credits=lic.tier.default_allowance,
@@ -497,6 +520,16 @@ class BillingService:
                             )
                         )
                         license_key = lic.license_key
+                        if self._email_sender:
+                            try:
+                                self._email_sender.send_quota_replenished(
+                                    recipient_email=customer_email,
+                                    license_key=lic.license_key,
+                                    added_credits=lic.tier.default_allowance,
+                                    new_balance=replenish_resp.balance,
+                                )
+                            except Exception:
+                                pass
 
         elif event_type in cancel_events:
             if customer_email:
@@ -661,4 +694,78 @@ class BillingService:
             credit_balance=balance_info.balance,
             total_allowance=balance_info.total_allowance,
             consumed=balance_info.consumed,
+        )
+
+    def lookup_customer_licenses(
+        self, request: CustomerPortalLookupRequest
+    ) -> CustomerPortalLookupResponse:
+        """Returns customer license summaries, balances, and verification snippets."""
+        q = request.query.strip()
+        pub_key = self._license_service.get_public_key_hex()
+
+        customer = None
+        target_licenses = []
+
+        if "@" in q:
+            customer = self._customer_repo.get_by_email(q)
+            if customer:
+                target_licenses = self._license_repo.list_by_customer_id(customer.id)
+        else:
+            lic = self._license_repo.get_by_key(q)
+            if lic:
+                target_licenses = [lic]
+                customer = self._customer_repo.get_by_id(lic.customer_id)
+
+        if not target_licenses:
+            raise LicenseNotFoundError(f"No licenses found matching query '{q}'.")
+
+        resolved_email = customer.email if customer else "customer@external.ai"
+        summaries: list[CustomerLicenseSummary] = []
+
+        for lic in target_licenses:
+            status = lic.status.value
+            if self._license_service.is_revoked_id(lic.id):
+                status = "revoked"
+            elif lic.is_expired(datetime.now(timezone.utc)):
+                status = "expired"
+
+            balance_info = self._quota_repo.get_balance(lic.id)
+            summaries.append(
+                CustomerLicenseSummary(
+                    license_id=lic.id,
+                    license_key=lic.license_key,
+                    tier=lic.tier.value,
+                    status=status,
+                    current_activations=lic.current_activations,
+                    max_seats=lic.max_seats,
+                    credit_balance=balance_info.balance,
+                    total_allowance=balance_info.total_allowance,
+                    expires_at=lic.expires_at.isoformat() if lic.expires_at else None,
+                    created_at=lic.created_at.isoformat() if lic.created_at else "",
+                )
+            )
+
+        first_token = summaries[0].license_key if summaries else "LIC-PRO-..."
+        py_snip = (
+            f"from keyforge_verify import verify_license\n\n"
+            f'token = "{first_token}"\n'
+            f'public_key = "{pub_key}"\n\n'
+            f"payload = verify_license(token, public_key)\n"
+            f'print(f"Valid: {{payload.is_valid}}, Tier: {{payload.tier}}")'
+        )
+        ts_snip = (
+            f'import {{ verifyLicense }} from "keyforge-verify";\n\n'
+            f'const token = "{first_token}";\n'
+            f'const publicKey = "{pub_key}";\n\n'
+            f"const res = await verifyLicense(token, publicKey);\n"
+            f'console.log("Valid:", res.isValid, "Tier:", res.tier);'
+        )
+
+        return CustomerPortalLookupResponse(
+            customer_email=resolved_email,
+            public_key_hex=pub_key,
+            total_licenses=len(summaries),
+            licenses=summaries,
+            python_snippet=py_snip,
+            typescript_snippet=ts_snip,
         )

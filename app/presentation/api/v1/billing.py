@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 
 from app.application.dtos.billing_dtos import (
     CheckoutRequest,
+    CustomerPortalLookupRequest,
     PortalRequest,
     WebhookSimulationRequest,
 )
@@ -122,6 +123,21 @@ def get_billing_status(
 ) -> dict[str, Any]:
     """Reports credit utilization, quota allowances, and tier status."""
     res = billing_service.get_billing_status(license_key)
+    return {
+        "success": True,
+        "data": res.model_dump(),
+        "metadata": build_response_metadata(http_request),
+    }
+
+
+@router.post("/portal/lookup")
+def lookup_customer_portal(
+    request: CustomerPortalLookupRequest,
+    http_request: Request,
+    billing_service: BillingService = Depends(get_billing_service),
+) -> dict[str, Any]:
+    """Self-service buyer portal: queries licenses, active balances, and SDK snippets."""
+    res = billing_service.lookup_customer_licenses(request)
     return {
         "success": True,
         "data": res.model_dump(),
