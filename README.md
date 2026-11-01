@@ -289,6 +289,18 @@ KeyForge uses two licenses:
 
 ---
 
-## Commercial Distribution Kit
+## Documentation, Operations & Legal Directory
 
-For complete commercial sales copy, objections handling, pricing breakdown, and marketing launch blueprints, refer to [COMMERCIAL_LAUNCH_KIT.md](COMMERCIAL_LAUNCH_KIT.md).
+### Commercial & Go-To-Market
+- **[Commercial Launch Kit](docs/commercial/COMMERCIAL_LAUNCH_KIT.md)**: GTM positioning, pricing tiers, objections handling, and launch copy for Hacker News and X.
+- **[MCP Prospect Leads](docs/commercial/MCP_PROSPECT_LEADS.md)**: 20 curated active Model Context Protocol repositories with tailored developer outreach copy.
+- **[Sales Engine Automation](docs/commercial/SALES_ENGINE_AUTOMATION.md)**: Stripe Merchant of Record lifecycle and payment link webhooks.
+
+### Infrastructure & Operations
+- **[Cloudflare R2 & Fly.io Setup Guide](docs/ops/R2_FLY_SETUP.md)**: Private EU R2 bucket configuration, S3 token provisioning, and Fly.io deployment runbook.
+- **[KeyForge Managed Provisioning CLI](scripts/managed/README.md)**: Isolated single-tenant customer management and continuous Litestream replication.
+- **[Distribution & Release Commands](docs/ops/DISTRIBUTION_COMMANDS.md)**: Publishing SDK packages to npm, PyPI, and GitHub Container Registry.
+
+### Legal & Compliance (EU GDPR)
+- **[Data Processing Agreement (DPA Borrador)](docs/legal/DPA_BORRADOR.md)**: Article 28 GDPR compliant data processing terms for KeyForge Managed.
+- **[Privacy Policy (Privacidad Borrador)](docs/legal/PRIVACIDAD_BORRADOR.md)**: Privacy policy tailored to Stripe Merchant of Record and EU data retention rules.
