@@ -1,39 +1,39 @@
-# Fly.io: one KeyForge machine with a persistent volume.
-#   fly launch --copy-config --no-deploy --name <your-app>
-#   fly volumes create keyforge_data --size 1 --region <region>
-#   fly deploy && fly scale count 1
-# SQLite = exactly one machine; do not scale horizontally.
-app = "keyforge"
-primary_region = "cdg"
+# fly.toml app configuration file generated for keyforge-f5lsxg on 2026-11-01T17:19:59Z
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'keyforge-f5lsxg'
+primary_region = 'ams'
 
 [build]
-  dockerfile = "Dockerfile"
+  dockerfile = 'Dockerfile'
 
 [env]
-  ENVIRONMENT = "production"
-  PORT = "8000"
-  DATABASE_URL = "sqlite:////app/data/keyforge.db"
-  TRUST_PROXY_HEADERS = "true"
-  BILLING_MODE = "mock"
+  BILLING_MODE = 'mock'
+  DATABASE_URL = 'sqlite:////app/data/keyforge.db'
+  ENVIRONMENT = 'production'
+  PORT = '8000'
+  TRUST_PROXY_HEADERS = 'true'
 
-[mounts]
-  source = "keyforge_data"
-  destination = "/app/data"
+[[mounts]]
+  source = 'keyforge_data'
+  destination = '/app/data'
 
 [http_service]
-  internal_port = 8000
+  internal_port = 8080
   force_https = true
-  auto_stop_machines = "off"
+  auto_stop_machines = 'off'
   auto_start_machines = true
   min_machines_running = 1
 
   [[http_service.checks]]
-    grace_period = "15s"
-    interval = "30s"
-    timeout = "5s"
-    method = "GET"
-    path = "/readyz"
+    interval = '30s'
+    timeout = '5s'
+    grace_period = '15s'
+    method = 'GET'
+    path = '/readyz'
 
 [[vm]]
-  size = "shared-cpu-1x"
-  memory = "256mb"
+  size = 'shared-cpu-1x'
+  memory = '256mb'
