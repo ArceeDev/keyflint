@@ -9,6 +9,7 @@ dist/
 *.egg-info/
 *.egg
 *.tgz
+*.zip
 node_modules/
 
 # Virtual environments
