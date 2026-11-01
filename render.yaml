@@ -1,31 +1,34 @@
+# Render Blueprint: one KeyForge instance with a persistent disk.
+# Deploy: https://render.com/deploy?repo=https://github.com/ArceeDev/keyforge
+# Disks require a paid instance type (starter or above). SQLite = exactly one instance.
 services:
   - type: web
-    name: keyforge-gateway
+    name: keyforge
     runtime: docker
-    dockerfilePath: Dockerfile
+    dockerfilePath: ./Dockerfile
     plan: starter
-    region: frankfurt
-    healthCheckPath: /healthz
-    envVars:
-      - key: ENVIRONMENT
-        value: production
-      - key: BILLING_MODE
-        value: live
-      - key: DATABASE_URL
-        value: sqlite:////app/data/keyforge.db
-      - key: SECRET_KEY
-        generateValue: true
-      - key: ED25519_PRIVATE_KEY_HEX
-        sync: false
-      - key: ED25519_PUBLIC_KEY_HEX
-        sync: false
-      - key: STRIPE_WEBHOOK_SECRET
-        sync: false
-      - key: ADMIN_API_KEY
-        generateValue: true
-      - key: RATE_LIMIT_ENABLED
-        value: "true"
+    numInstances: 1
+    healthCheckPath: /readyz
     disk:
       name: keyforge-data
       mountPath: /app/data
       sizeGB: 1
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: DATABASE_URL
+        value: sqlite:////app/data/keyforge.db
+      - key: TRUST_PROXY_HEADERS
+        value: "true"
+      - key: BILLING_MODE
+        value: mock
+      - key: SECRET_KEY
+        generateValue: true
+      - key: ADMIN_API_KEY
+        generateValue: true
+      # Ed25519 key: generated on first boot into /app/data/secrets.env (public key in the logs).
+      # Optional at creation; leave empty to get placeholders that reject all webhooks.
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: LEMONSQUEEZY_WEBHOOK_SECRET
+        sync: false

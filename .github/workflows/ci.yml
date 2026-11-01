@@ -37,3 +37,39 @@ jobs:
 
       - name: Run Deterministic E2E Suite (Strict ResourceWarning)
         run: python -W error::ResourceWarning run_tests.py
+
+  container-e2e:
+    name: Container E2E (one-click deploy path)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Build image and verify first boot, privilege drop, redeploy persistence
+        run: python scripts/e2e_container.py
+
+  backup-e2e:
+    name: Backup E2E (Litestream restore + fail-closed)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build image
+        run: docker build -t keyforge:e2e .
+
+      - name: Destroy a volume and restore from the replica
+        run: python scripts/e2e_backup.py --image keyforge:e2e

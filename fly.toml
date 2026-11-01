@@ -1,41 +1,39 @@
-# fly.toml app configuration file for KeyForge
-app = "keyforge-gateway"
-primary_region = "fra"
+# Fly.io: one KeyForge machine with a persistent volume.
+#   fly launch --copy-config --no-deploy --name <your-app>
+#   fly volumes create keyforge_data --size 1 --region <region>
+#   fly deploy && fly scale count 1
+# SQLite = exactly one machine; do not scale horizontally.
+app = "keyforge"
+primary_region = "mad"
 
 [build]
   dockerfile = "Dockerfile"
 
 [env]
   ENVIRONMENT = "production"
-  BILLING_MODE = "live"
+  PORT = "8000"
   DATABASE_URL = "sqlite:////app/data/keyforge.db"
-  RATE_LIMIT_ENABLED = "true"
-
-[http_service]
-  internal_port = 8000
-  force_https = true
-  auto_stop_machines = "stop"
-  auto_start_machines = true
-  min_machines_running = 1
-
-  [http_service.concurrency]
-    type = "requests"
-    soft_limit = 200
-    hard_limit = 500
-
-[[http_service.checks]]
-  grace_period = "10s"
-  interval = "30s"
-  method = "GET"
-  timeout = "5s"
-  path = "/healthz"
+  TRUST_PROXY_HEADERS = "true"
+  BILLING_MODE = "mock"
 
 [mounts]
   source = "keyforge_data"
   destination = "/app/data"
-  initial_size = "1gb"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    grace_period = "15s"
+    interval = "30s"
+    timeout = "5s"
+    method = "GET"
+    path = "/readyz"
 
 [[vm]]
-  memory = "512mb"
-  cpu_kind = "shared"
-  cpus = 1
+  size = "shared-cpu-1x"
+  memory = "256mb"
