@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """KeyForge Managed: one isolated Fly.io instance per customer.
 
-  python scripts/managed/kf_managed.py create  acme --region mad [--domain lic.acme.com] [--dry-run]
+  python scripts/managed/kf_managed.py create  acme --region cdg [--domain lic.acme.com] [--dry-run]
   python scripts/managed/kf_managed.py upgrade acme --image ghcr.io/arceedev/keyforge:1.2.0
   python scripts/managed/kf_managed.py upgrade --all --image ghcr.io/arceedev/keyforge:1.2.0
   python scripts/managed/kf_managed.py status  acme
@@ -201,7 +201,7 @@ def main(argv: Optional[list[str]] = None) -> None:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--dry-run", action="store_true", help="print flyctl commands without running them")
     sub = ap.add_subparsers(dest="cmd", required=True)
-    c = sub.add_parser("create"); c.add_argument("slug"); c.add_argument("--region", default="mad")
+    c = sub.add_parser("create"); c.add_argument("slug"); c.add_argument("--region", default="cdg")
     c.add_argument("--image", default=DEFAULT_IMAGE); c.add_argument("--domain"); c.add_argument("--org")
     c.add_argument("--no-backup", action="store_true")
     u = sub.add_parser("upgrade"); u.add_argument("slug", nargs="?"); u.add_argument("--all", action="store_true")

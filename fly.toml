@@ -4,7 +4,7 @@
 #   fly deploy && fly scale count 1
 # SQLite = exactly one machine; do not scale horizontally.
 app = "keyforge"
-primary_region = "mad"
+primary_region = "cdg"
 
 [build]
   dockerfile = "Dockerfile"
