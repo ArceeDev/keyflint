@@ -156,10 +156,17 @@ Feedback and questions on the crypto implementation or architecture are very wel
 
 ## 6. Configuración Oficial de Stripe Registrada
 
-| Nivel / Producto | Product ID | Price ID | Precio / Tipo | Metadata |
-| :--- | :--- | :--- | :--- | :--- |
-| **KeyForge Indie License** | `prod_VY17LetY3Zgxmd` | `price_1UWv5I02SPcNSlQyW3ueUndQ` | $149 USD (Pago único) | `tier: indie` |
-| **KeyForge Agency License** | `prod_VY17xoRTfQMXh1` | `price_1UWv5J02SPcNSlQyqEt0Um9r` | $349 USD (Pago único) | `tier: agency` |
+| Nivel / Producto | Product ID | Price ID | Precio / Tipo | Enlace de Pago (Payment Link) | Metadata |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **KeyForge Indie License** | `prod_VY17LetY3Zgxmd` | `price_1UWv5I02SPcNSlQyW3ueUndQ` | $149 USD (Pago único) | [Comprar Indie ($149)](https://buy.stripe.com/test_cNi14fbm0gsecQo0HLbAs00) | `tier: indie` |
+| **KeyForge Agency License** | `prod_VY17xoRTfQMXh1` | `price_1UWv5J02SPcNSlQyqEt0Um9r` | $349 USD (Pago único) | [Comprar Agency ($349)](https://buy.stripe.com/test_5kQcMXdu81xk7w4bmpbAs01) | `tier: agency` |
+| **KeyForge Pro (Monthly)** | `prod_...` | `price_...` | $29 USD / mes (Recurrente) | [Suscribir Pro ($29/mo)](https://buy.stripe.com/test_dRmfZ9eyc1xk6s01LPbAs02) | `tier: pro` |
+| **KeyForge Studio (Monthly)** | `prod_...` | `price_...` | $89 USD / mes (Recurrente) | [Suscribir Studio ($89/mo)](https://buy.stripe.com/test_cNi3cneyc7VI2bKduxbAs03) | `tier: studio` |
+
+> **Nota sobre Impuestos e IVA (Managed Payments)**:
+> Tu cuenta de Stripe tiene **Managed Payments activo**. Stripe actúa como Merchant of Record (MoR) gestionando el IVA y los impuestos mundiales automáticamente.
+> - Código fiscal Indie / Agency: `Downloadable Software - Business Use`
+> - Código fiscal Pro / Studio: `SaaS - Business Use`
 
 ### Webhook Oficial Configurado:
 - **Webhook ID**: `we_1UWv5N02SPcNSlQySnK86Nxu`
