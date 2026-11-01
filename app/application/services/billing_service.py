@@ -348,10 +348,17 @@ class BillingService:
             or "pro"
         )
         tier_norm = str(tier_candidate).strip().lower()
-        try:
-            tier_enum = Tier(tier_norm)
-        except ValueError:
-            tier_enum = Tier.PRO
+        tier_aliases: dict[str, Tier] = {
+            "indie": Tier.PRO,
+            "agency": Tier.STUDIO,
+        }
+        if tier_norm in tier_aliases:
+            tier_enum = tier_aliases[tier_norm]
+        else:
+            try:
+                tier_enum = Tier(tier_norm)
+            except ValueError:
+                tier_enum = Tier.PRO
 
         return event_id, raw_event_type, customer_email, tier_enum
 
