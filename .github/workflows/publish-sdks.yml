@@ -1,54 +1,162 @@
-name: Publish Client SDKs to npm and PyPI
+name: Publish SDKs (npm, PyPI, Go)
 
+# Release: push a tag `sdk-vX.Y.Z` whose version matches sdks/js-verify/package.json and
+# sdks/python-verify/pyproject.toml. Manual run = dry run unless `publish` is ticked.
+# Auth: npm and PyPI use OIDC trusted publishing (no stored tokens). If the repo secret
+# NPM_TOKEN exists it is used instead (needed for the very first npm publish).
 on:
+  push:
+    tags:
+      - "sdk-v*.*.*"
   workflow_dispatch:
-  release:
-    types: [published]
+    inputs:
+      publish:
+        description: "Really publish (otherwise build + dry run only)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-sdks
+  cancel-in-progress: false
 
 jobs:
-  publish-npm:
-    name: Publish TypeScript SDK to npm
+  verify:
+    name: Test SDKs and check versions
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      publish: ${{ steps.version.outputs.publish }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          registry-url: "https://registry.npmjs.org"
-
-      - name: Build and Publish to npm
-        working-directory: sdks/js-verify
+      - id: version
+        name: Resolve version and check it matches every package
         run: |
-          npm ci
-          npm test
-          npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          JS=$(node -p "require('./sdks/js-verify/package.json').version")
+          PY=$(python3 -c "import tomllib;print(tomllib.load(open('sdks/python-verify/pyproject.toml','rb'))['project']['version'])")
+          PYMOD=$(sed -n 's/^__version__ = "\(.*\)"/\1/p' sdks/python-verify/src/keyforge_verify/__init__.py)
+          if [ "$GITHUB_REF_TYPE" = "tag" ]; then V="${GITHUB_REF_NAME#sdk-v}"; PUBLISH=true; else V="$JS"; PUBLISH="${{ inputs.publish }}"; fi
+          echo "tag=$V js=$JS py=$PY py.__version__=$PYMOD"
+          if [ "$V" != "$JS" ] || [ "$V" != "$PY" ] || [ "$V" != "$PYMOD" ]; then echo "::error::version mismatch"; exit 1; fi
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "publish=$PUBLISH" >> "$GITHUB_OUTPUT"
 
-  publish-pypi:
-    name: Publish Python SDK to PyPI
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: JS build + tests
+        working-directory: sdks/js-verify
+        run: npm ci && npm test
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
-      - name: Install build tools
-        run: python -m pip install --upgrade pip build twine
-
-      - name: Build and Upload to PyPI
+      - name: Python tests (OpenSSL and pure-Python engines)
         working-directory: sdks/python-verify
         run: |
-          python -m build
-          twine check dist/*
-          twine upload dist/*
+          python -m pip install --upgrade pip
+          pip install ".[test]"
+          python -m pytest -q tests
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+      - name: Go vet + tests
+        working-directory: sdks/go-verify
+        run: |
+          test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+          go vet ./...
+          go test -count=1 ./...
+
+  npm:
+    name: Publish keyforge-verify to npm
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+      - name: npm >= 11.5.1 (required for trusted publishing)
+        run: npm install -g npm@11
+      - name: Build
+        working-directory: sdks/js-verify
+        run: npm ci && npm run build
+      - name: Publish
+        working-directory: sdks/js-verify
         env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          PUBLISH: ${{ needs.verify.outputs.publish }}
+          VERSION: ${{ needs.verify.outputs.version }}
+        run: |
+          if [ "$(npm view "keyforge-verify@$VERSION" version 2>/dev/null)" = "$VERSION" ]; then
+            echo "keyforge-verify@$VERSION already on npm, skipping"; exit 0; fi
+          # Empty NODE_AUTH_TOKEN -> npm falls back to OIDC trusted publishing.
+          [ -n "$NODE_AUTH_TOKEN" ] || unset NODE_AUTH_TOKEN
+          if [ "$PUBLISH" = "true" ]; then npm publish --provenance --access public
+          else npm publish --dry-run --access public; fi
+
+  pypi:
+    name: Publish keyforge-verify to PyPI
+    needs: verify
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build sdist + wheel
+        working-directory: sdks/python-verify
+        run: |
+          python -m pip install --upgrade pip build twine
+          python -m build
+          twine check --strict dist/*
+      - name: Check whether the version already exists
+        id: exists
+        env:
+          VERSION: ${{ needs.verify.outputs.version }}
+        run: |
+          code=$(curl -s -o /dev/null -w '%{http_code}' "https://pypi.org/pypi/keyforge-verify/$VERSION/json")
+          echo "exists=$([ "$code" = 200 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+      - name: Publish (trusted publishing)
+        if: needs.verify.outputs.publish == 'true' && steps.exists.outputs.exists == 'false'
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: sdks/python-verify/dist
+
+  go:
+    name: Tag Go module and warm proxy.golang.org
+    needs: verify
+    if: needs.verify.outputs.publish == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Push sdks/go-verify/vX.Y.Z (Go needs the subdirectory prefix)
+        env:
+          TAG: sdks/go-verify/v${{ needs.verify.outputs.version }}
+        run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/$TAG" >/dev/null; then
+            echo "$TAG exists"; else git tag "$TAG" "$GITHUB_SHA" && git push origin "refs/tags/$TAG"; fi
+      - name: Ask the Go proxy to index it
+        env:
+          VERSION: v${{ needs.verify.outputs.version }}
+        run: |
+          for i in 1 2 3 4 5; do
+            curl -fsS "https://proxy.golang.org/github.com/!arcee!dev/keyforge/sdks/go-verify/@v/$VERSION.info" && exit 0
+            sleep $((i * 10))
+          done
+          echo "::warning::proxy.golang.org has not indexed $VERSION yet; it will on first go get"

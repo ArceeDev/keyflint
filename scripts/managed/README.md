@@ -25,8 +25,8 @@ There is no multi-tenancy: a fault or a leak in one instance never touches anoth
 ## New customer (after a Managed payment)
 
 ```bash
-python scripts/managed/kf_managed.py --dry-run create acme --region mad --domain lic.acme.com
-python scripts/managed/kf_managed.py create acme --region mad --domain lic.acme.com \
+python scripts/managed/kf_managed.py --dry-run create acme --region cdg --domain lic.acme.com
+python scripts/managed/kf_managed.py create acme --region cdg --domain lic.acme.com \
   --image ghcr.io/arceedev/keyforge:1.2.0
 ```
 
@@ -47,7 +47,7 @@ When the customer gives you their webhook secret:
 | Logs | `fly logs --app kf-acme` |
 | Monthly restore drill | `python scripts/e2e_backup.py --s3-endpoint $KF_BACKUP_ENDPOINT --bucket kf-backups` |
 
-**Real recovery** (lost volume): `fly volumes create keyforge_data --size 1 --region mad --app kf-acme --yes`
+**Real recovery** (lost volume): `fly volumes create keyforge_data --size 1 --region cdg --app kf-acme --yes`
 and `fly deploy --app kf-acme --config fly.toml --image ... --ha=false`. When it boots with no DB,
 the instance restores from `<bucket>/acme`. The key is a Fly secret, so it stays the same and
 every license keeps verifying. If the restore fails, the instance refuses to start (fail closed)
