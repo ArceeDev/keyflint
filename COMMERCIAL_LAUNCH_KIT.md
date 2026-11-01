@@ -144,9 +144,30 @@ Feedback and questions on the crypto implementation or architecture are very wel
 > Plus, native MCP wrappers: if an external Claude/OpenAI call fails mid-flight, KeyForge automatically issues an atomic refund within a 900-second window.
 
 **Tweet 5 (Docker & GitHub Release)**:
-> KeyForge v1.1.0 is production-ready with 152 deterministic tests and 7 architectural gates.
+> KeyForge v1.1.0 is production-ready with 167 deterministic tests and 7 architectural gates.
 > 
 > 📦 Docker: `docker pull ghcr.io/arceedev/keyforge:1.1.0`
 > 💻 GitHub: https://github.com/ArceeDev/keyforge
+> 🌐 Website: https://arceedev.github.io/keyforge/
 > 
 > Retweet if you believe developers should own their licensing infrastructure!
+
+---
+
+## 6. Configuración Oficial de Stripe Registrada
+
+| Nivel / Producto | Product ID | Price ID | Precio / Tipo | Metadata |
+| :--- | :--- | :--- | :--- | :--- |
+| **KeyForge Indie License** | `prod_VY17LetY3Zgxmd` | `price_1UWv5I02SPcNSlQyW3ueUndQ` | $149 USD (Pago único) | `tier: indie` |
+| **KeyForge Agency License** | `prod_VY17xoRTfQMXh1` | `price_1UWv5J02SPcNSlQyqEt0Um9r` | $349 USD (Pago único) | `tier: agency` |
+
+### Webhook Oficial Configurado:
+- **Webhook ID**: `we_1UWv5N02SPcNSlQySnK86Nxu`
+- **Endpoint URL**: `https://licenses.arceedev.com/api/v1/webhooks/stripe`
+- **Estado**: Activo
+- **Eventos escuchados**:
+  1. `checkout.session.completed` (Emite la licencia de forma automática con los créditos y asientos correspondientes).
+  2. `invoice.payment_succeeded` (Renueva ciclos de suscripción o recargas de cuotas).
+  3. `customer.subscription.deleted` (Gestiona cancelaciones y revocaciones).
+- **Firma del Webhook (`whsec_...`)**:
+  Visible en el Dashboard de Stripe (*Developers -> Webhooks -> Signing secret*). Configúralo en la variable `STRIPE_WEBHOOK_SECRET` de la gateway cuando quieras procesar eventos reales.
