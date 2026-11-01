@@ -261,7 +261,7 @@ def validate_offline(
     try:
         if not isinstance(public_key_hex, str):
             return False, None, "ERR_INVALID_PUBLIC_KEY"
-        pub_bytes = bytes.fromhex(public_key_hex)
+        pub_bytes = bytes.fromhex(public_key_hex.strip())
         if len(pub_bytes) != 32:
             return False, None, "ERR_INVALID_PUBLIC_KEY"
     except Exception:

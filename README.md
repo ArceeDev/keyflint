@@ -16,10 +16,27 @@ public key and debits credits with one HTTP call per metered tool.
 
 ## Quickstart
 
-### 1. Start the gateway
+### 1. Start the gateway (Universal: Windows, macOS, Linux)
 
 ```bash
-cat > keyforge.env <<EOF
+# 1. Initialize production environment in 1 second (generates Ed25519 keypair and secrets):
+python -m app.cli init --env production
+
+# 2. Run the gateway container:
+docker run -d --name keyforge -p 8000:8000 -v keyforge_data:/app/data \
+  --env-file .env ghcr.io/arceedev/keyforge:1.1.0
+# (Or run natively: python -m app.cli serve --host 0.0.0.0 --port 8000)
+
+# 3. Check readiness probe:
+curl -s localhost:8000/readyz
+```
+
+*For headless Linux servers without local Python, you can write the `.env` directly:*
+<details>
+<summary>Linux Bash heredoc alternative</summary>
+
+```bash
+cat > .env <<EOF
 ENVIRONMENT=production
 SECRET_KEY=$(openssl rand -hex 32)
 ADMIN_API_KEY=kf_$(openssl rand -hex 24)
@@ -30,30 +47,25 @@ LEMONSQUEEZY_WEBHOOK_SECRET=$(openssl rand -hex 24)
 EOF
 
 docker run -d --name keyforge -p 8000:8000 -v keyforge_data:/app/data \
-  --env-file keyforge.env ghcr.io/arceedev/keyforge:1.1.0
-
-curl -s localhost:8000/readyz
+  --env-file .env ghcr.io/arceedev/keyforge:1.1.0
 ```
+</details>
 
-`ED25519_PUBLIC_KEY_HEX` is left empty on purpose: the gateway derives it from the private key
-(if you set it, it must match). Back up `keyforge.env`: without `ED25519_PRIVATE_KEY_HEX` you cannot
-issue tokens that existing clients accept. Replace the two webhook secrets with the real ones when you
-connect Stripe or LemonSqueezy.
+`ED25519_PUBLIC_KEY_HEX` is derived automatically from the private key if left empty. Back up your `.env`: without `ED25519_PRIVATE_KEY_HEX` you cannot issue tokens that existing clients accept.
 
 Console: `http://127.0.0.1:8000` · OpenAPI: `/docs` · Probes: `/healthz`, `/readyz`
 
 ### 2. Issue a license and fetch the public key
 
 ```bash
-ADMIN=$(grep ^ADMIN_API_KEY keyforge.env | cut -d= -f2)
+# Issue an official Pro license directly via CLI:
+python -m app.cli issue --email "dev@example.com" --tier "pro"
 
+# Or via REST API:
+ADMIN=$(python -c "import os; from app.config import get_settings; print(get_settings().ADMIN_API_KEY)")
 curl -s -X POST localhost:8000/api/v1/licenses/issue \
   -H "X-Admin-Key: $ADMIN" -H "Content-Type: application/json" \
-  -d '{"customer_email":"dev@example.com","tier":"pro","features":["premium"]}' \
-  | jq -r .data.license_key            # -> KEYFORGE_LICENSE
-
-curl -s localhost:8000/api/v1/licenses/public-key \
-  | jq -r .data.keyring                # -> KEYFORGE_PUBLIC_KEYS
+  -d '{"customer_email":"dev@example.com","tier":"pro","features":["premium"]}'
 ```
 
 ### 3. Protect an MCP tool (TypeScript)
