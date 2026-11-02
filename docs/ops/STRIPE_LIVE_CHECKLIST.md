@@ -11,7 +11,7 @@ Estado verificado el 2026-11-02. Mientras falte cualquier punto marcado ❌, **u
 | 5 | `STRIPE_WEBHOOK_SECRET` = `whsec_` **live** en la gateway (`fly secrets set`) | ✅ Inyectado y verificado en Fly.io |
 | 6 | Cada Payment Link live tiene `metadata.tier` = `indie` / `agency` / `pro` / `studio` | ✅ Verificado en `payment_links.csv` |
 | 7 | Email transaccional (Resend/SMTP) con dominio verificado | ❌ depende de 2 |
-| 8 | Webhook live suscrito además a `charge.refunded`, `charge.dispute.created`, `charge.dispute.closed` | ❌ añadir en Dashboard → Webhooks → endpoint → Eventos |
+| 8 | Webhook live suscrito además a `charge.refunded`, `charge.dispute.created`, `charge.dispute.closed` | ✅ Suscrito y activo en Stripe Live |
 
 ## Por qué importa `metadata.tier`
 
