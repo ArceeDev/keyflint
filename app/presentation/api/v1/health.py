@@ -42,11 +42,14 @@ def readyz(
 
 @router.get("/api/v1/health")
 def api_health(http_request: Request) -> dict[str, Any]:
+    from app.infrastructure import backup_check
     from app.infrastructure.email.transactional_email_service import TransactionalEmailService
 
     return {
         "status": "ok",
         "healthy": True,
         "email_provider": TransactionalEmailService().provider,
+        # Public endpoint: status only; the error detail (may name the bucket) stays in the logs.
+        "backup": {k: v for k, v in backup_check.status.items() if k in ("status", "checked_at")},
         "metadata": build_response_metadata(http_request),
     }

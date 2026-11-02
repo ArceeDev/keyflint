@@ -53,6 +53,20 @@ async def _email_retry_loop(interval_seconds: int) -> None:
             logger.error(f"License email retry pass failed: {exc}")
 
 
+async def _backup_check_loop(interval_seconds: int, heartbeat_url: str | None) -> None:
+    """Hourly restore-and-compare of the Litestream replica, with an optional dead-man heartbeat."""
+    from app.bootstrap import LITESTREAM_CONFIG
+    from app.infrastructure.backup_check import verify_once
+
+    db_path = Path(get_settings().DATABASE_PATH)
+    while True:
+        await asyncio.sleep(interval_seconds)
+        try:
+            await asyncio.to_thread(verify_once, db_path, Path(LITESTREAM_CONFIG), heartbeat_url)
+        except Exception as exc:  # keep the loop alive
+            logger.error(f"Backup verification pass crashed: {exc}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Manages application startup validation, logging, and database schema readiness."""
@@ -84,13 +98,19 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     retry_task: asyncio.Task[None] | None = None
     if settings.EMAIL_RETRY_INTERVAL_SECONDS > 0:
         retry_task = asyncio.create_task(_email_retry_loop(settings.EMAIL_RETRY_INTERVAL_SECONDS))
+    backup_task: asyncio.Task[None] | None = None
+    if settings.BACKUP_CHECK_INTERVAL_SECONDS > 0:
+        backup_task = asyncio.create_task(
+            _backup_check_loop(settings.BACKUP_CHECK_INTERVAL_SECONDS, settings.BACKUP_HEARTBEAT_URL)
+        )
 
     yield
 
-    if retry_task is not None:
-        retry_task.cancel()
-        with suppress(asyncio.CancelledError):
-            await retry_task
+    for task in (retry_task, backup_task):
+        if task is not None:
+            task.cancel()
+            with suppress(asyncio.CancelledError):
+                await task
     logger.info("KeyFlint Gateway shutdown complete.")
 
 
