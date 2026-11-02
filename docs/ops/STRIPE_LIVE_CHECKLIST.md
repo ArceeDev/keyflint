@@ -15,7 +15,7 @@ Estado verificado el 2026-11-02. Mientras falte cualquier punto marcado ❌, **u
 
 ## Por qué importa `metadata.tier`
 
-`BillingService._extract_webhook_context` toma el tier de `session.metadata.tier` (Stripe copia la metadata del Payment Link a la Checkout Session). Si falta, **cae a `pro` por defecto**: un comprador de Agency recibiría una licencia Pro. Mapeo actual: `indie→PRO`, `agency→STUDIO`, `pro→PRO`, `studio→STUDIO`.
+`BillingService._extract_webhook_context` toma el tier de `session.metadata.tier` (Stripe copia la metadata del Payment Link a la Checkout Session). Si falta o es desconocido, **emite COMMUNITY** con `metadata.tier_unresolved` y log `TIER UNRESOLVED` (nunca concede un tier de pago por defecto ni toca licencias existentes); `metadata.product` guarda el producto comprado. Mapeo actual: `indie→PRO`, `agency→STUDIO`, `pro→PRO`, `studio→STUDIO`.
 
 Comprobación (Dashboard → Payment Links → cada enlace → Metadata), o:
 

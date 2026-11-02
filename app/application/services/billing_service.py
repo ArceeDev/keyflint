@@ -53,6 +53,29 @@ from app.domain.interfaces.webhook_repository import IWebhookRepository
 logger = logging.getLogger("keyflint.billing")
 
 EMAIL_MAX_ATTEMPTS = 10
+# Product names (Payment Link metadata / LemonSqueezy variant) -> entitlement tier.
+# Indie (self-hosted) grants PRO entitlements; Agency grants STUDIO.
+_TIER_ALIASES: dict[str, Tier] = {
+    "indie": Tier.PRO,
+    "agency": Tier.STUDIO,
+    "pro": Tier.PRO,
+    "managed": Tier.PRO,
+    "studio": Tier.STUDIO,
+    "lifetime": Tier.LIFETIME,
+}
+
+
+def _resolve_tier(raw: Optional[str]) -> Optional[Tier]:
+    """Exact alias first, then a single keyword inside a product name ("Indie License"). None if unknown."""
+    if not raw:
+        return None
+    norm = raw.strip().lower()
+    if norm in _TIER_ALIASES:
+        return _TIER_ALIASES[norm]
+    hits = {tier for word, tier in _TIER_ALIASES.items() if re.search(rf"\b{word}\b", norm)}
+    return hits.pop() if len(hits) == 1 else None
+
+
 _PLACEHOLDER_EMAIL = re.compile(r"^buyer_[0-9a-f]{6}@acme\.ai$")
 
 
@@ -312,8 +335,10 @@ class BillingService:
             raise WebhookAuthenticationError("LemonSqueezy webhook signature mismatch")
 
     @staticmethod
-    def _extract_webhook_context(body: dict[str, Any], raw_body: bytes) -> tuple[str, str, Optional[str], Tier]:
-        """Normalizes Stripe and LemonSqueezy payloads into (event_id, raw_event_type, email, tier)."""
+    def _extract_webhook_context(
+        body: dict[str, Any], raw_body: bytes
+    ) -> tuple[str, str, Optional[str], Optional[Tier], Optional[str]]:
+        """Normalizes payloads into (event_id, event_type, email, tier or None if unresolved, raw tier)."""
         meta = body.get("meta") if isinstance(body.get("meta"), dict) else {}
         data_node = body.get("data") if isinstance(body.get("data"), dict) else {}
         data_obj = data_node.get("object") if isinstance(data_node.get("object"), dict) else data_node
@@ -358,22 +383,9 @@ class BillingService:
             obj_meta.get("tier")
             or custom_data.get("tier")
             or attrs.get("variant_name")
-            or "pro"
         )
-        tier_norm = str(tier_candidate).strip().lower()
-        tier_aliases: dict[str, Tier] = {
-            "indie": Tier.PRO,
-            "agency": Tier.STUDIO,
-        }
-        if tier_norm in tier_aliases:
-            tier_enum = tier_aliases[tier_norm]
-        else:
-            try:
-                tier_enum = Tier(tier_norm)
-            except ValueError:
-                tier_enum = Tier.PRO
-
-        return event_id, raw_event_type, customer_email, tier_enum
+        tier_raw = str(tier_candidate).strip() if tier_candidate else None
+        return event_id, raw_event_type, customer_email, _resolve_tier(tier_raw), tier_raw
 
     # Stripe object reference prefixes used to link a payment back to its license.
     _PAYMENT_REF_FIELDS = ("payment_intent", "charge", "invoice", "subscription", "customer")
@@ -393,6 +405,13 @@ class BillingService:
             if isinstance(val, str) and val.startswith(cls._PAYMENT_REF_PREFIXES) and val not in refs:
                 refs.append(val)
         return refs
+
+    def _flag_license(self, license_key: Optional[str], fields: dict[str, Any]) -> None:
+        """Merges audit fields into license metadata."""
+        lic = self._license_repo.get_by_key(license_key) if license_key else None
+        if lic is not None:
+            lic.metadata.update(fields)
+            self._license_repo.save(lic)
 
     def _attach_payment_refs(self, license_key: Optional[str], refs: list[str]) -> None:
         """Stores payment references in license metadata so refunds/disputes can find it later."""
@@ -581,7 +600,7 @@ class BillingService:
         if not isinstance(body, dict):
             raise ValueError("Webhook body must be a JSON object")
 
-        event_id, event_type, customer_email, target_tier = self._extract_webhook_context(body, raw_body)
+        event_id, event_type, customer_email, target_tier, tier_raw = self._extract_webhook_context(body, raw_body)
         data_node = body.get("data") if isinstance(body.get("data"), dict) else {}
         data_obj = data_node.get("object") if isinstance(data_node.get("object"), dict) else {}
         reversal: Optional[dict[str, Any]] = None
@@ -598,6 +617,7 @@ class BillingService:
 
         payload_hash = hashlib.sha256(raw_body).hexdigest()
         email_delivered: Optional[bool] = None
+        unresolved_tier: Optional[str] = None
         license_key: Optional[str] = None
         license_status: Optional[str] = None
 
@@ -621,7 +641,24 @@ class BillingService:
         if event_type in provision_events:
             resolved_email = customer_email or f"buyer_{uuid.uuid4().hex[:6]}@acme.ai"
             customer = self._customer_repo.get_by_email(resolved_email)
-            if customer:
+            if target_tier is None:
+                # Never grant a paid tier on a guess: issue COMMUNITY, flag it, leave existing licenses alone.
+                logger.error(
+                    "TIER UNRESOLVED for webhook %s (%s): metadata tier=%r. Issued COMMUNITY license for %s; "
+                    "fix with POST /api/v1/licenses/issue + revoke, and set metadata.tier on the Payment Link.",
+                    event_id,
+                    event_type,
+                    tier_raw,
+                    resolved_email,
+                )
+                target_tier = Tier.COMMUNITY
+                unresolved_tier = tier_raw or "missing"
+                issue_resp = self._license_service.issue(
+                    LicenseIssueRequest(customer_email=resolved_email, tier=target_tier.value)
+                )
+                license_key = issue_resp.license_key
+                self._flag_license(license_key, {"tier_unresolved": unresolved_tier})
+            elif customer:
                 existing_licenses = self._license_repo.list_by_customer_id(customer.id)
                 upgradable = [
                     lic
@@ -670,6 +707,8 @@ class BillingService:
                 )
                 license_key = issue_resp.license_key
 
+            if tier_raw and license_key:
+                self._flag_license(license_key, {"product": tier_raw.lower()})
             if provider == "stripe":
                 self._attach_payment_refs(license_key, self._extract_payment_refs(data_obj))
 
@@ -777,6 +816,7 @@ class BillingService:
             "license_key": license_key,
             "license_status": license_status,
             **({"email_delivered": email_delivered} if event_type in provision_events else {}),
+            **({"tier_unresolved": unresolved_tier} if unresolved_tier else {}),
             **({"reversal": reversal} if reversal is not None else {}),
         }
 
