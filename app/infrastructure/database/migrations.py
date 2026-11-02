@@ -1,4 +1,4 @@
-"""KeyForge Database Migrations & Integrity Verification.
+"""KeyFlint Database Migrations & Integrity Verification.
 
 File: app/infrastructure/database/migrations.py
 """

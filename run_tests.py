@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""KeyForge Standalone E2E Test Runner.
+"""KeyFlint Standalone E2E Test Runner.
 
 Executes the 4-Tier Automated Test Suite (deterministic E2E verification)
 using standard library unittest.
@@ -61,14 +61,14 @@ def create_suite(tier: int | None = None) -> unittest.TestSuite:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="KeyForge E2E Test Runner")
+    parser = argparse.ArgumentParser(description="KeyFlint E2E Test Runner")
     parser.add_argument("--tier", type=int, choices=[1, 2, 3, 4], help="Run specific test tier only")
     parser.add_argument("-v", "--verbose", action="store_true", help="Verbose test execution output")
     parser.add_argument("-f", "--failfast", action="store_true", help="Stop on first failure")
     args = parser.parse_args()
 
     print("=" * 72)
-    print("  KeyForge: Cryptographic Licensing & Quota Gateway E2E Test Suite")
+    print("  KeyFlint: Cryptographic Licensing & Quota Gateway E2E Test Suite")
     print("=" * 72)
     tier_label = f"Tier {args.tier}" if args.tier else "Full Matrix (Tiers 1-4)"
     print(f"Target Scope:  {tier_label}")

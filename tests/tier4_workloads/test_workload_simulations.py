@@ -15,7 +15,7 @@ import time
 import uuid
 import unittest
 from tests.conftest import (
-    BaseKeyForgeTestCase,
+    BaseKeyFlintTestCase,
     decode_license_token,
     verify_payload_ed25519,
     sign_payload_ed25519,
@@ -27,7 +27,7 @@ from tests.conftest import (
 )
 
 
-class TestWorkloadSimulations(BaseKeyForgeTestCase):
+class TestWorkloadSimulations(BaseKeyFlintTestCase):
     """End-to-End simulation of production user lifecycles and adversarial security stress."""
 
     def test_workload1_solopreneur_30day_lifecycle(self):

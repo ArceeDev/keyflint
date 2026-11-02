@@ -1,20 +1,20 @@
-"""Turnkey Example: Monetized Model Context Protocol (MCP) Server with KeyForge.
+"""Turnkey Example: Monetized Model Context Protocol (MCP) Server with KeyFlint.
 
 Run this server with FastMCP:
-    pip install keyforge-verify "mcp[cli]"
-    export KEYFORGE_LICENSE="LIC-PRO-eyJ..."
-    export KEYFORGE_URL="https://licenses.yourdomain.com"
+    pip install keyflint-verify "mcp[cli]"
+    export KEYFLINT_LICENSE="LIC-PRO-eyJ..."
+    export KEYFLINT_URL="https://licenses.yourdomain.com"
     mcp dev server.py
 """
 
 from mcp.server.fastmcp import FastMCP
-from keyforge_verify.mcp import KeyForge
+from keyflint_verify.mcp import KeyFlint
 
 # Initialize FastMCP Server
 mcp = FastMCP("MarketResearchAgent")
 
-# Initialize KeyForge Client (reads KEYFORGE_LICENSE, KEYFORGE_URL, KEYFORGE_PUBLIC_KEYS from env)
-kf = KeyForge()
+# Initialize KeyFlint Client (reads KEYFLINT_LICENSE, KEYFLINT_URL, KEYFLINT_PUBLIC_KEYS from env)
+kf = KeyFlint()
 
 
 @mcp.tool()
@@ -30,7 +30,7 @@ async def generate_competitor_analysis(company_name: str) -> str:
     """Premium metered tool: Costs 5 credits per execution.
     
     If this function succeeds: 5 credits are debited from the customer's wallet.
-    If an exception occurs or LLM fails: KeyForge automatically refunds the 5 credits.
+    If an exception occurs or LLM fails: KeyFlint automatically refunds the 5 credits.
     If customer balance is zero: Returns standard MCP Error -32062 with your checkout URL.
     """
     # Simulated expensive AI operation / external API call

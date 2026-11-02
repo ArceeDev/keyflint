@@ -16,7 +16,7 @@ import json
 import uuid
 import unittest
 from tests.conftest import (
-    BaseKeyForgeTestCase,
+    BaseKeyFlintTestCase,
     decode_license_token,
     verify_payload_ed25519,
     TEST_ED25519_PUBLIC_KEY_HEX,
@@ -25,7 +25,7 @@ from tests.conftest import (
 )
 
 
-class TestPairwiseWorkflows(BaseKeyForgeTestCase):
+class TestPairwiseWorkflows(BaseKeyFlintTestCase):
     """Pairwise integration workflows testing cross-module state machines."""
 
     def test_pair1_checkout_to_activation_full_cycle(self):

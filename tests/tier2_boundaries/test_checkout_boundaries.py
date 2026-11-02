@@ -11,10 +11,10 @@ Covers:
 from __future__ import annotations
 
 import unittest
-from tests.conftest import BaseKeyForgeTestCase
+from tests.conftest import BaseKeyFlintTestCase
 
 
-class TestCheckoutBoundaries(BaseKeyForgeTestCase):
+class TestCheckoutBoundaries(BaseKeyFlintTestCase):
     """Boundary verification for input validation, sanitization, and security thresholds."""
 
     def test_bound5_checkout_invalid_tier_returns_422(self):

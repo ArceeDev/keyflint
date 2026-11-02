@@ -1,4 +1,4 @@
-"""KeyForge Automated Production Gatekeeper & Deployment Verification Suite.
+"""KeyFlint Automated Production Gatekeeper & Deployment Verification Suite.
 
 File: verify_production.py
 Usage: python verify_production.py
@@ -471,7 +471,7 @@ def run_full_e2e_test_suite() -> bool:
 
 def main() -> int:
     start_time = time.time()
-    print_header("KeyForge v1.0.0 Production Gatekeeper & Deployment Verification")
+    print_header("KeyFlint v1.0.0 Production Gatekeeper & Deployment Verification")
     print(f"Environment: Python {sys.version.split()[0]} | Platform: {sys.platform}")
     print(f"Project Root: {PROJECT_ROOT}\n")
 

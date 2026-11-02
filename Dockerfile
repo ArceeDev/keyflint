@@ -25,12 +25,12 @@ FROM python:3.12-slim AS runner
 WORKDIR /app
 
 # Security: non-root user
-RUN groupadd -r keyforge && useradd -r -g keyforge -d /app -s /sbin/nologin keyforge
+RUN groupadd -r keyflint && useradd -r -g keyflint -d /app -s /sbin/nologin keyflint
 
 # Copy Python packages from builder
-COPY --from=builder /root/.local /home/keyforge/.local
-ENV PYTHONUSERBASE=/home/keyforge/.local
-ENV PATH=/home/keyforge/.local/bin:$PATH
+COPY --from=builder /root/.local /home/keyflint/.local
+ENV PYTHONUSERBASE=/home/keyflint/.local
+ENV PATH=/home/keyflint/.local/bin:$PATH
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
@@ -42,10 +42,10 @@ COPY pyproject.toml .
 COPY README.md .
 
 # Create persistent data directory with permissions
-RUN mkdir -p /app/data && chown -R keyforge:keyforge /app
+RUN mkdir -p /app/data && chown -R keyflint:keyflint /app
 
 # The entrypoint starts as root only to chown platform-mounted volumes (Render/Railway/Fly
-# mount them root-owned), then drops to the unprivileged keyforge user before anything runs.
+# mount them root-owned), then drops to the unprivileged keyflint user before anything runs.
 VOLUME ["/app/data"]
 
 EXPOSE 8000

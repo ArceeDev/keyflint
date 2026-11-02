@@ -1,10 +1,10 @@
 services:
-  keyforge:
+  keyflint:
     build:
       context: .
       dockerfile: Dockerfile
-    image: ghcr.io/arceedev/keyforge:1.1.0
-    container_name: keyforge_gateway
+    image: ghcr.io/arceedev/keyflint:1.1.0
+    container_name: keyflint_gateway
     restart: unless-stopped
     ports:
       - "8000:8000"

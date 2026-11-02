@@ -1,4 +1,4 @@
-"""Tier 1: `keyforge init` environment bootstrap."""
+"""Tier 1: `keyflint init` environment bootstrap."""
 
 from __future__ import annotations
 

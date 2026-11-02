@@ -1,4 +1,4 @@
-# KeyForge Managed: runbook
+# KeyFlint Managed: runbook
 
 One isolated Fly.io instance per customer (its own app, volume, signing key and backup prefix).
 There is no multi-tenancy: a fault or a leak in one instance never touches another.
@@ -8,7 +8,7 @@ There is no multi-tenancy: a fault or a leak in one instance never touches anoth
 1. **Fly.io**: account with billing, then `fly auth login`.
 2. **Cloudflare R2** (or any S3): a private bucket, e.g. `kf-backups`, plus an API token with
    *Object Read & Write* on that bucket only.
-3. **Public image**: `ghcr.io/arceedev/keyforge:<version>` must be public (GHCR → Package settings).
+3. **Public image**: `ghcr.io/arceedev/keyflint:<version>` must be public (GHCR → Package settings).
 4. Shell environment (do not commit it):
 
    ```bash
@@ -27,7 +27,7 @@ There is no multi-tenancy: a fault or a leak in one instance never touches anoth
 ```bash
 python scripts/managed/kf_managed.py --dry-run create acme --region cdg --domain lic.acme.com
 python scripts/managed/kf_managed.py create acme --region cdg --domain lic.acme.com \
-  --image ghcr.io/arceedev/keyforge:1.2.0
+  --image ghcr.io/arceedev/keyflint:1.2.0
 ```
 
 Send the customer: the URL, the **public key** (printed in the output) and the **admin key**

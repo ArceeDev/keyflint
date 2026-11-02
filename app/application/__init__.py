@@ -1,1 +1,1 @@
-"""KeyForge Application Layer Package."""
+"""KeyFlint Application Layer Package."""

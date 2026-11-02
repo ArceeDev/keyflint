@@ -1,8 +1,8 @@
-# keyforge-verify (Go SDK)
+# keyflint-verify (Go SDK)
 
-The official Go verification SDK for [KeyForge](https://keyforge.dev) — zero-dependency, high-performance offline license verification powered by Ed25519 (RFC 8032).
+The official Go verification SDK for [KeyFlint](https://keyflint.dev) — zero-dependency, high-performance offline license verification powered by Ed25519 (RFC 8032).
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/ArceeDev/keyforge/sdks/go-verify.svg)](https://pkg.go.dev/github.com/ArceeDev/keyforge/sdks/go-verify)
+[![Go Reference](https://pkg.go.dev/badge/github.com/ArceeDev/keyflint/sdks/go-verify.svg)](https://pkg.go.dev/github.com/ArceeDev/keyflint/sdks/go-verify)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
 ---
@@ -21,7 +21,7 @@ The official Go verification SDK for [KeyForge](https://keyforge.dev) — zero-d
 ## Installation
 
 ```bash
-go get github.com/ArceeDev/keyforge/sdks/go-verify
+go get github.com/ArceeDev/keyflint/sdks/go-verify
 ```
 
 *Requires Go 1.20 or newer.*
@@ -39,35 +39,35 @@ import (
 	"log"
 	"os"
 
-	keyforge "github.com/ArceeDev/keyforge/sdks/go-verify"
+	keyflint "github.com/ArceeDev/keyflint/sdks/go-verify"
 )
 
-// Your public key from KeyForge Dashboard (Settings -> Public Keys)
+// Your public key from KeyFlint Dashboard (Settings -> Public Keys)
 const PublicKeyHex = "d04ab232742bb4ab3a1368bd4615e4e6d0224ab71a016baf8520a332c9778737"
 
 func main() {
 	// 1. Read token from environment or config file
-	token := os.Getenv("KEYFORGE_LICENSE")
+	token := os.Getenv("KEYFLINT_LICENSE")
 	if token == "" {
-		log.Fatal("Missing KEYFORGE_LICENSE environment variable")
+		log.Fatal("Missing KEYFLINT_LICENSE environment variable")
 	}
 
 	// 2. Verify offline (pass MachineID / Domain only if your tokens are locked)
-	license, err := keyforge.VerifyWithOptions(token, PublicKeyHex, keyforge.Options{
+	license, err := keyflint.VerifyWithOptions(token, PublicKeyHex, keyflint.Options{
 		Domain: "api.mycompany.com",
 	})
 	if err != nil {
 		switch {
-		case errors.Is(err, keyforge.ErrExpired):
+		case errors.Is(err, keyflint.ErrExpired):
 			log.Fatalf("License expired! Please renew your subscription.")
-		case errors.Is(err, keyforge.ErrInvalidSignature):
+		case errors.Is(err, keyflint.ErrInvalidSignature):
 			log.Fatalf("License signature is invalid or has been tampered with!")
-		case errors.Is(err, keyforge.ErrInvalidPublicKey):
+		case errors.Is(err, keyflint.ErrInvalidPublicKey):
 			log.Fatalf("Configured public key is invalid.")
-		case errors.Is(err, keyforge.ErrDomainLockViolation):
+		case errors.Is(err, keyflint.ErrDomainLockViolation):
 			log.Fatalf("License is not authorized for this domain.")
 		default:
-			log.Fatalf("Verification failed: %s", keyforge.Code(err)) // e.g. ERR_INVALID_TOKEN_FORMAT
+			log.Fatalf("Verification failed: %s", keyflint.Code(err)) // e.g. ERR_INVALID_TOKEN_FORMAT
 		}
 	}
 
@@ -89,7 +89,7 @@ func main() {
 
 ## Token Format Specification
 
-KeyForge tokens are self-contained compact cryptographic strings formatted as:
+KeyFlint tokens are self-contained compact cryptographic strings formatted as:
 
 ```text
 LIC-<TIER>-<PAYLOAD_B64URL>.<SIG_B64URL>
@@ -122,7 +122,7 @@ type LicensePayload struct {
 
 ## Error Handling
 
-Every failure is a `*keyforge.VerifyError` whose `Code` is the cross-SDK `ERR_*` code (`keyforge.Code(err)`), and it matches one sentinel with `errors.Is`:
+Every failure is a `*keyflint.VerifyError` whose `Code` is the cross-SDK `ERR_*` code (`keyflint.Code(err)`), and it matches one sentinel with `errors.Is`:
 
 | Sentinel | Codes |
 | :--- | :--- |
@@ -139,10 +139,10 @@ Every failure is a `*keyforge.VerifyError` whose `Code` is the cross-SDK `ERR_*`
 
 ```go
 // Tokens with a signed "kid" are checked only against that key; v1.0 tokens try every key.
-license, err := keyforge.VerifyWithKeyRing(token, map[string]string{
+license, err := keyflint.VerifyWithKeyRing(token, map[string]string{
 	"legacy": "d04ab2...8737",
 	"k2":     "a09aa5...a4f0",
-}, keyforge.Options{})
+}, keyflint.Options{})
 // license.KeyID == "k2"
 ```
 
@@ -157,7 +157,7 @@ For tests, fix the clock with `VerifyAt` or `Options.Now`:
 ```go
 // Evaluate token validity at a specific point in time
 evalTime := time.Unix(1800000000, 0)
-payload, err := keyforge.VerifyAt(token, PublicKeyHex, evalTime)
+payload, err := keyflint.VerifyAt(token, PublicKeyHex, evalTime)
 ```
 
 To run package tests:
@@ -171,4 +171,4 @@ go test -v ./...
 
 ## License
 
-MIT © [ArceeDev / KeyForge](https://github.com/ArceeDev/keyforge)
+MIT © [ArceeDev / KeyFlint](https://github.com/ArceeDev/keyflint)

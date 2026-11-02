@@ -37,7 +37,7 @@ jobs:
         run: |
           JS=$(node -p "require('./sdks/js-verify/package.json').version")
           PY=$(python3 -c "import tomllib;print(tomllib.load(open('sdks/python-verify/pyproject.toml','rb'))['project']['version'])")
-          PYMOD=$(sed -n 's/^__version__ = "\(.*\)"/\1/p' sdks/python-verify/src/keyforge_verify/__init__.py)
+          PYMOD=$(sed -n 's/^__version__ = "\(.*\)"/\1/p' sdks/python-verify/src/keyflint_verify/__init__.py)
           if [ "$GITHUB_REF_TYPE" = "tag" ]; then V="${GITHUB_REF_NAME#sdk-v}"; PUBLISH=true; else V="$JS"; PUBLISH="${{ inputs.publish }}"; fi
           echo "tag=$V js=$JS py=$PY py.__version__=$PYMOD"
           if [ "$V" != "$JS" ] || [ "$V" != "$PY" ] || [ "$V" != "$PYMOD" ]; then echo "::error::version mismatch"; exit 1; fi
@@ -72,7 +72,7 @@ jobs:
           go test -count=1 ./...
 
   npm:
-    name: Publish keyforge-verify to npm
+    name: Publish keyflint-verify to npm
     needs: verify
     runs-on: ubuntu-latest
     environment: npm
@@ -97,15 +97,15 @@ jobs:
           PUBLISH: ${{ needs.verify.outputs.publish }}
           VERSION: ${{ needs.verify.outputs.version }}
         run: |
-          if [ "$(npm view "keyforge-verify@$VERSION" version 2>/dev/null)" = "$VERSION" ]; then
-            echo "keyforge-verify@$VERSION already on npm, skipping"; exit 0; fi
+          if [ "$(npm view "keyflint-verify@$VERSION" version 2>/dev/null)" = "$VERSION" ]; then
+            echo "keyflint-verify@$VERSION already on npm, skipping"; exit 0; fi
           # Empty NODE_AUTH_TOKEN -> npm falls back to OIDC trusted publishing.
           [ -n "$NODE_AUTH_TOKEN" ] || unset NODE_AUTH_TOKEN
           if [ "$PUBLISH" = "true" ]; then npm publish --provenance --access public
           else npm publish --dry-run --access public; fi
 
   pypi:
-    name: Publish keyforge-verify to PyPI
+    name: Publish keyflint-verify to PyPI
     needs: verify
     runs-on: ubuntu-latest
     environment: pypi
@@ -128,7 +128,7 @@ jobs:
         env:
           VERSION: ${{ needs.verify.outputs.version }}
         run: |
-          code=$(curl -s -o /dev/null -w '%{http_code}' "https://pypi.org/pypi/keyforge-verify/$VERSION/json")
+          code=$(curl -s -o /dev/null -w '%{http_code}' "https://pypi.org/pypi/keyflint-verify/$VERSION/json")
           echo "exists=$([ "$code" = 200 ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
       - name: Publish (trusted publishing)
         if: needs.verify.outputs.publish == 'true' && steps.exists.outputs.exists == 'false'
@@ -156,7 +156,7 @@ jobs:
           VERSION: v${{ needs.verify.outputs.version }}
         run: |
           for i in 1 2 3 4 5; do
-            curl -fsS "https://proxy.golang.org/github.com/!arcee!dev/keyforge/sdks/go-verify/@v/$VERSION.info" && exit 0
+            curl -fsS "https://proxy.golang.org/github.com/!arcee!dev/keyflint/sdks/go-verify/@v/$VERSION.info" && exit 0
             sleep $((i * 10))
           done
           echo "::warning::proxy.golang.org has not indexed $VERSION yet; it will on first go get"

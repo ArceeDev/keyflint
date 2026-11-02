@@ -1,4 +1,4 @@
-"""KeyForge SQLite Webhook Repository.
+"""KeyFlint SQLite Webhook Repository.
 
 File: app/infrastructure/repositories/sqlite_webhook_repo.py
 """

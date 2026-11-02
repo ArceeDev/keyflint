@@ -1,4 +1,4 @@
-name: KeyForge CI
+name: KeyFlint CI
 
 on:
   push:
@@ -101,7 +101,7 @@ jobs:
           python-version: "3.12"
 
       - name: Build image
-        run: docker build -t keyforge:e2e .
+        run: docker build -t keyflint:e2e .
 
       - name: Destroy a volume and restore from the replica
-        run: python scripts/e2e_backup.py --image keyforge:e2e
+        run: python scripts/e2e_backup.py --image keyflint:e2e

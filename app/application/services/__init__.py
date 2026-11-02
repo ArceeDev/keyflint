@@ -1,4 +1,4 @@
-"""KeyForge Application Services Package."""
+"""KeyFlint Application Services Package."""
 
 from app.application.services.billing_service import BillingService, WebhookAuthenticationError
 from app.application.services.license_service import LicenseService

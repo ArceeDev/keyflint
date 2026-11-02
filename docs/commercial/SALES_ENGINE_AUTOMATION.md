@@ -1,4 +1,4 @@
-# KeyForge — Autonomous Sales & Marketing Playbook
+# KeyFlint — Autonomous Sales & Marketing Playbook
 
 > **Sistema de Comercialización Automatizada**: Antigravity (Ingeniería y Operaciones) + Claude (Copywriting y Estrategia) + Fundador (Aprobador y Titular de Cuentas).
 
@@ -31,11 +31,11 @@
 - **Subreddits clave**: `r/ClaudeAI`, `r/cursor`, `r/LocalLLaMA`, `r/SideProject`.
 
 ### Motor 3: Directorios y Ecosistemas de IA
-Listar KeyForge en:
+Listar KeyFlint en:
 1. **PulseMCP** (`pulsemcp.com`): El directorio de referencia de herramientas MCP.
 2. **Smithery.ai**: El registro de servidores MCP para Cursor y Claude.
 3. **Awesome-MCP-Servers** (Repositorio de GitHub con miles de estrellas).
-*Posicionamiento*: "KeyForge – The official open monetization gateway for MCP tools".
+*Posicionamiento*: "KeyFlint – The official open monetization gateway for MCP tools".
 
 ---
 
@@ -56,7 +56,7 @@ Listar KeyForge en:
 
 ## 4. Próxima Acción Inmediata (Checklist de 10 minutos)
 1. **Crear producto en LemonSqueezy o Gumroad**:
-   - Nombre: `KeyForge – Self-Hosted MCP & AI Licensing Gateway`.
+   - Nombre: `KeyFlint – Self-Hosted MCP & AI Licensing Gateway`.
    - Precio: $149.
    - Descripción: Copiar y pegar el texto listo de `COMMERCIAL_LAUNCH_KIT.md` (Sección 3).
 2. **Publicar el Show HN**:

@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { createServer } from "node:http";
-import { createKeyForge, KeyForgeMcpError, QUOTA_EXHAUSTED, FEATURE_NOT_ENTITLED, LICENSE_INVALID } from "../dist/esm/mcp.js";
+import { createKeyFlint, KeyFlintMcpError, QUOTA_EXHAUSTED, FEATURE_NOT_ENTITLED, LICENSE_INVALID } from "../dist/esm/mcp.js";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
@@ -41,16 +41,16 @@ async function fakeGateway(balance) {
 }
 
 test("requireLicense is offline and keeps arguments", async () => {
-  const kf = createKeyForge({ licenseKey: TOKEN, publicKeys: keys.k1, fetch: () => assert.fail("no network") });
+  const kf = createKeyFlint({ licenseKey: TOKEN, publicKeys: keys.k1, fetch: () => assert.fail("no network") });
   const tool = kf.requireLicense(async (a, b) => a + b, { features: ["core"] });
   assert.equal(await tool(2, 3), 5);
 });
 
 test("invalid license and missing feature throw McpError-shaped errors", async () => {
-  const bad = createKeyForge({ licenseKey: TOKEN, publicKeys: keys.k2 });
+  const bad = createKeyFlint({ licenseKey: TOKEN, publicKeys: keys.k2 });
   await assert.rejects(bad.requireLicense(() => 1)(), (e) =>
-    e instanceof KeyForgeMcpError && e.code === LICENSE_INVALID && e.reason === "ERR_SIGNATURE_TAMPERED");
-  const kf = createKeyForge({ licenseKey: TOKEN, publicKeys: keys.k1, checkoutUrl: "https://shop/x" });
+    e instanceof KeyFlintMcpError && e.code === LICENSE_INVALID && e.reason === "ERR_SIGNATURE_TAMPERED");
+  const kf = createKeyFlint({ licenseKey: TOKEN, publicKeys: keys.k1, checkoutUrl: "https://shop/x" });
   await assert.rejects(kf.requireLicense(() => 1, { features: ["studio_only"] })(), (e) =>
     e.code === FEATURE_NOT_ENTITLED && e.data.missingFeatures[0] === "studio_only" && e.data.checkoutUrl === "https://shop/x");
 });
@@ -58,7 +58,7 @@ test("invalid license and missing feature throw McpError-shaped errors", async (
 test("metered deducts with idempotency key, then 402 before the handler runs", async () => {
   const gw = await fakeGateway(8);
   try {
-    const kf = createKeyForge({ licenseKey: TOKEN, publicKeys: keys.k1, gatewayUrl: gw.url, checkoutUrl: "https://shop/up" });
+    const kf = createKeyFlint({ licenseKey: TOKEN, publicKeys: keys.k1, gatewayUrl: gw.url, checkoutUrl: "https://shop/up" });
     const ran = [];
     const tool = kf.metered(4, async function summarize(q) { ran.push(q); return q.toUpperCase(); });
     assert.equal(await tool("a"), "A");
@@ -73,14 +73,14 @@ test("metered deducts with idempotency key, then 402 before the handler runs", a
 });
 
 test("gateway unreachable", async () => {
-  const kf = createKeyForge({ licenseKey: TOKEN, publicKeys: keys.k1, gatewayUrl: "http://127.0.0.1:9", timeoutMs: 500 });
+  const kf = createKeyFlint({ licenseKey: TOKEN, publicKeys: keys.k1, gatewayUrl: "http://127.0.0.1:9", timeoutMs: 500 });
   await assert.rejects(kf.metered(1, () => 1)(), (e) => e.reason === "GATEWAY_UNREACHABLE");
 });
 
 test("works inside @modelcontextprotocol/sdk McpServer", async () => {
   const gw = await fakeGateway(5);
   try {
-    const kf = createKeyForge({ licenseKey: TOKEN, publicKeys: { legacy: keys.k1 }, gatewayUrl: gw.url });
+    const kf = createKeyFlint({ licenseKey: TOKEN, publicKeys: { legacy: keys.k1 }, gatewayUrl: gw.url });
     const server = new McpServer({ name: "demo", version: "1.0.0" });
     server.registerTool("summarize", { inputSchema: { text: z.string() } },
       kf.metered(5, async ({ text }) => ({ content: [{ type: "text", text: text.slice(0, 3) }] })));
@@ -104,8 +104,8 @@ test("works inside @modelcontextprotocol/sdk McpServer", async () => {
 
 test("CommonJS subpath export", async () => {
   const { createRequire } = await import("node:module");
-  const m = createRequire(import.meta.url)("keyforge-verify/mcp");
-  assert.equal(typeof m.createKeyForge, "function");
+  const m = createRequire(import.meta.url)("keyflint-verify/mcp");
+  assert.equal(typeof m.createKeyFlint, "function");
   assert.deepEqual([m.LICENSE_INVALID, m.FEATURE_NOT_ENTITLED, m.QUOTA_EXHAUSTED, m.GATEWAY_ERROR], [-32060, -32061, -32062, -32063]);
   assert.deepEqual(m.parseKeysEnv("aa, k2=bb"), { "legacy-0": "aa", k2: "bb" });
   assert.equal(m.parseKeysEnv("aa"), "aa");
@@ -115,7 +115,7 @@ test("CommonJS subpath export", async () => {
 test("metered refunds credits when the handler throws or returns isError", async () => {
   const gw = await fakeGateway(10);
   try {
-    const kf = createKeyForge({ licenseKey: TOKEN, publicKeys: keys.k1, gatewayUrl: gw.url });
+    const kf = createKeyFlint({ licenseKey: TOKEN, publicKeys: keys.k1, gatewayUrl: gw.url });
     await assert.rejects(kf.metered(3, async () => { throw new Error("upstream down"); })(), /upstream down/);
     const soft = await kf.metered(2, async () => ({ isError: true, content: [] }))();
     assert.equal(soft.isError, true);
@@ -131,9 +131,24 @@ test("metered refunds credits when the handler throws or returns isError", async
 
 test("license errors carry an actionable message", async () => {
   const expired = vectors.find((v) => v.name === "ring_kid_token_without_key");
-  const kf = createKeyForge({ licenseKey: expired.token, publicKeys: { legacy: keys.k1 }, checkoutUrl: "https://shop/renew" });
+  const kf = createKeyFlint({ licenseKey: expired.token, publicKeys: { legacy: keys.k1 }, checkoutUrl: "https://shop/renew" });
   await assert.rejects(kf.check(), (e) =>
     e.code === LICENSE_INVALID && e.data.reason === "ERR_UNKNOWN_KID" && /does not trust/.test(e.message) && !e.message.includes("https://shop/renew"));
-  const kf2 = createKeyForge({ licenseKey: "", publicKeys: keys.k1, checkoutUrl: "https://shop/renew" });
-  await assert.rejects(kf2.check(), (e) => e.message === "No KeyForge license is configured. Set KEYFORGE_LICENSE. Get or renew a license: https://shop/renew");
+  const kf2 = createKeyFlint({ licenseKey: "", publicKeys: keys.k1, checkoutUrl: "https://shop/renew" });
+  await assert.rejects(kf2.check(), (e) => e.message === "No KeyFlint license is configured. Set KEYFLINT_LICENSE. Get or renew a license: https://shop/renew");
+});
+
+test("legacy KEYFORGE_* env vars are honoured, KEYFLINT_* wins", async () => {
+  const saved = { ...process.env };
+  try {
+    for (const k of Object.keys(process.env)) if (/^KEY(FORGE|FLINT)_/.test(k)) delete process.env[k];
+    process.env.KEYFORGE_PUBLIC_KEYS = keys.k1;
+    process.env.KEYFORGE_CHECKOUT_URL = "https://legacy/renew";
+    await assert.rejects(createKeyFlint().check(), (e) => e.message.endsWith("https://legacy/renew"));
+    process.env.KEYFLINT_CHECKOUT_URL = "https://new/renew";
+    await assert.rejects(createKeyFlint().check(), (e) => e.message.endsWith("https://new/renew"));
+  } finally {
+    for (const k of Object.keys(process.env)) if (!(k in saved)) delete process.env[k];
+    Object.assign(process.env, saved);
+  }
 });

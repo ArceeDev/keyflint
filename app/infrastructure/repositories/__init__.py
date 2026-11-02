@@ -1,4 +1,4 @@
-"""KeyForge Infrastructure Repositories Package."""
+"""KeyFlint Infrastructure Repositories Package."""
 
 from app.infrastructure.repositories.sqlite_customer_repo import SqliteCustomerRepo
 from app.infrastructure.repositories.sqlite_license_repo import SqliteLicenseRepo

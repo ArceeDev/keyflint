@@ -1,4 +1,4 @@
-"""KeyForge Standalone Offline Validator.
+"""KeyFlint Standalone Offline Validator.
 
 Zero external dependencies. Can be packaged and distributed independently.
 """
@@ -218,7 +218,7 @@ def validate_offline(
     license_key: Optional[str] = None,
     force_pure_python: bool = False,
 ) -> tuple[bool, Optional[dict[str, Any]], Optional[str]]:
-    """Validates a KeyForge license token offline.
+    """Validates a KeyFlint license token offline.
 
     Parameters:
         license_token: Complete token string (LIC-<TIER>-<PAYLOAD>.<SIG>)

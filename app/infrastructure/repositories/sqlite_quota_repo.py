@@ -1,4 +1,4 @@
-"""KeyForge SQLite Quota Repository.
+"""KeyFlint SQLite Quota Repository.
 
 File: app/infrastructure/repositories/sqlite_quota_repo.py
 """

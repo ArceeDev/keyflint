@@ -1,4 +1,4 @@
-"""Generate cross-SDK conformance vectors from the KeyForge reference implementation.
+"""Generate cross-SDK conformance vectors from the KeyFlint reference implementation.
 
 Run from the project root:  python sdks/vectors/generate_vectors.py
 Expected results come from app.infrastructure.security.offline_validator (both

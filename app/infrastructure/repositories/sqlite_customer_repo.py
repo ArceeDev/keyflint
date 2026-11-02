@@ -1,4 +1,4 @@
-"""KeyForge SQLite Customer Repository.
+"""KeyFlint SQLite Customer Repository.
 
 File: app/infrastructure/repositories/sqlite_customer_repo.py
 """

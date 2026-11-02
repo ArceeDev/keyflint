@@ -1,4 +1,4 @@
-"""KeyForge Billing Application Service.
+"""KeyFlint Billing Application Service.
 
 Handles Stripe & LemonSqueezy webhook ingestion with constant-time HMAC verification,
 replay protection idempotency, subscription lifecycles, and local webhook simulation.
@@ -142,7 +142,7 @@ class BillingService:
                 "line_items[0][quantity]": "1",
                 "line_items[0][price_data][currency]": "usd",
                 "line_items[0][price_data][unit_amount]": str(unit_amount),
-                "line_items[0][price_data][product_data][name]": f"KeyForge {request.tier.upper()}",
+                "line_items[0][price_data][product_data][name]": f"KeyFlint {request.tier.upper()}",
             }
             if is_recurring:
                 interval = "year" if (request.interval or "").lower() in ("yearly", "annual", "year") else "month"
@@ -747,14 +747,14 @@ class BillingService:
 
         first_token = summaries[0].license_key if summaries else "LIC-PRO-..."
         py_snip = (
-            f"from keyforge_verify import verify_license\n\n"
+            f"from keyflint_verify import verify_license\n\n"
             f'token = "{first_token}"\n'
             f'public_key = "{pub_key}"\n\n'
             f"payload = verify_license(token, public_key)\n"
             f'print(f"Valid: {{payload.is_valid}}, Tier: {{payload.tier}}")'
         )
         ts_snip = (
-            f'import {{ verifyLicense }} from "keyforge-verify";\n\n'
+            f'import {{ verifyLicense }} from "keyflint-verify";\n\n'
             f'const token = "{first_token}";\n'
             f'const publicKey = "{pub_key}";\n\n'
             f"const res = await verifyLicense(token, publicKey);\n"

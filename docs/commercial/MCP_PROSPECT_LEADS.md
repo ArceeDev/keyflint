@@ -1,4 +1,4 @@
-# KeyForge: Curated MCP Server Prospect Leads & Developer Outreach
+# KeyFlint: Curated MCP Server Prospect Leads & Developer Outreach
 
 This document contains **20 curated, high-potential Model Context Protocol (MCP) and developer tooling projects** currently active in the open-source ecosystem. Each prospect includes complete repository metadata, primary use case, commercialization thesis, and a tailored 3-paragraph developer outreach pitch ready to copy and paste.
 
@@ -48,7 +48,7 @@ This document contains **20 curated, high-potential Model Context Protocol (MCP)
 >
 > With enterprise teams deploying Headroom across private VPCs and on-prem clusters, you have a massive opportunity to introduce an "Enterprise Edition" or "Team Node License." Many engineering leaders would happily pay for guaranteed throughput, custom compression rules, team audit logging, and node-locked deployments—provided it doesn't require complex license servers or phone-home DRM that security teams would veto.
 >
-> That's where KeyForge comes in. We built an offline-first, Ed25519 cryptographic licensing engine specifically for developer tooling and MCP servers. Using our pure-Python or Go SDK (`keyforge-verify`), you can gate enterprise features or node deployments in 4 lines of code with zero external dependencies and zero network roundtrips. We connect directly to LemonSqueezy/Stripe to automate webhook provisioning. Would you be open to a quick 10-minute chat or seeing a turnkey PR showing how you could launch a paid tier this week?
+> That's where KeyFlint comes in. We built an offline-first, Ed25519 cryptographic licensing engine specifically for developer tooling and MCP servers. Using our pure-Python or Go SDK (`keyflint-verify`), you can gate enterprise features or node deployments in 4 lines of code with zero external dependencies and zero network roundtrips. We connect directly to LemonSqueezy/Stripe to automate webhook provisioning. Would you be open to a quick 10-minute chat or seeing a turnkey PR showing how you could launch a paid tier this week?
 
 ---
 
@@ -71,7 +71,7 @@ This document contains **20 curated, high-potential Model Context Protocol (MCP)
 >
 > Given that companies are increasingly allowing Cursor and Claude to interface with internal databases via dbx, you are in prime position to capture revenue from business users. Enterprise teams readily pay for commercial licenses that include team profile sharing, audit logging for agent queries, and production safety guards—the classic TablePlus or Postico commercial model.
 >
-> With KeyForge, you can monetize dbx without compromising its clean, lightweight philosophy. Our offline Ed25519 verification requires zero network phone-home (critical for sensitive database tools) and verifies license keys in under 50 microseconds. It supports hardware node locking, domain locking, and perpetual or subscription keys out of the box. Would love to send over a quick sample showing how seamless the verification integration is.
+> With KeyFlint, you can monetize dbx without compromising its clean, lightweight philosophy. Our offline Ed25519 verification requires zero network phone-home (critical for sensitive database tools) and verifies license keys in under 50 microseconds. It supports hardware node locking, domain locking, and perpetual or subscription keys out of the box. Would love to send over a quick sample showing how seamless the verification integration is.
 
 ---
 
@@ -94,7 +94,7 @@ This document contains **20 curated, high-potential Model Context Protocol (MCP)
 >
 > Digital agencies, scale-ups, and corporate design teams are using your server daily to speed up sprint deliveries. By offering a "Pro / Studio" tier that unlocks enterprise Figma organization support, private design system syncing, and automated asset pipeline exports, you could easily build a recurring revenue stream from teams whose budgets already cover Figma and Cursor.
 >
-> KeyForge was created precisely for tools like yours. Our `@keyforge/verify` TypeScript SDK lets you verify signed license keys completely offline using Web Crypto, with zero third-party dependencies. It handles subscription lifecycles, team seat validation, and LemonSqueezy/Stripe checkout webhooks automatically. If you're interested, I'd love to share a 5-minute demo on how you can launch a Pro tier with near-zero overhead.
+> KeyFlint was created precisely for tools like yours. Our `@keyflint/verify` TypeScript SDK lets you verify signed license keys completely offline using Web Crypto, with zero third-party dependencies. It handles subscription lifecycles, team seat validation, and LemonSqueezy/Stripe checkout webhooks automatically. If you're interested, I'd love to share a 5-minute demo on how you can launch a Pro tier with near-zero overhead.
 
 ---
 
@@ -117,7 +117,7 @@ This document contains **20 curated, high-potential Model Context Protocol (MCP)
 >
 > Enterprises running extensive mobile QA pipelines are constantly seeking dedicated, reproducible containerized test farms. By introducing a commercial tier that unlocks high-density parallel device instances, dedicated GPU acceleration profiles, and enterprise CI/CD connectors, you can monetize corporate infrastructure teams while keeping the core image open-source for individual developers.
 >
-> KeyForge makes software licensing for Docker containers trivial. With our offline Ed25519 engine, containers can validate license tokens via an environment variable (`KEYFORGE_LICENSE`) with zero outbound phone-home calls—passing even the strictest air-gapped security audits. It also supports hardware and core-count node locking. Would you be open to discussing how this could work for docker-android?
+> KeyFlint makes software licensing for Docker containers trivial. With our offline Ed25519 engine, containers can validate license tokens via an environment variable (`KEYFLINT_LICENSE`) with zero outbound phone-home calls—passing even the strictest air-gapped security audits. It also supports hardware and core-count node locking. Would you be open to discussing how this could work for docker-android?
 
 ---
 
@@ -140,7 +140,7 @@ This document contains **20 curated, high-potential Model Context Protocol (MCP)
 >
 > The desktop database tool market (TablePlus, DataGrip, DBeaver EE) has demonstrated that developers and companies are eager to buy desktop licenses for polish, reliability, and advanced features. You have an exceptional foundation to launch a "Tabularis Pro" or "Tabularis Team" license that unlocks advanced data visualization exports, enterprise driver packs, and agent query audit trails.
 >
-> KeyForge was engineered for exactly this business model. Our offline licensing engine uses RFC 8032 Ed25519 cryptographic tokens formatted as `LIC-<TIER>-<PAYLOAD>.<SIG>`. Your desktop app and MCP server can verify perpetual licenses or annual subscriptions in microsecond time without phoning home or requiring complex backend infrastructure. Would love to show you how clean the integration is.
+> KeyFlint was engineered for exactly this business model. Our offline licensing engine uses RFC 8032 Ed25519 cryptographic tokens formatted as `LIC-<TIER>-<PAYLOAD>.<SIG>`. Your desktop app and MCP server can verify perpetual licenses or annual subscriptions in microsecond time without phoning home or requiring complex backend infrastructure. Would love to show you how clean the integration is.
 
 ---
 
@@ -155,7 +155,7 @@ This document contains **20 curated, high-potential Model Context Protocol (MCP)
 
 #### Tailored Developer Outreach Pitch
 
-> **Subject**: Monetizing large-scale codebase graph intelligence with KeyForge
+> **Subject**: Monetizing large-scale codebase graph intelligence with KeyFlint
 >
 > Hi CodeGraphContext team,
 >
@@ -163,7 +163,7 @@ This document contains **20 curated, high-potential Model Context Protocol (MCP)
 >
 > When mid-market and enterprise tech companies adopt your tool on monorepos containing millions of lines of code, they derive enormous enterprise value. Offering an "Enterprise Monorepo" tier—with incremental graph cache clustering, advanced architectural boundary rules, and team-shared graph state—is a multi-million-dollar opportunity that fits your tech stack perfectly.
 >
-> KeyForge offers the fastest way to implement commercial licensing for Python CLI tools and MCP servers. Our zero-dependency Python verifier (`keyforge-verify`) checks Ed25519 signatures completely offline, supports machine node-locking to prevent key leakage, and lets you gate premium features with a simple `@require_license("enterprise")` decorator. Would you be interested in a quick chat on how this could work for CodeGraphContext?
+> KeyFlint offers the fastest way to implement commercial licensing for Python CLI tools and MCP servers. Our zero-dependency Python verifier (`keyflint-verify`) checks Ed25519 signatures completely offline, supports machine node-locking to prevent key leakage, and lets you gate premium features with a simple `@require_license("enterprise")` decorator. Would you be interested in a quick chat on how this could work for CodeGraphContext?
 
 ---
 
@@ -186,7 +186,7 @@ This document contains **20 curated, high-potential Model Context Protocol (MCP)
 >
 > Given Bytebase's proven pedigree in database DevOps and security, dbhub has immense commercial potential as a secure enterprise agent gateway. Companies want to deploy dbhub across departments with dynamic PII masking, fine-grained table access restrictions, and SOC2/HIPAA audit trails. Packaging these capabilities into an "Enterprise MCP Gateway" tier would unlock substantial enterprise ARR.
 >
-> KeyForge provides the cryptographic licensing infrastructure to power this model seamlessly. Our Go and TypeScript verification SDKs operate with zero external dependencies, verifying tamper-proof licenses completely offline. You can tie licenses to corporate domain names or machine IDs, while managing billing through Stripe or LemonSqueezy. Could we set up a brief 10-minute intro to explore this?
+> KeyFlint provides the cryptographic licensing infrastructure to power this model seamlessly. Our Go and TypeScript verification SDKs operate with zero external dependencies, verifying tamper-proof licenses completely offline. You can tie licenses to corporate domain names or machine IDs, while managing billing through Stripe or LemonSqueezy. Could we set up a brief 10-minute intro to explore this?
 
 ---
 
@@ -209,7 +209,7 @@ This document contains **20 curated, high-potential Model Context Protocol (MCP)
 >
 > Tools in this space (like Laravel Herd Pro, Docker Desktop, and TablePlus) have proven that developers eagerly pay $50–$150/year for polished Pro editions. A "FlyEnv Pro" tier featuring advanced service templates, team environment sharing, automated cloud tunnels, and automated SSL orchestration could become a highly profitable business while keeping the base stack open.
 >
-> KeyForge provides everything you need to license FlyEnv offline. We issue compact, cryptographically signed tokens (`LIC-PRO-...`) that your desktop app can verify locally in microseconds without ever calling home. It includes built-in machine node locking so single-user licenses can't be shared across teams, and hooks straight into LemonSqueezy. Let me know if you’d like to see a quick prototype!
+> KeyFlint provides everything you need to license FlyEnv offline. We issue compact, cryptographically signed tokens (`LIC-PRO-...`) that your desktop app can verify locally in microseconds without ever calling home. It includes built-in machine node locking so single-user licenses can't be shared across teams, and hooks straight into LemonSqueezy. Let me know if you’d like to see a quick prototype!
 
 ---
 
@@ -232,7 +232,7 @@ This document contains **20 curated, high-potential Model Context Protocol (MCP)
 >
 > As design systems mature, companies are building their own private component registries on top of shadcn/ui. By offering a "Pro / Enterprise" tier that supports indexing private component libraries, corporate design tokens, and team-shared snippet patterns, you can tap directly into engineering software budgets.
 >
-> With KeyForge, integrating paid tier licensing into your MCP server takes less than 15 minutes. Our `@keyforge/verify` SDK is pure TypeScript with zero runtime dependencies. You can check license tiers and expiration dates offline with standard Ed25519 cryptography, letting you offer free open-source usage alongside commercial team licenses. Would you like to chat about how easy this is to set up?
+> With KeyFlint, integrating paid tier licensing into your MCP server takes less than 15 minutes. Our `@keyflint/verify` SDK is pure TypeScript with zero runtime dependencies. You can check license tiers and expiration dates offline with standard Ed25519 cryptography, letting you offer free open-source usage alongside commercial team licenses. Would you like to chat about how easy this is to set up?
 
 ---
 
@@ -255,7 +255,7 @@ This document contains **20 curated, high-potential Model Context Protocol (MCP)
 >
 > As enterprises adopt NitroStack to run mission-critical workflows, they require enterprise capabilities: air-gapped on-premise execution, SOC2 audit event routing, team secret management, and compliance controls. Offering an Enterprise License for self-hosted customer environments is the most proven monetization path for developer frameworks.
 >
-> KeyForge provides the exact licensing infrastructure required for on-premise framework deployments. Our SDKs allow you to generate cryptographically signed, node-locked license keys that customer clusters verify 100% offline. No third-party network pings, no telemetry dependencies—just secure RFC 8032 Ed25519 verification. Let me know if you'd be interested in exploring a frictionless licensing integration.
+> KeyFlint provides the exact licensing infrastructure required for on-premise framework deployments. Our SDKs allow you to generate cryptographically signed, node-locked license keys that customer clusters verify 100% offline. No third-party network pings, no telemetry dependencies—just secure RFC 8032 Ed25519 verification. Let me know if you'd be interested in exploring a frictionless licensing integration.
 
 ---
 
@@ -278,7 +278,7 @@ This document contains **20 curated, high-potential Model Context Protocol (MCP)
 >
 > Industrial automation, university labs, and enterprise robotics teams are natural commercial customers for your technology. In robotics and physical systems, organizations require deterministic safety fences, multi-robot fleet namespaces, and strict hardware-bound software licensing. A commercial "Industrial / Fleet" edition of ros-mcp-server could command substantial recurring license fees.
 >
-> KeyForge is custom-built for hardware and edge deployments. Our offline Python verifier binds licenses to specific robot hardware IDs (MAC, CPU, motherboard UUID) using Ed25519 signatures, requiring zero internet connectivity on factory floors or isolated lab networks. I’d love to connect for 10 minutes to share how other systems engineering tools use KeyForge for node-locked licensing.
+> KeyFlint is custom-built for hardware and edge deployments. Our offline Python verifier binds licenses to specific robot hardware IDs (MAC, CPU, motherboard UUID) using Ed25519 signatures, requiring zero internet connectivity on factory floors or isolated lab networks. I’d love to connect for 10 minutes to share how other systems engineering tools use KeyFlint for node-locked licensing.
 
 ---
 
@@ -301,7 +301,7 @@ This document contains **20 curated, high-potential Model Context Protocol (MCP)
 >
 > For companies deploying AI search agents internally, managing multi-tenant index permissions, masking proprietary records, and gathering search analytics are top requirements. Introducing a "Meilisearch MCP Enterprise Pack" that provides role-based tenant routing and audit logging would be a compelling commercial offering for high-growth tech companies.
 >
-> KeyForge makes it effortless to implement a commercial license tier. With our zero-dependency verification SDK, your MCP server can check whether an enterprise license is valid in single-digit microseconds, enforcing allowed index domains and feature flags offline. I'd love to share a quick example of how you can deploy this alongside your existing package.
+> KeyFlint makes it effortless to implement a commercial license tier. With our zero-dependency verification SDK, your MCP server can check whether an enterprise license is valid in single-digit microseconds, enforcing allowed index domains and feature flags offline. I'd love to share a quick example of how you can deploy this alongside your existing package.
 
 ---
 
@@ -324,7 +324,7 @@ This document contains **20 curated, high-potential Model Context Protocol (MCP)
 >
 > In the healthcare and clinical software domain, software procurement is heavily driven by compliance, data sovereignty, and strict offline operation. Hospital systems and medical device manufacturers routinely pay for commercial enterprise licenses that include verified audit logging, de-identification filters, and air-gapped on-premise support.
 >
-> KeyForge was specifically designed for sensitive, air-gapped environments. Our verification SDKs use pure standard-library Ed25519 cryptography, ensuring that license tokens are validated 100% offline with zero outbound network requests. It allows you to bind deployments to verified hospital domain names or specific server nodes. Would you be open to a brief call to discuss enterprise licensing strategies for your healthcare MCP tooling?
+> KeyFlint was specifically designed for sensitive, air-gapped environments. Our verification SDKs use pure standard-library Ed25519 cryptography, ensuring that license tokens are validated 100% offline with zero outbound network requests. It allows you to bind deployments to verified hospital domain names or specific server nodes. Would you be open to a brief call to discuss enterprise licensing strategies for your healthcare MCP tooling?
 
 ---
 
@@ -339,7 +339,7 @@ This document contains **20 curated, high-potential Model Context Protocol (MCP)
 
 #### Tailored Developer Outreach Pitch
 
-> **Subject**: Launching a Pro tier for RivalSearchMCP with KeyForge
+> **Subject**: Launching a Pro tier for RivalSearchMCP with KeyFlint
 >
 > Hi Damion,
 >
@@ -347,7 +347,7 @@ This document contains **20 curated, high-potential Model Context Protocol (MCP)
 >
 > Because search infrastructure and scraping incur real API costs and proxy overhead, many developers and researchers would happily pay a monthly subscription for a "RivalSearch Pro" tier. You could offer high-throughput search tokens, premium academic/financial data source connectors, and automated deep-crawling capabilities as paid entitlements.
 >
-> With KeyForge, you can integrate subscription licensing in under an hour. Our lightweight `keyforge-verify` Python library validates license keys offline via Ed25519 signatures, so your MCP server never has to make external license verification calls that slow down search queries. It links directly with LemonSqueezy or Stripe for instant checkout. Would love to send over a 5-minute code sample if you're interested!
+> With KeyFlint, you can integrate subscription licensing in under an hour. Our lightweight `keyflint-verify` Python library validates license keys offline via Ed25519 signatures, so your MCP server never has to make external license verification calls that slow down search queries. It links directly with LemonSqueezy or Stripe for instant checkout. Would love to send over a 5-minute code sample if you're interested!
 
 ---
 
@@ -370,7 +370,7 @@ This document contains **20 curated, high-potential Model Context Protocol (MCP)
 >
 > Media organizations, PR agencies, and research firms produce hundreds of graphics a week and have dedicated budgets for visual automation tools. Offering a "Newsroom / Agency" tier that enforces corporate palette branding, validates data integrity rules, and synchronizes team chart folders could provide a sustainable revenue stream for maintaining the project.
 >
-> KeyForge provides zero-dependency offline software licensing that integrates into Python tooling in just a few lines. Because journalists and enterprise newsrooms often work under confidentiality agreements, KeyForge's 100% offline verification ensures no sensitive metadata or prompt data ever leaves their local environment. Would love to show you how easily you could set up a commercial tier if you're ever interested.
+> KeyFlint provides zero-dependency offline software licensing that integrates into Python tooling in just a few lines. Because journalists and enterprise newsrooms often work under confidentiality agreements, KeyFlint's 100% offline verification ensures no sensitive metadata or prompt data ever leaves their local environment. Would love to show you how easily you could set up a commercial tier if you're ever interested.
 
 ---
 
@@ -393,7 +393,7 @@ This document contains **20 curated, high-potential Model Context Protocol (MCP)
 >
 > Enterprises deploying multi-agent systems are your prime commercial audience. In enterprise production, companies require mTLS encryption between servers, centralized RBAC, latency tracing, and high-availability failover. Packaging these advanced distributed primitives into an "Enterprise Mesh" tier with cluster node licensing is a proven enterprise software model.
 >
-> KeyForge provides the cryptographic backbone to enforce cluster node licenses and core allocations completely offline. Using our zero-dependency SDKs, mesh nodes can verify their cluster license instantly upon boot without creating external points of failure. Would you be open to a 10-minute brainstorming call on commercialization architecture for mcp-mesh?
+> KeyFlint provides the cryptographic backbone to enforce cluster node licenses and core allocations completely offline. Using our zero-dependency SDKs, mesh nodes can verify their cluster license instantly upon boot without creating external points of failure. Would you be open to a 10-minute brainstorming call on commercialization architecture for mcp-mesh?
 
 ---
 
@@ -416,7 +416,7 @@ This document contains **20 curated, high-potential Model Context Protocol (MCP)
 >
 > The Laravel ecosystem has a stellar culture of supporting creator-led developer tools—from Laravel Shift and Ray to Horizon and Nova. Laravel agencies and solo SaaS founders routinely buy annual tool licenses that save them billable hours. A "Pro Companion" tier offering automated migration testing, Pest test generation, and multi-tenant schema context could easily generate healthy MRR.
 >
-> KeyForge is built to handle software licensing for developer tools with zero friction. Our offline Ed25519 token verification requires zero phone-home calls and plugs effortlessly into PHP or CLI companions. It connects directly with LemonSqueezy or Stripe for instant payments and license delivery. Let me know if you'd be interested in taking a look at a quick integration demo!
+> KeyFlint is built to handle software licensing for developer tools with zero friction. Our offline Ed25519 token verification requires zero phone-home calls and plugs effortlessly into PHP or CLI companions. It connects directly with LemonSqueezy or Stripe for instant payments and license delivery. Let me know if you'd be interested in taking a look at a quick integration demo!
 
 ---
 
@@ -439,7 +439,7 @@ This document contains **20 curated, high-potential Model Context Protocol (MCP)
 >
 > Penetration testing firms, enterprise security teams, and mobile security researchers spend tens of thousands of dollars on software that accelerates security audits. Creating a "frida-mcp Security Pro" edition featuring automated root-detection evasion profiles, automated vulnerability report generation, and multi-device hooks is a lucrative commercial opportunity.
 >
-> Because security professionals frequently work in isolated lab environments or air-gapped test networks, traditional online licensing that phones home is an immediate disqualifier. KeyForge uses offline Ed25519 cryptographic tokens verified strictly on the local machine with zero external network access. It allows you to offer node-locked or professional licenses with total privacy. Would love to share how this could work for your tool!
+> Because security professionals frequently work in isolated lab environments or air-gapped test networks, traditional online licensing that phones home is an immediate disqualifier. KeyFlint uses offline Ed25519 cryptographic tokens verified strictly on the local machine with zero external network access. It allows you to offer node-locked or professional licenses with total privacy. Would love to share how this could work for your tool!
 
 ---
 
@@ -462,7 +462,7 @@ This document contains **20 curated, high-potential Model Context Protocol (MCP)
 >
 > Legal departments, law firms, and consulting organizations have some of the highest software willingness-to-pay in the world. By introducing a "Legal / Enterprise" tier with clause library integration, automated redline summaries, and strict metadata sanitization, you can capitalize on the massive wave of enterprise legal tech investment.
 >
-> With corporate legal workflows, data privacy and air-gapped security are mandatory. KeyForge enables you to license KitchenSink4Word using 100% offline Ed25519 cryptographic verification. No external license pings, no telemetry risks—corporate compliance teams can review and verify the zero-dependency verification code in minutes. Let me know if you’d like to see how simple it is to add a commercial tier.
+> With corporate legal workflows, data privacy and air-gapped security are mandatory. KeyFlint enables you to license KitchenSink4Word using 100% offline Ed25519 cryptographic verification. No external license pings, no telemetry risks—corporate compliance teams can review and verify the zero-dependency verification code in minutes. Let me know if you’d like to see how simple it is to add a commercial tier.
 
 ---
 
@@ -485,12 +485,12 @@ This document contains **20 curated, high-potential Model Context Protocol (MCP)
 >
 > As engineering organizations deploy xerj across private networks, they need enterprise features: distributed shard replication, LDAP/SSO role synchronization, and compliance audit logging. Distributing an "Enterprise xerj" binary under a commercial license provides a clean, lucrative monetization path that large companies can easily expense.
 >
-> KeyForge aligns perfectly with your single-binary, high-performance ethos. Our RFC 8032 Ed25519 licensing format verifies in single-digit microseconds with zero background threads and zero network overhead. Licenses can be passed via command flag or environment variable and verified completely offline. If you're interested in exploring how to monetize your enterprise users, I'd be glad to share more details!
+> KeyFlint aligns perfectly with your single-binary, high-performance ethos. Our RFC 8032 Ed25519 licensing format verifies in single-digit microseconds with zero background threads and zero network overhead. Licenses can be passed via command flag or environment variable and verified completely offline. If you're interested in exploring how to monetize your enterprise users, I'd be glad to share more details!
 
 ---
 
-## Developer Outreach Best Practices with KeyForge
+## Developer Outreach Best Practices with KeyFlint
 
-1. **Keep Core Open Source**: Position KeyForge commercial licensing as the enabler for advanced enterprise features (node locking, audit logs, team sharing, commercial warranties), preserving the community's goodwill.
-2. **Highlight Zero-Dependency Offline Security**: Developers of MCP servers and CLI utilities love that `keyforge-verify` introduces **zero external dependencies** and makes **zero outbound network requests**, satisfying strict enterprise security reviews.
+1. **Keep Core Open Source**: Position KeyFlint commercial licensing as the enabler for advanced enterprise features (node locking, audit logs, team sharing, commercial warranties), preserving the community's goodwill.
+2. **Highlight Zero-Dependency Offline Security**: Developers of MCP servers and CLI utilities love that `keyflint-verify` introduces **zero external dependencies** and makes **zero outbound network requests**, satisfying strict enterprise security reviews.
 3. **Offer Turnkey Pull Requests**: When initiating outreach, offering to open a clean 10-line PR that adds the optional commercial verification flag lowers adoption friction to zero.

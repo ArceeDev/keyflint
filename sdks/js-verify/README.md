@@ -1,9 +1,9 @@
-# keyforge-verify
+# keyflint-verify
 
-Offline verifier for KeyForge license tokens (`LIC-<TIER>-<PAYLOAD>.<SIGNATURE>`), with no runtime dependencies. It uses the native Web Crypto Ed25519 API and works on Node.js ≥ 18.4, Bun, Deno and modern browsers.
+Offline verifier for KeyFlint license tokens (`LIC-<TIER>-<PAYLOAD>.<SIGNATURE>`), with no runtime dependencies. It uses the native Web Crypto Ed25519 API and works on Node.js ≥ 18.4, Bun, Deno and modern browsers.
 
 ```ts
-import { verifyLicense } from "keyforge-verify";
+import { verifyLicense } from "keyflint-verify";
 const r = await verifyLicense("LIC-PRO-eyJ...", PUBLIC_KEY_HEX, { machineId: "ws-node-01" });
 if (!r.valid) throw new Error(r.error); // e.g. ERR_LICENSE_EXPIRED
 console.log(r.payload.tier, r.payload.features);
@@ -14,8 +14,8 @@ console.log(r.payload.tier, r.payload.features);
 ## MCP servers (`@modelcontextprotocol/sdk`)
 
 ```ts
-import { createKeyForge } from "keyforge-verify/mcp";
-const kf = createKeyForge(); // KEYFORGE_LICENSE, KEYFORGE_PUBLIC_KEYS, KEYFORGE_URL, KEYFORGE_CHECKOUT_URL
+import { createKeyFlint } from "keyflint-verify/mcp";
+const kf = createKeyFlint(); // KEYFLINT_LICENSE, KEYFLINT_PUBLIC_KEYS, KEYFLINT_URL, KEYFLINT_CHECKOUT_URL
 
 server.registerTool("search", { inputSchema: { q: z.string() } },
   kf.requireLicense(async ({ q }) => ({ content: [{ type: "text", text: q }] }), { features: ["core"] }));
@@ -24,7 +24,7 @@ server.registerTool("summarize", { inputSchema: { url: z.string() } },
 ```
 
 - `requireLicense` is 100% offline. `metered` also calls `POST /api/v1/quota/deduct` **before** running the handler, with an automatic `Idempotency-Key` that it reuses on its single network retry.
-- Failures throw `KeyForgeMcpError` (`code`, `message`, `data`, the same shape as the SDK's `McpError`). Codes: `-32060` invalid license, `-32061` feature not in plan, `-32062` credits exhausted (HTTP 402, with `data.checkoutUrl`), `-32063` gateway error (`-32042` is reserved by MCP for URL elicitation). `McpServer` returns the error to the model as an `isError` tool result containing only `message`, so every message states the cause, whether credits were charged, and the next step (with `checkoutUrl` when set).
+- Failures throw `KeyFlintMcpError` (`code`, `message`, `data`, the same shape as the SDK's `McpError`). Codes: `-32060` invalid license, `-32061` feature not in plan, `-32062` credits exhausted (HTTP 402, with `data.checkoutUrl`), `-32063` gateway error (`-32042` is reserved by MCP for URL elicitation). `McpServer` returns the error to the model as an `isError` tool result containing only `message`, so every message states the cause, whether credits were charged, and the next step (with `checkoutUrl` when set).
 - The wrappers keep the handler's arguments and types, so they work with `registerTool`, `tool()` or low-level handlers. No runtime dependency on the SDK.
 
 ## Key rotation
@@ -37,7 +37,7 @@ verifyLicense(t, [newKey, oldKey]);                     // historical keys
 verifyLicense(t, { k2026: newKey, legacy: oldKey });    // keys indexed by kid
 ```
 
-Tokens without `kid` (every token issued by KeyForge v1.0) are checked against all the keys. With a `{ kid: hex }` map, a token with a signed `kid` is checked only against that key (`ERR_UNKNOWN_KID` if absent); strings and arrays have no names, so every key is tried. `KEYFORGE_PUBLIC_KEYS` accepts the gateway's published keyring (`k2=hex,legacy-1=hex`) and mixed lists (`oldhex,k2=newhex`). To contain a leaked key, remove it from the ring: a retired key keeps verifying the tokens it signed. `result.keyId` tells you which key verified the token.
+Tokens without `kid` (every token issued by KeyFlint v1.0) are checked against all the keys. With a `{ kid: hex }` map, a token with a signed `kid` is checked only against that key (`ERR_UNKNOWN_KID` if absent); strings and arrays have no names, so every key is tried. `KEYFLINT_PUBLIC_KEYS` accepts the gateway's published keyring (`k2=hex,legacy-1=hex`) and mixed lists (`oldhex,k2=newhex`). To contain a leaked key, remove it from the ring: a retired key keeps verifying the tokens it signed. `result.keyId` tells you which key verified the token.
 
 When verifying many tokens, use `createVerifier(keys, defaults)`, which imports each key only once.
 

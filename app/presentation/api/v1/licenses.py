@@ -34,7 +34,7 @@ def get_public_key(
     signer = license_service._signer
     pub_hex = signer.get_public_key_hex() if hasattr(signer, "get_public_key_hex") else ""
     keys = signer.public_keys() if hasattr(signer, "public_keys") else []
-    # KEYFORGE_PUBLIC_KEYS-compatible string: all "kid=hex" (kid-less keys labelled "legacy-N")
+    # KEYFLINT_PUBLIC_KEYS-compatible string: all "kid=hex" (kid-less keys labelled "legacy-N")
     # or all bare hex when no key has a kid. SDKs try every key for tokens without kid.
     if any(k["kid"] for k in keys):
         ring_env = ",".join(f"{k['kid'] or f'legacy-{i}'}={k['public_key_hex']}" for i, k in enumerate(keys))

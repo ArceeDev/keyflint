@@ -17,7 +17,7 @@ import unittest
 import uuid
 
 from tests.conftest import (
-    BaseKeyForgeTestCase,
+    BaseKeyFlintTestCase,
     TEST_ED25519_PUBLIC_KEY_HEX,
     TEST_LEMONSQUEEZY_WEBHOOK_SECRET,
     TEST_STRIPE_WEBHOOK_SECRET,
@@ -28,7 +28,7 @@ from tests.conftest import (
 )
 
 
-class TestWebhookIngestion(BaseKeyForgeTestCase):
+class TestWebhookIngestion(BaseKeyFlintTestCase):
     """E2E Verification for FEAT-WH-01: Multi-Provider Webhook Ingestion."""
 
     def test_feat4_checkout_completed_provisions_pro_account(self):

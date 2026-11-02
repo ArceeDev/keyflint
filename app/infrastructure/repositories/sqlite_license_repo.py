@@ -1,4 +1,4 @@
-"""KeyForge SQLite License Repository.
+"""KeyFlint SQLite License Repository.
 
 File: app/infrastructure/repositories/sqlite_license_repo.py
 """

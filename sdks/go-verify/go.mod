@@ -1,3 +1,3 @@
-module github.com/ArceeDev/keyforge/sdks/go-verify
+module github.com/ArceeDev/keyflint/sdks/go-verify
 
 go 1.20

@@ -5,9 +5,9 @@ Estado verificado el 2026-11-02. Mientras falte cualquier punto marcado ❌, **u
 | # | Punto | Estado |
 |---|-------|--------|
 | 1 | 4 Payment Links live en `docs/` y consola (`/test_` eliminado) | ✅ (guardado por `tests/tier2_boundaries/test_payment_links.py`) |
-| 2 | Dominio `arceedev.com` registrado y `licenses.arceedev.com` apuntando a la gateway | ❌ NXDOMAIN |
-| 3 | Gateway desplegada (Fly `cdg` + R2/Litestream) con `KEYFORGE_ENV=production` | ❌ |
-| 4 | Webhook **live** creado → `https://licenses.arceedev.com/api/v1/webhooks/stripe` con `checkout.session.completed`, `invoice.payment_succeeded`, `customer.subscription.deleted` | ❌ (el actual `we_1UWv5N…` es de test) |
+| 2 | Dominio `keyflint.dev` (comprado 2026-11-02) y `licenses.keyflint.dev` apuntando a la gateway | ⏳ DNS pendiente |
+| 3 | Gateway desplegada (Fly `cdg` + R2/Litestream) con `KEYFLINT_ENV=production` | ❌ |
+| 4 | Webhook **live** creado → `https://licenses.keyflint.dev/api/v1/webhooks/stripe` con `checkout.session.completed`, `invoice.payment_succeeded`, `customer.subscription.deleted` | ❌ (el actual `we_1UWv5N…` es de test) |
 | 5 | `STRIPE_WEBHOOK_SECRET` = `whsec_` **live** en la gateway (`fly secrets set`) | ❌ |
 | 6 | Cada Payment Link live tiene `metadata.tier` = `indie` / `agency` / `pro` / `studio` | ⚠️ sin verificar (ver abajo) |
 | 7 | Email transaccional (Resend/SMTP) con dominio verificado | ❌ depende de 2 |

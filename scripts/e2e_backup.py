@@ -10,7 +10,7 @@
 Replica: a local directory by default (no deps). Pass --s3-endpoint/--bucket to test an
 S3-compatible store (R2, MinIO, moto) with LITESTREAM_ACCESS_KEY_ID/SECRET in your env.
 
-Usage: python scripts/e2e_backup.py [--image keyforge:e2e] [--s3-endpoint URL --bucket NAME]
+Usage: python scripts/e2e_backup.py [--image keyflint:e2e] [--s3-endpoint URL --bucket NAME]
 """
 
 from __future__ import annotations
@@ -93,7 +93,7 @@ class Runner:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--image", default="keyforge:e2e")
+    ap.add_argument("--image", default="keyflint:e2e")
     ap.add_argument("--s3-endpoint")
     ap.add_argument("--bucket")
     args = ap.parse_args()
@@ -103,7 +103,7 @@ def main() -> None:
     backup_dir.mkdir(mode=0o777)
     os.chmod(backup_dir, 0o777)  # container user (uid 999) writes here in file mode
     if args.s3_endpoint:
-        backup_env = {"LITESTREAM_BUCKET": args.bucket or "keyforge-e2e",
+        backup_env = {"LITESTREAM_BUCKET": args.bucket or "keyflint-e2e",
                       "LITESTREAM_ENDPOINT": args.s3_endpoint,
                       "LITESTREAM_PATH": f"e2e-{int(time.time())}",
                       "LITESTREAM_REGION": os.environ.get("LITESTREAM_REGION", "us-east-1"),

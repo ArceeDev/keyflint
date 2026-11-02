@@ -1,4 +1,4 @@
-# KeyForge v1.0.0 — Guía Operativa Multi-Sesión para Argon y Resumen Paso a Paso
+# KeyFlint v1.0.0 — Guía Operativa Multi-Sesión para Argon y Resumen Paso a Paso
 
 > **Versión**: `1.0.0` | **Runtime**: Python 3.11+ (verificado en 3.14.8) | **Arquitectura**: Hexagonal / Clean | **Estado**: `7/7` Gates + `69/69` Tests E2E Aprobados
 
@@ -6,7 +6,7 @@
 
 ## 1. Propuesta de Valor y Nicho Monetizable
 
-**KeyForge** es un gateway autoalojable de **licenciamiento criptográfico asimétrico (Ed25519 RFC 8032)** y **control atómico de cuotas por créditos** diseñado para un nicho de altísimo margen y baja competencia directa: creadores de servidores **MCP (Model Context Protocol)** de pago, agentes CLI locales, plugins de escritorio (DAW, CAD, trading, ciberseguridad) y micro-SaaS verticales de IA.
+**KeyFlint** es un gateway autoalojable de **licenciamiento criptográfico asimétrico (Ed25519 RFC 8032)** y **control atómico de cuotas por créditos** diseñado para un nicho de altísimo margen y baja competencia directa: creadores de servidores **MCP (Model Context Protocol)** de pago, agentes CLI locales, plugins de escritorio (DAW, CAD, trading, ciberseguridad) y micro-SaaS verticales de IA.
 
 - **Ventaja económica**: Cero comisiones porcentuales sobre ingresos (frente al 5%-10% de wrappers SaaS) y coste de infraestructura mínimo (un único binario/proceso FastAPI + SQLite WAL soporta miles de validaciones por segundo en un VPS de $5/mes).
 - **Ventaja técnica**: El cliente puede validar licencias **100% offline sin internet ni librerías C** copiando un único archivo estándar (`app/infrastructure/security/offline_validator.py`) o vía WebCrypto en navegador, y sincronizar cuotas online con protección `402 Payment Required` cuando necesita consumir créditos de API.
@@ -154,13 +154,13 @@ python -c "import secrets; from app.infrastructure.security.ed25519_signer impor
 ## 6. Playbook de Monetización y Marketing de Alto Margen
 
 1. **Posicionamiento de Producto Dual**:
-   - **Venta Directa B2D (Cashflow Inmediato)**: Comercializar KeyForge como plantilla/gateway autoalojable ("Self-Hosted Licensing & Credit Gateway") en LemonSqueezy / Gumroad: licencia Indie a **$149** y licencia Agency/Unlimited a **$349** (un solo pago frente a pagar comisiones perpetuas a terceros).
-   - **Infraestructura Propia Multi-Producto**: Usar la misma instancia de KeyForge como motor de cobro para lanzar múltiples micro-herramientas propias (servidores MCP especializados, CLIs de auditoría de código, scrapers estructurados o agentes locales) cobrando suscripciones de **$29-$89/mes**.
+   - **Venta Directa B2D (Cashflow Inmediato)**: Comercializar KeyFlint como plantilla/gateway autoalojable ("Self-Hosted Licensing & Credit Gateway") en LemonSqueezy / Gumroad: licencia Indie a **$149** y licencia Agency/Unlimited a **$349** (un solo pago frente a pagar comisiones perpetuas a terceros).
+   - **Infraestructura Propia Multi-Producto**: Usar la misma instancia de KeyFlint como motor de cobro para lanzar múltiples micro-herramientas propias (servidores MCP especializados, CLIs de auditoría de código, scrapers estructurados o agentes locales) cobrando suscripciones de **$29-$89/mes**.
 2. **Embudo Técnico de Conversión Automática (Product-Led Growth)**:
    - Entregar instantáneamente una clave `LIC-COMMUNITY-...` con 25 créditos gratuitos al instalar la CLI o servidor MCP.
    - Al agotar el saldo, el gateway responde `HTTP 402 QUOTA_EXHAUSTED`: el cliente CLI muestra directamente el enlace de `/api/v1/billing/checkout` para pasar a `Pro` ($29/mes) sin fricción manual; el webhook re-firma y recarga los 500 créditos en milisegundos.
 3. **Canales de Distribución con CAC Cero**:
-   - Publicar `offline_validator.py` como paquete ultraligero open-source (imán técnico en GitHub, PyPI, Hacker News *Show HN* y directorios de servidores MCP) enlazando al gateway completo KeyForge para emisión, webhooks y control de cuotas.
+   - Publicar `offline_validator.py` como paquete ultraligero open-source (imán técnico en GitHub, PyPI, Hacker News *Show HN* y directorios de servidores MCP) enlazando al gateway completo KeyFlint para emisión, webhooks y control de cuotas.
 
 ---
 
@@ -179,6 +179,6 @@ python -c "import secrets; from app.infrastructure.security.ed25519_signer impor
 - **Git**: Repositorio local en rama `main` limpio (sin `push` remoto pendiente de configurar credenciales del repositorio destino).
 
 ### Próximos Módulos Opcionales para Futuras Sesiones con Argon
-- **Sesión A — SDKs Cliente Multi-Lenguaje**: Portar `offline_validator.py` a paquetes ligeros en TypeScript (`@keyforge/verify` usando WebCrypto) y Go/Rust para binarios nativos.
+- **Sesión A — SDKs Cliente Multi-Lenguaje**: Portar `offline_validator.py` a paquetes ligeros en TypeScript (`@keyflint/verify` usando WebCrypto) y Go/Rust para binarios nativos.
 - **Sesión B — Panel Admin Multi-Producto**: Añadir tabla `products` y vista protegida por `X-Admin-Key` con métricas MRR, retención y revocaciones por lote.
 - **Sesión C — Adaptador Opcional PostgreSQL**: Implementar `PostgresLicenseRepo` / `PostgresQuotaRepo` sobre los puertos `app/domain/ports/` para despliegues multi-réplica horizontal.

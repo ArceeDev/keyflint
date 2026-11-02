@@ -14,13 +14,13 @@ import json
 import time
 import unittest
 from tests.conftest import (
-    BaseKeyForgeTestCase,
+    BaseKeyFlintTestCase,
     generate_stripe_signature,
     TEST_STRIPE_WEBHOOK_SECRET,
 )
 
 
-class TestWebhookBoundaries(BaseKeyForgeTestCase):
+class TestWebhookBoundaries(BaseKeyFlintTestCase):
     """Boundary verification for webhook ingestion, signatures, and replay defense."""
 
     def test_bound4_webhook_missing_signature_header_returns_401(self):

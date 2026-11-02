@@ -1,19 +1,19 @@
-# Política de Privacidad — KeyForge
+# Política de Privacidad — KeyFlint
 
 > **BORRADOR.** Redactado por una IA como punto de partida; debe revisarlo un profesional de protección de datos en España antes de publicarlo. Huecos: **[[HUECO: …]]**; datos de terceros no verificados: **[[VERIFICAR: …]]**.
-> Esta política cubre los datos que KeyForge trata **como responsable** (web, cuenta, cobro, soporte). Los datos que los clientes de KeyForge Managed alojan en su instancia (sus propios usuarios finales) se rigen por el [Acuerdo de Encargo del Tratamiento](DPA_BORRADOR.md), donde KeyForge es encargado.
+> Esta política cubre los datos que KeyFlint trata **como responsable** (web, cuenta, cobro, soporte). Los datos que los clientes de KeyFlint Managed alojan en su instancia (sus propios usuarios finales) se rigen por el [Acuerdo de Encargo del Tratamiento](DPA_BORRADOR.md), donde KeyFlint es encargado.
 
 **Última actualización:** [[HUECO: fecha]]
 
 ## 1. Responsable
 [[HUECO: nombre completo o razón social, NIF, domicilio en España. El titular aún no está dado de alta como autónomo: hay que resolverlo con el gestor antes de publicar. Esta misma identificación es obligatoria en el Aviso Legal (art. 10 Ley 34/2002, LSSI).]]
-Email de privacidad: [[HUECO: privacy@arceedev.com]]
+Email de privacidad: [[HUECO: privacy@keyflint.dev]]
 No hemos designado Delegado de Protección de Datos porque no estamos obligados (art. 37 RGPD; art. 34 LOPDGDD). [[VERIFICAR con el profesional]]
 
 ## 2. Qué datos tratamos, para qué y con qué base
 | Situación | Datos | Finalidad | Base jurídica (RGPD) | Plazo de conservación |
 |---|---|---|---|---|
-| Visitas a la web (arceedev.github.io/keyforge) | IP y datos técnicos que registra el alojamiento | Servir la web y su seguridad | Interés legítimo, art. 6.1.f | Según GitHub Pages [[VERIFICAR]] |
+| Visitas a la web (keyflint.dev) | IP y datos técnicos que registra el alojamiento | Servir la web y su seguridad | Interés legítimo, art. 6.1.f | Según GitHub Pages [[VERIFICAR]] |
 | Compra (self-hosted o Managed) | Email, nombre, país, empresa/VAT si se facilita; datos de pago | Cobrar y entregar la licencia | Contrato, art. 6.1.b | Ver nota fiscal abajo |
 | Cuenta Managed | Email de contacto, nombre, empresa, dominio, slug de la instancia, claves públicas | Prestar y administrar el servicio | Contrato, art. 6.1.b | Mientras dure el contrato + 7 días de gracia; después, ver §6 |
 | Emails transaccionales | Email, contenido del mensaje (licencia, avisos) | Entregar licencias y avisos del servicio | Contrato, art. 6.1.b | [[VERIFICAR retención de logs en Resend]] |
@@ -48,7 +48,7 @@ Algunos proveedores son empresas de EE. UU. Cuando haya transferencia fuera del 
 Puedes ejercer acceso, rectificación, supresión, oposición, limitación del tratamiento y portabilidad, y retirar tu consentimiento en cualquier momento, escribiendo a [[email de privacidad]] con una forma razonable de identificarte. Respondemos en un mes (ampliable dos meses en casos complejos, art. 12.3 RGPD).
 Si no estás conforme, puedes reclamar ante la **Agencia Española de Protección de Datos** (www.aepd.es) o la autoridad de tu país en la UE.
 
-**Si eres usuario final de un software que usa KeyForge Managed:** el responsable de tus datos es la empresa que te vendió ese software, no KeyForge. Dirígete a ella; si nos escribes a nosotros, le reenviaremos tu solicitud.
+**Si eres usuario final de un software que usa KeyFlint Managed:** el responsable de tus datos es la empresa que te vendió ese software, no KeyFlint. Dirígete a ella; si nos escribes a nosotros, le reenviaremos tu solicitud.
 
 ## 6. Fin del servicio Managed
 Al cancelar, tienes 7 días para exportar o migrar. Después eliminamos tu instancia y su volumen (≤ 7 días) y tus copias de seguridad (≤ 30 días). Conservamos solo lo necesario para obligaciones legales (facturación) y, si así se decide, los secretos cifrados de la instancia durante [[HUECO: plazo]] para permitir reactivarla.

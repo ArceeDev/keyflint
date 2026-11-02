@@ -22,10 +22,10 @@ from click.testing import CliRunner
 
 from app.cli import cli
 from app.config import get_settings
-from tests.conftest import BaseKeyForgeTestCase
+from tests.conftest import BaseKeyFlintTestCase
 
 
-class TestSimulationAndCheckout(BaseKeyForgeTestCase):
+class TestSimulationAndCheckout(BaseKeyFlintTestCase):
     """E2E Verification for FEAT-SIM-01 & FEAT-CLI-01."""
 
     def test_feat5_create_checkout_session_returns_redirect_url(self):

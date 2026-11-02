@@ -3,15 +3,15 @@ requires = ["setuptools>=77.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "keyforge-verify"
+name = "keyflint-verify"
 version = "1.1.0"
-description = "Zero-dependency offline verifier and MCP tool gating for KeyForge Ed25519 license tokens"
+description = "Zero-dependency offline verifier and MCP tool gating for KeyFlint Ed25519 license tokens"
 readme = "README.md"
 requires-python = ">=3.9"
 license = "MIT"
 license-files = ["LICENSE"]
 authors = [{ name = "ArceeDev" }]
-keywords = ["license", "licensing", "ed25519", "offline", "keyforge", "mcp"]
+keywords = ["license", "licensing", "ed25519", "offline", "keyflint", "mcp"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Development Status :: 5 - Production/Stable",
@@ -28,12 +28,12 @@ mcp = ["mcp>=1.2"]
 test = ["pytest>=8", "cryptography>=43.0.0", "mcp>=1.2"]
 
 [project.urls]
-Homepage = "https://arceedev.github.io/keyforge/"
-Source = "https://github.com/ArceeDev/keyforge/tree/main/sdks/python-verify"
-Issues = "https://github.com/ArceeDev/keyforge/issues"
+Homepage = "https://keyflint.dev/"
+Source = "https://github.com/ArceeDev/keyflint/tree/main/sdks/python-verify"
+Issues = "https://github.com/ArceeDev/keyflint/issues"
 
 [tool.setuptools.packages.find]
 where = ["src"]
 
 [tool.setuptools.package-data]
-keyforge_verify = ["py.typed"]
+keyflint_verify = ["py.typed"]

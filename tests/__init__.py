@@ -1,1 +1,1 @@
-"""KeyForge E2E Automated Test Suite Package."""
+"""KeyFlint E2E Automated Test Suite Package."""

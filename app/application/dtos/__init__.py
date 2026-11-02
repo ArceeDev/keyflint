@@ -1,4 +1,4 @@
-"""KeyForge Application DTOs Package."""
+"""KeyFlint Application DTOs Package."""
 
 from app.application.dtos.common import (
     ErrorDetails,
