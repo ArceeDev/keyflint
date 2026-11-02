@@ -1,879 +1,883 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="color-scheme" content="light dark">
-    <title>KeyFlint 1.1 · Licencias Ed25519 y cuotas autoalojadas</title>
-    <meta name="description" content="Gateway autoalojado de licencias Ed25519 verificables sin red y medición de créditos para servidores MCP, CLIs y APIs.">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <style>
-        /* ---------- Tokens ---------- */
-        :root {
-            --bg: #F6F5F1;
-            --surface: #FFFFFF;
-            --surface-2: #FBFAF7;
-            --sunken: #F0EEE8;
-            --line: #E3E0D8;
-            --line-strong: #CFCBC0;
-            --ink: #1A1915;
-            --ink-2: #4A4740;
-            --muted: #77736A;
-            --brand: #A63D12;          /* hierro al rojo: solo marca, foco y plan destacado */
-            --brand-soft: #F6E7DE;
-            --action: #1A1915;
-            --action-hover: #33312B;
-            --action-ink: #FFFFFF;
-            --focus: #A63D12;
-            --ok: #1F6B45;   --ok-bg: #E7F2EC;   --ok-line: #B7D8C5;
-            --warn: #8A5A00; --warn-bg: #FBF1DC; --warn-line: #E9CF95;
-            --err: #A42323;  --err-bg: #FBE9E7;  --err-line: #EDBDB7;
-            --code-bg: #FBFAF7;
-            --hl-kw: #8A2E0A; --hl-fn: #1D4E89; --hl-str: #1F6B45; --hl-cm: #8C887E;
-            --shadow: 0 1px 0 rgba(26,25,21,.04), 0 1px 2px rgba(26,25,21,.06);
-            --radius: 6px;
-            --radius-lg: 10px;
-            --font: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-            --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
-            --ease: cubic-bezier(.2, .7, .2, 1);
-            --t-fast: 120ms;
-            --t: 180ms;
-        }
-        @media (prefers-color-scheme: dark) {
-            :root:not([data-theme="light"]) {
-                --bg: #141311; --surface: #1C1B18; --surface-2: #201F1B; --sunken: #181714;
-                --line: #2E2C27; --line-strong: #403D36;
-                --ink: #EDEAE2; --ink-2: #C3BFB4; --muted: #8F8B81;
-                --brand: #E07B4F; --brand-soft: #2E1F17;
-                --action: #EDEAE2; --action-hover: #FFFFFF; --action-ink: #141311;
-                --focus: #E07B4F;
-                --ok: #7CC49B;   --ok-bg: #16231B;   --ok-line: #2A4535;
-                --warn: #E2B65C; --warn-bg: #2A2213; --warn-line: #4D3E1F;
-                --err-line: #552924;
-                --code-bg: #181714;
-                --hl-kw: #E8946B; --hl-fn: #8DB4E2; --hl-str: #8CC7A1; --hl-cm: #7A766C;
-                --shadow: 0 1px 0 rgba(0,0,0,.3);
-            }
-        }
-
-        /* ---------- Base ---------- */
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        html { background: var(--bg); scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
-        body {
-            background: var(--bg); color: var(--ink);
-            font: 400 15px/1.55 var(--font);
-            -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
-        }
-        a { color: inherit; }
-        code, pre, kbd, .mono { font-family: var(--mono); font-feature-settings: "zero" 1; }
-        :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
-        ::selection { background: var(--brand-soft); color: var(--ink); }
-        .container { max-width: 1160px; margin: 0 auto; padding: 0 24px; }
-        @media (max-width: 640px) { .container { padding: 0 16px; } }
-        section { scroll-margin-top: 72px; }
-
-        /* ---------- Header ---------- */
-        header {
-            position: sticky; top: 0; z-index: 20;
-            background: color-mix(in srgb, var(--bg) 88%, transparent);
-            backdrop-filter: saturate(1.4) blur(8px); -webkit-backdrop-filter: saturate(1.4) blur(8px);
-            border-bottom: 1px solid var(--line);
-        }
-        .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 56px; gap: 16px; }
-        .logo { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 15px; text-decoration: none; }
-        .logo-mark { width: 20px; height: 20px; flex: none; }
-        .logo-ver { font: 500 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 3px 5px; }
-        .nav-links { display: flex; gap: 2px; align-items: center; overflow-x: auto; scrollbar-width: none; }
-        .nav-links::-webkit-scrollbar { display: none; }
-        .nav-link {
-            font-size: 13.5px; color: var(--ink-2); text-decoration: none; padding: 6px 10px; border-radius: var(--radius);
-            transition: background-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease); white-space: nowrap;
-        }
-        .nav-link:hover { background: var(--sunken); color: var(--ink); }
-        @media (max-width: 760px) { .nav-link.opt { display: none; } }
-
-        /* ---------- Type ---------- */
-        h1 { font-size: clamp(30px, 4.2vw, 44px); line-height: 1.12; font-weight: 600; letter-spacing: -0.02em; }
-        h2 { font-size: 24px; line-height: 1.25; font-weight: 600; letter-spacing: -0.01em; }
-        .card-title { font-size: 15px; font-weight: 600; line-height: 1.3; }
-        .eyebrow { font: 500 12px/1.4 var(--mono); color: var(--muted); letter-spacing: .02em; }
-        .section-head { margin-bottom: 20px; max-width: 720px; }
-        .section-head p { color: var(--ink-2); margin-top: 6px; }
-        section.block { padding: 56px 0 0; }
-
-        /* ---------- Hero ---------- */
-        .hero { display: grid; grid-template-columns: 1.15fr .85fr; gap: 48px; align-items: center; padding: 64px 0 40px; }
-        .hero h1 { margin: 12px 0 16px; }
-        .hero h1 em { font-style: normal; color: var(--brand); }
-        .hero-lead { color: var(--ink-2); font-size: 16.5px; max-width: 58ch; }
-        .hero-actions { display: flex; gap: 10px; margin-top: 24px; flex-wrap: wrap; }
-        .hero-install { margin-top: 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font: 400 13px/1.4 var(--mono); color: var(--muted); }
-        .hero-install code { white-space: nowrap; }
-        .hero-install code { color: var(--ink-2); background: var(--sunken); border: 1px solid var(--line); padding: 4px 6px; border-radius: 4px; }
-        @media (max-width: 900px) { .hero { grid-template-columns: 1fr; gap: 32px; padding-top: 40px; } }
-
-        .inspector {
-            background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg);
-            box-shadow: var(--shadow); overflow: hidden; font-family: var(--mono); font-size: 12.5px;
-        }
-        .inspector-head {
-            display: flex; justify-content: space-between; align-items: center; gap: 12px;
-            padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--surface-2); color: var(--muted);
-        }
-        .tag {
-            display: inline-flex; align-items: center; gap: 6px; font: 500 11px/1 var(--mono);
-            padding: 4px 7px; border-radius: 999px; border: 1px solid var(--ok-line); background: var(--ok-bg); color: var(--ok);
-            white-space: nowrap;
-        }
-        .tag::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-        .inspector-row { display: grid; grid-template-columns: 118px 1fr; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
-        .inspector-row:last-child { border-bottom: 0; }
-        .inspector-row dt { color: var(--muted); }
-        .inspector-row dd { color: var(--ink); word-break: break-all; }
-        #heroPreviewToken { cursor: pointer; text-decoration: underline dotted var(--line-strong); text-underline-offset: 3px; }
-        #heroPreviewToken:hover { color: var(--brand); }
-
-        /* ---------- Spec strip ---------- */
-        .stat-grid {
-            display: grid; grid-template-columns: repeat(4, 1fr);
-            border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); overflow: hidden;
-        }
-        .stat-box { padding: 16px 18px; border-right: 1px solid var(--line); }
-        .stat-box:last-child { border-right: 0; }
-        .stat-label { font-size: 12.5px; color: var(--muted); }
-        .stat-value { font: 500 15px/1.4 var(--mono); margin-top: 4px; }
-        @media (max-width: 760px) {
-            .stat-grid { grid-template-columns: 1fr 1fr; }
-            .stat-box:nth-child(2) { border-right: 0; }
-            .stat-box:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
-        }
-
-        /* ---------- Cards / grid ---------- */
-        .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; align-items: start; }
-        .col-12 { grid-column: span 12; } .col-6 { grid-column: span 6; } .col-3 { grid-column: span 3; }
-        @media (max-width: 960px) { .col-6, .col-3 { grid-column: span 12; } }
-        @media (min-width: 641px) and (max-width: 960px) { .col-3 { grid-column: span 6; } }
-        .card {
-            background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg);
-            padding: 20px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 14px; min-width: 0;
-            transition: border-color var(--t) var(--ease), box-shadow var(--t) var(--ease);
-        }
-        .card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
-        .card-sub { font-size: 13px; color: var(--muted); margin-top: 3px; }
-        .card-step { font: 500 11.5px/1 var(--mono); color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 4px 6px; flex: none; }
-        .card.pulse-focus { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
-
-        /* ---------- Forms ---------- */
-        .form-group { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-        @media (max-width: 520px) { .form-row { grid-template-columns: 1fr; } }
-        label { font-size: 13px; font-weight: 500; color: var(--ink-2); }
-        label .opt { font-weight: 400; color: var(--muted); }
-        input, select {
-            width: 100%; height: 36px; padding: 0 10px; font: 400 14px/1 var(--font); color: var(--ink);
-            background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius);
-            transition: border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease);
-            appearance: none; -webkit-appearance: none;
-        }
-        input.mono, #verifyKey, #quotaKey, #verifyHw { font-family: var(--mono); font-size: 13px; }
-        select {
-            padding-right: 30px; cursor: pointer;
-            background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
-            background-position: calc(100% - 15px) 52%, calc(100% - 10px) 52%; background-size: 5px 5px; background-repeat: no-repeat;
-        }
-        input::placeholder { color: var(--muted); opacity: .8; }
-        input:hover, select:hover { border-color: var(--muted); }
-        input:focus, select:focus { outline: none; border-color: var(--focus); box-shadow: 0 0 0 3px var(--brand-soft); }
-        input:disabled, select:disabled { background: var(--sunken); color: var(--muted); cursor: not-allowed; }
-
-        /* ---------- Buttons ---------- */
-        .btn {
-            position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-            height: 36px; padding: 0 14px; font: 500 14px/1 var(--font); text-decoration: none; white-space: nowrap;
-            color: var(--action-ink); background: var(--action); border: 1px solid var(--action); border-radius: var(--radius);
-            cursor: pointer; user-select: none;
-            transition: background-color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
-        }
-        .btn:hover { background: var(--action-hover); border-color: var(--action-hover); }
-        .btn:active { transform: translateY(1px); }
-        .btn-secondary { color: var(--ink); background: var(--surface); border-color: var(--line-strong); }
-        .btn-secondary:hover { background: var(--sunken); border-color: var(--muted); }
-        .btn-danger { color: var(--err); background: var(--surface); border-color: var(--err-line); }
-        .btn-danger:hover { background: var(--err-bg); border-color: var(--err); }
-        .btn-inline { height: 30px; padding: 0 10px; font-size: 13px; }
-        .btn:disabled { cursor: not-allowed; opacity: .45; transform: none; }
-        .btn.is-loading { opacity: 1; color: transparent !important; }
-        .btn.is-loading::after {
-            content: ""; position: absolute; width: 14px; height: 14px; border-radius: 50%;
-            border: 2px solid var(--action-ink); border-right-color: transparent; animation: spin .7s linear infinite;
-        }
-        .btn-secondary.is-loading::after, .btn-danger.is-loading::after { border-color: var(--ink); border-right-color: transparent; }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .action-row { display: flex; gap: 8px; flex-wrap: wrap; }
-        .action-row .spacer { flex: 1; }
-        .card > .btn { align-self: flex-start; }
-
-        /* ---------- Result boxes ---------- */
-        .code-box {
-            position: relative; font: 400 12.5px/1.6 var(--mono); color: var(--ink);
-            background: var(--code-bg); border: 1px solid var(--line); border-left-width: 3px; border-radius: var(--radius);
-            padding: 30px 14px 12px; max-height: 340px; overflow: auto; white-space: pre-wrap; word-break: break-word;
-            animation: reveal var(--t) var(--ease);
-        }
-        .code-box::before {
-            position: absolute; top: 8px; left: 12px; font: 500 10.5px/1 var(--mono); letter-spacing: .06em;
-        }
-        .code-box.state-ok { border-left-color: var(--ok); }
-        .code-box.state-ok::before { content: "OK"; color: var(--ok); }
-        .code-box.state-warn { border-left-color: var(--warn); background: color-mix(in srgb, var(--warn-bg) 45%, var(--code-bg)); }
-        .code-box.state-warn::before { content: "AVISO"; color: var(--warn); }
-        .code-box.state-err { border-left-color: var(--err); background: color-mix(in srgb, var(--err-bg) 45%, var(--code-bg)); }
-        .code-box.state-err::before { content: "ERROR"; color: var(--err); }
-        .code-box.is-idle { border-left-color: var(--line-strong); color: var(--muted); }
-        .code-box.is-idle::before { content: "ESPERANDO"; color: var(--muted); }
-        @keyframes reveal { from { opacity: 0; transform: translateY(-2px); } to { opacity: 1; transform: none; } }
-        .is-hidden { display: none !important; }
-
-        /* ---------- Code showcase ---------- */
-        .showcase-card { padding: 0; gap: 0; overflow: hidden; }
-        .code-tabs-header { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; padding: 20px 20px 0; flex-wrap: wrap; }
-        .tab-btn-group { display: flex; gap: 0; border-bottom: 1px solid var(--line); width: 100%; margin-top: 4px; overflow-x: auto; scrollbar-width: none; }
-        .tab-btn {
-            font: 500 13px/1 var(--font); color: var(--muted); background: none; border: 0; border-bottom: 2px solid transparent;
-            padding: 12px 12px 11px; margin-bottom: -1px; cursor: pointer; white-space: nowrap;
-            transition: color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
-        }
-        .tab-btn:hover { color: var(--ink); }
-        .tab-btn.active { color: var(--ink); border-bottom-color: var(--brand); }
-        .code-snippet-wrap { position: relative; background: var(--code-bg); }
-        .code-snippet-wrap pre { font: 400 13.5px/1.7 var(--mono); padding: 20px; overflow-x: auto; color: var(--ink); tab-size: 4; min-height: 200px; }
-        .btn-copy-code {
-            position: absolute; top: 12px; right: 12px; height: 28px; padding: 0 10px; font: 500 12px/1 var(--font);
-            color: var(--ink-2); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); cursor: pointer;
-            transition: background-color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
-        }
-        .btn-copy-code:hover { background: var(--sunken); border-color: var(--line-strong); }
-        .hl-kw { color: var(--hl-kw); } .hl-fn { color: var(--hl-fn); } .hl-str { color: var(--hl-str); } .hl-cm { color: var(--hl-cm); font-style: italic; }
-
-        /* ---------- Comparison table ---------- */
-        .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); }
-        .comp-table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 640px; }
-        .comp-table th, .comp-table td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--line); vertical-align: top; }
-        .comp-table thead th { font-size: 12.5px; font-weight: 500; color: var(--muted); background: var(--surface-2); }
-        .comp-table tbody tr:last-child td { border-bottom: 0; }
-        .comp-table td:first-child { color: var(--ink-2); font-weight: 500; width: 24%; }
-        .comp-table td { color: var(--ink-2); }
-        .comp-table .kf-col { color: var(--ink); background: color-mix(in srgb, var(--brand-soft) 35%, transparent); }
-        .comp-table thead .kf-col { color: var(--brand); font-weight: 600; }
-
-        /* ---------- Pricing ---------- */
-        .pricing-card { justify-content: space-between; gap: 20px; align-self: stretch; }
-        .pricing-card.featured { border-color: var(--brand); box-shadow: 0 0 0 1px var(--brand); }
-        .tier-name { font-weight: 600; display: flex; align-items: center; gap: 8px; }
-        .tier-flag { font: 500 10.5px/1 var(--mono); color: var(--brand); background: var(--brand-soft); padding: 3px 6px; border-radius: 4px; }
-        .tier-price { font: 500 28px/1.1 var(--mono); margin-top: 10px; letter-spacing: -0.02em; }
-        .tier-price span { font: 400 13px/1 var(--font); color: var(--muted); letter-spacing: 0; }
-        .tier-specs { list-style: none; margin-top: 16px; display: grid; gap: 8px; font-size: 13.5px; color: var(--ink-2); }
-        .tier-specs li { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px dashed var(--line); padding-bottom: 8px; }
-        .tier-specs li:last-child { border-bottom: 0; }
-        .tier-specs b { font: 500 13px/1.4 var(--mono); color: var(--ink); }
-        .pricing-card .btn { width: 100%; }
-        .note { font-size: 13px; color: var(--muted); margin-top: 12px; }
-        .note code { font-size: 12px; }
-        .guarantee-bar {
-            margin-top: 16px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;
-            padding: 16px 20px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface-2);
-        }
-        .guarantee-title { font-weight: 600; font-size: 14px; }
-        .guarantee-desc { font-size: 13.5px; color: var(--ink-2); margin-top: 2px; max-width: 70ch; }
-
-        /* ---------- FAQ ---------- */
-        .faq-list { border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); overflow: hidden; }
-        .faq-item { border-bottom: 1px solid var(--line); }
-        .faq-item:last-child { border-bottom: 0; }
-        .faq-question {
-            width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 16px; text-align: left;
-            padding: 16px 20px; font: 500 14.5px/1.4 var(--font); color: var(--ink); background: none; border: 0; cursor: pointer;
-            transition: background-color var(--t-fast) var(--ease);
-        }
-        .faq-question:hover { background: var(--surface-2); }
-        .faq-question:focus-visible { outline-offset: -2px; border-radius: 0; }
-        .faq-icon { flex: none; width: 10px; height: 10px; position: relative; transition: transform var(--t) var(--ease); }
-        .faq-icon::before, .faq-icon::after { content: ""; position: absolute; background: var(--muted); }
-        .faq-icon::before { left: 0; right: 0; top: 4px; height: 2px; }
-        .faq-icon::after { top: 0; bottom: 0; left: 4px; width: 2px; transition: opacity var(--t) var(--ease); }
-        .faq-item.open .faq-icon { transform: rotate(180deg); }
-        .faq-item.open .faq-icon::after { opacity: 0; }
-        .faq-answer { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--t) var(--ease); }
-        .faq-answer > div { overflow: hidden; padding: 0 20px; color: var(--ink-2); font-size: 14px; max-width: 80ch; }
-        .faq-item.open .faq-answer { grid-template-rows: 1fr; }
-        .faq-item.open .faq-answer > div { padding-bottom: 16px; }
-        .faq-answer code, .note code, .card-sub code {
-            font-size: 12.5px; background: var(--sunken); border: 1px solid var(--line); border-radius: 4px; padding: 1px 4px;
-        }
-
-        /* ---------- Footer / toast ---------- */
-        footer { margin-top: 72px; padding: 24px 0 40px; border-top: 1px solid var(--line); }
-        .footer-inner { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
-        .footer-inner a { color: var(--ink-2); text-decoration: none; }
-        .footer-inner a:hover { color: var(--ink); text-decoration: underline; }
-        .toast {
-            position: fixed; left: 50%; bottom: 24px; z-index: 50; transform: translateX(-50%);
-            font-size: 13.5px; color: var(--action-ink); background: var(--action); padding: 10px 14px; border-radius: var(--radius);
-            box-shadow: 0 6px 24px rgba(0,0,0,.18); transition: opacity var(--t) var(--ease), transform var(--t) var(--ease);
-        }
-        .toast.is-hidden { display: block !important; opacity: 0; transform: translate(-50%, 8px); pointer-events: none; }
-
-        @media (prefers-reduced-motion: reduce) {
-            *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
-            .btn.is-loading::after { animation-duration: 1.2s !important; }
-        }
-    </style>
-</head>
-<body>
-    <header>
-        <div class="container nav-inner">
-            <a class="logo" href="#" aria-label="KeyFlint, inicio">
-                <svg class="logo-mark" viewBox="0 0 20 20" aria-hidden="true">
-                    <rect x="1" y="1" width="18" height="18" rx="4" fill="none" stroke="currentColor" stroke-width="1.6"/>
-                    <circle cx="7.5" cy="10" r="2.6" fill="none" stroke="var(--brand)" stroke-width="1.8"/>
-                    <path d="M10.1 10H15.5M13.5 10v2.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
-                </svg>
-                <span>KeyFlint</span>
-                <span class="logo-ver">1.1.0</span>
-            </a>
-            <nav class="nav-links" aria-label="Secciones">
-                <a href="#showcase-section" class="nav-link">SDKs</a>
-                <a href="#console-section" class="nav-link">Consola</a>
-                <a href="#comparison-section" class="nav-link opt">Comparativa</a>
-                <a href="#pricing-section" class="nav-link opt">Niveles</a>
-                <a href="#portal-section" class="nav-link opt">Portal</a>
-                <a href="#faq-section" class="nav-link opt">FAQ</a>
-                <a href="/docs" class="nav-link">API</a>
-            </nav>
-        </div>
-    </header>
-
-    <main class="container">
-        <section class="hero">
-            <div class="hero-copy">
-                <span class="eyebrow">Gateway autoalojado · Ed25519 (RFC 8032) · SQLite WAL</span>
-                <h1>Licencias firmadas y cuotas de créditos para <em>servidores MCP</em>, CLIs y APIs.</h1>
-                <p class="hero-lead">Emites tokens Ed25519 que el cliente verifica sin red. Cada llamada descuenta créditos de forma atómica e idempotente, y se reembolsa si la herramienta falla. Stripe y LemonSqueezy emiten y revocan licencias por webhook firmado.</p>
-                <div class="hero-actions">
-                    <button type="button" class="btn" id="btnHeroStart">Emitir licencia de prueba</button>
-                    <a href="#pricing-section" class="btn btn-secondary">Comprar licencia ($149)</a>
-                    <a href="https://github.com/ArceeDev/keyflint" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">GitHub</a>
-                </div>
-                <p class="hero-install"><code>pip install keyflint-verify</code><code>npm i keyflint-verify</code></p>
-            </div>
-            <aside class="inspector" aria-label="Anatomía de un token">
-                <div class="inspector-head">
-                    <span>token</span>
-                    <span class="tag" id="heroPreviewStatus">Verificable sin red</span>
-                </div>
-                <dl>
-                    <div class="inspector-row">
-                        <dt>formato</dt>
-                        <dd id="heroPreviewToken">LIC-&lt;TIER&gt;-&lt;payload&gt;.&lt;firma&gt;</dd>
-                    </div>
-                    <div class="inspector-row">
-                        <dt>derechos</dt>
-                        <dd id="heroPreviewEntitlements">3 nodos / 500 créditos</dd>
-                    </div>
-                    <div class="inspector-row">
-                        <dt>firma</dt>
-                        <dd>Ed25519, 64 bytes, kid opcional</dd>
-                    </div>
-                    <div class="inspector-row">
-                        <dt>escritura</dt>
-                        <dd>BEGIN IMMEDIATE</dd>
-                    </div>
-                    <div class="inspector-row">
-                        <dt>idempotencia</dt>
-                        <dd>UNIQUE(license_id, key)</dd>
-                    </div>
-                </dl>
-            </aside>
-        </section>
-
-        <section class="stat-grid" aria-label="Especificaciones">
-            <div class="stat-box">
-                <div class="stat-label">Firma</div>
-                <div class="stat-value">Ed25519</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-label">Verificación local</div>
-                <div class="stat-value">&lt; 1 ms, sin red</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-label">Rotación de claves</div>
-                <div class="stat-value">kid + keyring</div>
-            </div>
-            <div class="stat-box">
-                <div class="stat-label">Interfaces</div>
-                <div class="stat-value">REST · MCP</div>
-            </div>
-        </section>
-
-        <section class="block">
-            <div id="showcase-section" class="card showcase-card">
-                <div class="code-tabs-header">
-                    <div>
-                        <h2 class="card-title">Integración</h2>
-                        <p class="card-sub">Paquete <code>keyflint-verify</code> en PyPI y npm. Licencia MIT.</p>
-                    </div>
-                    <div class="tab-btn-group" role="tablist" aria-label="Ejemplos de código">
-                        <button type="button" class="tab-btn active" role="tab" aria-selected="true" data-tab="python-mcp">Python · MCP</button>
-                        <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="ts-mcp">TypeScript · MCP</button>
-                        <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="python-offline">Python · offline</button>
-                        <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="js-webcrypto">Node / navegador</button>
-                    </div>
-                </div>
-                <div class="code-snippet-wrap">
-                    <button type="button" class="btn-copy-code" id="btnCopySnippet">Copiar</button>
-                    <pre id="codeSnippet" role="tabpanel"><span class="hl-kw">from</span> keyflint_verify.mcp <span class="hl-kw">import</span> metered
-
-<span class="hl-cm"># 2 créditos por llamada; reembolso automático si la tool lanza o devuelve isError</span>
-<span class="hl-fn">@mcp.tool</span>()
-<span class="hl-fn">@metered</span>(credits=2)
-<span class="hl-kw">async def</span> <span class="hl-fn">analizar_codigo</span>(repo_url: str) -&gt; str:
-    <span class="hl-kw">return await</span> run_ai_audit(repo_url)</pre>
-                </div>
-            </div>
-        </section>
-
-        <section id="console-section" class="block">
-            <div class="section-head">
-                <h2>Consola</h2>
-                <p>Opera contra este gateway. Cada panel llama al endpoint real y muestra la respuesta sin procesar.</p>
-            </div>
-
-            <div class="grid">
-                <div class="card col-6" id="cardIssue">
-                    <div class="card-header">
-                        <div>
-                            <h3 class="card-title">Emitir licencia</h3>
-                            <p class="card-sub"><code>POST /api/v1/licenses/issue</code></p>
-                        </div>
-                        <span class="card-step">01</span>
-                    </div>
-                    <div class="form-group">
-                        <label for="issueEmail">Email del cliente</label>
-                        <input type="email" id="issueEmail" value="demo@empresa.com" autocomplete="email" spellcheck="false">
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="issueTier">Nivel</label>
-                            <select id="issueTier">
-                                <option value="community">Community · 25 cr · 1 nodo</option>
-                                <option value="pro" selected>Pro · 500 cr · 3 nodos</option>
-                                <option value="studio">Studio · 5.000 cr · 25 nodos</option>
-                                <option value="lifetime">Lifetime · 10.000 cr · 3 nodos</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="issueAlgo">Firma</label>
-                            <select id="issueAlgo">
-                                <option value="ed25519" selected>Ed25519 · asimétrica</option>
-                                <option value="hmac-sha256">HMAC-SHA256 · simétrica, solo online</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label for="issueDomain">Dominio permitido <span class="opt">· opcional</span></label>
-                        <input type="text" id="issueDomain" class="mono" placeholder="*.empresa.com" spellcheck="false" autocomplete="off">
-                    </div>
-                    <button type="button" class="btn" id="btnIssue">Emitir</button>
-                    <pre class="code-box state-ok is-hidden" id="issueResult" aria-live="polite"></pre>
-                </div>
-
-                <div class="card col-6">
-                    <div class="card-header">
-                        <div>
-                            <h3 class="card-title">Verificar, activar y revocar</h3>
-                            <p class="card-sub">Online contra la API u offline con Web Crypto en este navegador.</p>
-                        </div>
-                        <span class="card-step">02</span>
-                    </div>
-                    <div class="form-group">
-                        <label for="verifyKey">Token</label>
-                        <input type="text" id="verifyKey" placeholder="LIC-PRO-eyJ…" spellcheck="false" autocomplete="off">
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="verifyHw">Hardware ID <span class="opt">· opcional</span></label>
-                            <input type="text" id="verifyHw" placeholder="hw-node-001" spellcheck="false" autocomplete="off">
-                        </div>
-                        <div class="form-group">
-                            <label for="verifyDomain">Dominio <span class="opt">· opcional</span></label>
-                            <input type="text" id="verifyDomain" class="mono" placeholder="app.empresa.com" spellcheck="false" autocomplete="off">
-                        </div>
-                    </div>
-                    <div class="action-row">
-                        <button type="button" class="btn btn-secondary" id="btnVerifyOnline">Verificar online</button>
-                        <button type="button" class="btn btn-secondary" id="btnVerifyOffline">Verificar offline</button>
-                        <button type="button" class="btn" id="btnActivate">Activar nodo</button>
-                        <span class="spacer"></span>
-                        <button type="button" class="btn btn-danger" id="btnRevoke">Revocar</button>
-                    </div>
-                    <pre class="code-box state-ok is-hidden" id="verifyResult" aria-live="polite"></pre>
-                </div>
-
-                <div class="card col-6">
-                    <div class="card-header">
-                        <div>
-                            <h3 class="card-title">Cuota de créditos</h3>
-                            <p class="card-sub">Descuento atómico; cada operación lleva su propia clave de idempotencia.</p>
-                        </div>
-                        <span class="card-step">03</span>
-                    </div>
-                    <div class="form-group">
-                        <label for="quotaKey">Token</label>
-                        <input type="text" id="quotaKey" placeholder="LIC-PRO-eyJ…" spellcheck="false" autocomplete="off">
-                    </div>
-                    <div class="form-group">
-                        <label for="quotaCredits">Créditos</label>
-                        <input type="number" id="quotaCredits" class="mono" value="5" min="1" step="1" inputmode="numeric">
-                    </div>
-                    <div class="action-row">
-                        <button type="button" class="btn btn-secondary" id="btnQuotaBalance">Saldo</button>
-                        <button type="button" class="btn" id="btnQuotaDeduct">Descontar</button>
-                        <button type="button" class="btn btn-secondary" id="btnQuotaReplenish">Recargar</button>
-                    </div>
-                    <pre class="code-box state-ok is-hidden" id="quotaResult" aria-live="polite"></pre>
-                </div>
-
-                <div class="card col-6">
-                    <div class="card-header">
-                        <div>
-                            <h3 class="card-title">Simular webhook de pago</h3>
-                            <p class="card-sub">Firma el evento con el secreto del proveedor y lo procesa como uno real.</p>
-                        </div>
-                        <span class="card-step">04</span>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="simEmail">Email</label>
-                            <input type="email" id="simEmail" value="demo@empresa.com" spellcheck="false">
-                        </div>
-                        <div class="form-group">
-                            <label for="simTier">Nivel</label>
-                            <select id="simTier">
-                                <option value="community">Community</option>
-                                <option value="pro" selected>Pro</option>
-                                <option value="studio">Studio</option>
-                                <option value="lifetime">Lifetime</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="simProvider">Proveedor</label>
-                            <select id="simProvider">
-                                <option value="stripe" selected>Stripe · Stripe-Signature</option>
-                                <option value="lemonsqueezy">LemonSqueezy · X-Signature</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="simEvent">Evento</label>
-                            <select id="simEvent">
-                                <option value="checkout.session.completed">checkout.session.completed · alta</option>
-                                <option value="invoice.payment_succeeded">invoice.payment_succeeded · renovación</option>
-                                <option value="invoice.payment_failed">invoice.payment_failed · gracia</option>
-                                <option value="customer.subscription.deleted">customer.subscription.deleted · baja</option>
-                            </select>
-                        </div>
-                    </div>
-                    <button type="button" class="btn" id="btnSimulate">Enviar webhook</button>
-                    <pre class="code-box state-ok is-hidden" id="simResult" aria-live="polite"></pre>
-                </div>
-
-                <div class="card col-12">
-                    <div class="card-header">
-                        <div>
-                            <h3 class="card-title">Eventos de la licencia</h3>
-                            <p class="card-sub">Activaciones y consumos registrados para el token actual.</p>
-                        </div>
-                        <button type="button" class="btn btn-secondary btn-inline" id="btnTelemetryRefresh">Actualizar</button>
-                    </div>
-                    <pre class="code-box state-ok is-idle" id="telemetryResult" aria-live="polite">Sin token. Emite una licencia o pega una en el panel 02.</pre>
-                </div>
-            </div>
-        </section>
-
-        <section id="comparison-section" class="block">
-            <div class="section-head">
-                <h2>Comparativa</h2>
-                <p>KeyFlint frente a un servicio de licencias en la nube y una implementación propia.</p>
-            </div>
-            <div class="table-wrap">
-                <table class="comp-table">
-                    <thead>
-                        <tr>
-                            <th scope="col"></th>
-                            <th scope="col" class="kf-col">KeyFlint</th>
-                            <th scope="col">SaaS de licencias</th>
-                            <th scope="col">Desarrollo propio</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>Coste</td>
-                            <td class="kf-col">Pago único. Sin cuota mensual ni comisión por venta.</td>
-                            <td>Suscripción mensual, normalmente por volumen de licencias o validaciones.</td>
-                            <td>Horas de ingeniería y mantenimiento propio.</td>
-                        </tr>
-                        <tr>
-                            <td>Datos de clientes</td>
-                            <td class="kf-col">En tu servidor, en un archivo SQLite.</td>
-                            <td>En la infraestructura del proveedor.</td>
-                            <td>En tu servidor.</td>
-                        </tr>
-                        <tr>
-                            <td>Verificación offline</td>
-                            <td class="kf-col">Incluida. Ed25519 con rotación por <code>kid</code>.</td>
-                            <td>Según proveedor y plan.</td>
-                            <td>La implementas y auditas tú.</td>
-                        </tr>
-                        <tr>
-                            <td>Cobro por llamada en MCP</td>
-                            <td class="kf-col"><code>@metered</code> en Python y TypeScript, con reembolso si falla.</td>
-                            <td>Habitualmente fuera del producto.</td>
-                            <td>Lo implementas tú.</td>
-                        </tr>
-                        <tr>
-                            <td>Cliente de verificación</td>
-                            <td class="kf-col">SDK MIT. Web Crypto en JS. 43 vectores de conformidad.</td>
-                            <td>SDK del proveedor.</td>
-                            <td>Sin vectores de prueba compartidos.</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-        <section id="pricing-section" class="block">
-            <div class="section-head">
-                <h2>Niveles y Licencias Oficiales</h2>
-                <p>Elige tu licencia para monetizar tus herramientas CLI y servidores MCP. Pago seguro con Stripe. Precios sin IVA: el impuesto aplicable a tu país se añade en el checkout.</p>
-            </div>
-
-            <div class="grid">
-                <!-- 1. Indie License ($149 One-time) -->
-                <div class="card col-3 pricing-card">
-                    <div>
-                        <div class="tier-name">Indie License</div>
-                        <div class="tier-price">$149 <span>/ pago único + IVA</span></div>
-                        <ul class="tier-specs">
-                            <li>Uso <b>Personal / Ilimitado</b></li>
-                            <li>Nodos / Clientes <b>3</b></li>
-                            <li>Créditos iniciales <b>10.000</b></li>
-                            <li>Verificación <b>Ed25519 offline (&lt;1ms)</b></li>
-                            <li>Actualizaciones <b>v1.x de por vida</b></li>
-                        </ul>
-                    </div>
-                    <a href="https://buy.stripe.com/eVq6oz64kbc7g7abF1awo03" target="_blank" rel="noopener noreferrer" class="btn btn-secondary js-checkout-link" data-tier="indie">Comprar Indie ($149)</a>
-                </div>
-
-                <!-- 2. Agency License ($349 One-time - Featured) -->
-                <div class="card col-3 pricing-card featured">
-                    <div>
-                        <div class="tier-name">Agency License <span class="tier-flag">Recomendado</span></div>
-                        <div class="tier-price">$349 <span>/ pago único + IVA</span></div>
-                        <ul class="tier-specs">
-                            <li>Uso <b>Agencias &amp; Clientes</b></li>
-                            <li>Nodos / Clientes <b>25</b></li>
-                            <li>Créditos iniciales <b>50.000</b></li>
-                            <li>Verificación <b>Ed25519 offline (&lt;1ms)</b></li>
-                            <li>Soporte <b>Prioritario directo</b></li>
-                        </ul>
-                    </div>
-                    <a href="https://buy.stripe.com/dRmeV578ogwr8EI24rawo02" target="_blank" rel="noopener noreferrer" class="btn js-checkout-link" data-tier="agency">Comprar Agency ($349)</a>
-                </div>
-
-                <!-- 3. Pro Cloud ($29/mo Recurring) -->
-                <div class="card col-3 pricing-card">
-                    <div>
-                        <div class="tier-name">Pro Cloud</div>
-                        <div class="tier-price">$29 <span>/ mes + IVA</span></div>
-                        <ul class="tier-specs">
-                            <li>Créditos / ciclo <b>500</b></li>
-                            <li>Nodos activos <b>3</b></li>
-                            <li>Verificación <b>offline + API</b></li>
-                            <li>Webhooks <b>Stripe integrados</b></li>
-                            <li>Facturación <b>Mensual recurrente</b></li>
-                        </ul>
-                    </div>
-                    <a href="https://buy.stripe.com/8x2eV578o7ZV6wAbF1awo01" target="_blank" rel="noopener noreferrer" class="btn btn-secondary js-checkout-link" data-tier="pro">Suscribir Pro ($29/mo)</a>
-                </div>
-
-                <!-- 4. Studio Cloud ($89/mo Recurring) -->
-                <div class="card col-3 pricing-card">
-                    <div>
-                        <div class="tier-name">Studio Cloud</div>
-                        <div class="tier-price">$89 <span>/ mes + IVA</span></div>
-                        <ul class="tier-specs">
-                            <li>Créditos / ciclo <b>5.000</b></li>
-                            <li>Nodos activos <b>25</b></li>
-                            <li>Telemetría &amp; Auditoría <b>Sí</b></li>
-                            <li>Transacciones <b>ACID SQLite</b></li>
-                            <li>Soporte <b>Prioritario 24/7</b></li>
-                        </ul>
-                    </div>
-                    <a href="https://buy.stripe.com/5kQeV52S8gwrbQUdN9awo00" target="_blank" rel="noopener noreferrer" class="btn btn-secondary js-checkout-link" data-tier="studio">Suscribir Studio ($89/mo)</a>
-                </div>
-
-                <!-- Community Banner -->
-                <div class="card col-12" style="background: var(--surface); border: 1px dashed var(--line-strong);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-                        <div>
-                            <strong style="font-size: 14px; color: var(--ink);">¿Buscas la edición Open Source comunitaria?</strong>
-                            <p style="font-size: 13px; color: var(--muted); margin: 3px 0 0;">Acceso libre al repositorio y motor criptográfico básico bajo licencia MIT.</p>
-                        </div>
-                        <a href="https://github.com/ArceeDev/keyflint" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 13px;">Ver en GitHub ($0)</a>
-                    </div>
-                </div>
-
-                <div class="card col-12 is-hidden" id="billingActionCard">
-                    <div class="card-header">
-                        <div>
-                            <h3 class="card-title">Sesión de checkout API</h3>
-                            <p class="card-sub"><code>POST /api/v1/billing/checkout</code> · portal: <code>/api/v1/billing/portal</code></p>
-                        </div>
-                        <button type="button" class="btn btn-secondary btn-inline" id="btnBillingPortal">Abrir portal del cliente</button>
-                    </div>
-                    <pre class="code-box state-ok" id="billingResult" aria-live="polite"></pre>
-                </div>
-            </div>
-
-            <div class="guarantee-bar">
-                <div>
-                    <div class="guarantee-title">Reembolso de 14 días</div>
-                    <div class="guarantee-desc">Si KeyFlint no cumple tus requisitos en tu infraestructura, se devuelve el importe completo de la licencia.</div>
-                </div>
-                <a class="btn btn-secondary btn-inline" href="/docs">Ver la API antes de comprar</a>
-            </div>
-        </section>
-
-        <section id="portal-section" class="block">
-            <div class="section-head">
-                <h2>Portal de Autoservicio de Licencias</h2>
-                <p>Consulta tus tokens Ed25519, saldo de créditos y fragmentos de integración introduciendo tu email de compra o token de licencia.</p>
-            </div>
-
-            <div class="card col-12">
-                <div class="form-row">
-                    <div class="form-group" style="flex: 3;">
-                        <label for="portalQuery">Email del comprador o Token de Licencia</label>
-                        <input type="text" id="portalQuery" placeholder="ejemplo: buyer@acme.ai o LIC-PRO-..." autocomplete="off">
-                    </div>
-                    <div class="form-group" style="flex: 1; align-self: flex-end;">
-                        <button type="button" class="btn" id="btnPortalLookup" style="width: 100%;">Consultar Licencia</button>
-                    </div>
-                </div>
-
-                <div id="portalResults" class="is-hidden" style="margin-top: 20px;">
-                    <div class="card-header" style="padding-bottom: 8px; border-bottom: 1px solid var(--line);">
-                        <div>
-                            <h3 class="card-title" id="portalCustomerEmail" style="color: var(--brand);"></h3>
-                            <p class="card-sub" id="portalCustomerCount"></p>
-                        </div>
-                    </div>
-                    <div id="portalLicensesContainer" style="margin: 16px 0;"></div>
-                    <div class="form-group" style="margin-top: 16px;">
-                        <label>Verificación en Python (Zero Dependencies)</label>
-                        <pre class="code-box state-ok" id="portalPySnippet"></pre>
-                    </div>
-                    <div class="form-group" style="margin-top: 16px;">
-                        <label>Verificación en TypeScript / Node (Web Crypto API)</label>
-                        <pre class="code-box state-ok" id="portalTsSnippet"></pre>
-                    </div>
-                </div>
-                <pre class="code-box is-hidden state-err" id="portalError"></pre>
-            </div>
-        </section>
-
-        <section id="faq-section" class="block faq-section">
-            <div class="section-head">
-                <h2>Preguntas frecuentes</h2>
-            </div>
-
-            <div class="faq-list">
-                <div class="faq-item">
-                    <button type="button" class="faq-question" aria-expanded="false">
-                        <span>¿Se puede validar una licencia sin conexión?</span>
-                        <span class="faq-icon" aria-hidden="true"></span>
-                    </button>
-                    <div class="faq-answer"><div>
-                        Sí, con tokens Ed25519. El cliente embebe la clave pública (o el keyring de <code>/api/v1/licenses/public-key</code>) y verifica firma, caducidad, nodo y dominio en local. Los tokens HMAC-SHA256 solo se validan online, porque el secreto no puede salir del servidor.
-                    </div></div>
-                </div>
-
-                <div class="faq-item">
-                    <button type="button" class="faq-question" aria-expanded="false">
-                        <span>¿Cómo roto la clave de firma sin invalidar licencias emitidas?</span>
-                        <span class="faq-icon" aria-hidden="true"></span>
-                    </button>
-                    <div class="faq-answer"><div>
-                        Define <code>ED25519_KID</code> para la clave nueva y mueve la anterior a <code>ED25519_RETIRED_PUBLIC_KEYS</code>. Los SDKs eligen la clave por <code>kid</code>; los tokens sin <code>kid</code> (v1.0) siguen siendo válidos.
-                    </div></div>
-                </div>
-
-                <div class="faq-item">
-                    <button type="button" class="faq-question" aria-expanded="false">
-                        <span>¿Qué infraestructura necesita el servidor?</span>
-                        <span class="faq-icon" aria-hidden="true"></span>
-                    </button>
-                    <div class="faq-answer"><div>
-                        Un contenedor Docker con un volumen persistente para el archivo SQLite. No requiere Postgres, Redis ni colas externas.
-                    </div></div>
-                </div>
-
-                <div class="faq-item">
-                    <button type="button" class="faq-question" aria-expanded="false">
-                        <span>¿Cómo se cobran créditos en un servidor MCP?</span>
-                        <span class="faq-icon" aria-hidden="true"></span>
-                    </button>
-                    <div class="faq-answer"><div>
-                        Decora la tool con <code>@metered(credits=N)</code>. El descuento es atómico en SQLite WAL. Sin saldo, la tool devuelve el error JSON-RPC <code>-32062</code> sin ejecutarse.
-                    </div></div>
-                </div>
-
-                <div class="faq-item">
-                    <button type="button" class="faq-question" aria-expanded="false">
-                        <span>¿Qué pasa si la tool falla después de cobrar?</span>
-                        <span class="faq-icon" aria-hidden="true"></span>
-                    </button>
-                    <div class="faq-answer"><div>
-                        Si lanza una excepción o devuelve <code>isError</code>, el SDK llama a <code>POST /api/v1/quota/refund</code> con la misma clave de idempotencia. El reembolso es idempotente y solo se acepta dentro de <code>QUOTA_REFUND_WINDOW_SECONDS</code> (900 s por defecto).
-                    </div></div>
-                </div>
-
-                <div class="faq-item">
-                    <button type="button" class="faq-question" aria-expanded="false">
-                        <span>¿Quién cobra a mis clientes?</span>
-                        <span class="faq-icon" aria-hidden="true"></span>
-                    </button>
-                    <div class="faq-answer"><div>
-                        Tu cuenta de Stripe o LemonSqueezy. KeyFlint recibe sus webhooks firmados, emite, renueva o revoca la licencia y no cobra comisión por transacción.
-                    </div></div>
-                </div>
-            </div>
-        </section>
-
-        <footer>
-            <div class="footer-inner">
-                <div>KeyFlint 1.1.0 · Servidor BSL 1.1 · SDKs MIT</div>
-                <div><a href="/docs">API</a> · FastAPI · SQLite WAL · Ed25519</div>
-            </div>
-        </footer>
-    </main>
-
-    <div id="toast" class="toast is-hidden" role="status" aria-live="polite"></div>
-
-    <script src="./app.js"></script>
-</body>
-</html>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="color-scheme" content="light dark">
+    <title>KeyFlint 1.1 · Licencias Ed25519 y cuotas autoalojadas</title>
+    <meta name="description" content="Gateway autoalojado de licencias Ed25519 verificables sin red y medición de créditos para servidores MCP, CLIs y APIs.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        /* ---------- Tokens ---------- */
+        :root {
+            --bg: #F6F5F1;
+            --surface: #FFFFFF;
+            --surface-2: #FBFAF7;
+            --sunken: #F0EEE8;
+            --line: #E3E0D8;
+            --line-strong: #CFCBC0;
+            --ink: #1A1915;
+            --ink-2: #4A4740;
+            --muted: #77736A;
+            --brand: #A63D12;          /* hierro al rojo: solo marca, foco y plan destacado */
+            --brand-soft: #F6E7DE;
+            --action: #1A1915;
+            --action-hover: #33312B;
+            --action-ink: #FFFFFF;
+            --focus: #A63D12;
+            --ok: #1F6B45;   --ok-bg: #E7F2EC;   --ok-line: #B7D8C5;
+            --warn: #8A5A00; --warn-bg: #FBF1DC; --warn-line: #E9CF95;
+            --err: #A42323;  --err-bg: #FBE9E7;  --err-line: #EDBDB7;
+            --code-bg: #FBFAF7;
+            --hl-kw: #8A2E0A; --hl-fn: #1D4E89; --hl-str: #1F6B45; --hl-cm: #8C887E;
+            --shadow: 0 1px 0 rgba(26,25,21,.04), 0 1px 2px rgba(26,25,21,.06);
+            --radius: 6px;
+            --radius-lg: 10px;
+            --font: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+            --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+            --ease: cubic-bezier(.2, .7, .2, 1);
+            --t-fast: 120ms;
+            --t: 180ms;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root:not([data-theme="light"]) {
+                --bg: #141311; --surface: #1C1B18; --surface-2: #201F1B; --sunken: #181714;
+                --line: #2E2C27; --line-strong: #403D36;
+                --ink: #EDEAE2; --ink-2: #C3BFB4; --muted: #8F8B81;
+                --brand: #E07B4F; --brand-soft: #2E1F17;
+                --action: #EDEAE2; --action-hover: #FFFFFF; --action-ink: #141311;
+                --focus: #E07B4F;
+                --ok: #7CC49B;   --ok-bg: #16231B;   --ok-line: #2A4535;
+                --warn: #E2B65C; --warn-bg: #2A2213; --warn-line: #4D3E1F;
+                --err-line: #552924;
+                --code-bg: #181714;
+                --hl-kw: #E8946B; --hl-fn: #8DB4E2; --hl-str: #8CC7A1; --hl-cm: #7A766C;
+                --shadow: 0 1px 0 rgba(0,0,0,.3);
+            }
+        }
+
+        /* ---------- Base ---------- */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { background: var(--bg); scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+        body {
+            background: var(--bg); color: var(--ink);
+            font: 400 15px/1.55 var(--font);
+            -webkit-font-smoothing: antialiased; text-rendering: optimizeLegibility;
+        }
+        a { color: inherit; }
+        code, pre, kbd, .mono { font-family: var(--mono); font-feature-settings: "zero" 1; }
+        :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+        ::selection { background: var(--brand-soft); color: var(--ink); }
+        .container { max-width: 1160px; margin: 0 auto; padding: 0 24px; }
+        @media (max-width: 640px) { .container { padding: 0 16px; } }
+        section { scroll-margin-top: 72px; }
+
+        /* ---------- Header ---------- */
+        header {
+            position: sticky; top: 0; z-index: 20;
+            background: color-mix(in srgb, var(--bg) 88%, transparent);
+            backdrop-filter: saturate(1.4) blur(8px); -webkit-backdrop-filter: saturate(1.4) blur(8px);
+            border-bottom: 1px solid var(--line);
+        }
+        .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 56px; gap: 16px; }
+        .logo { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 15px; text-decoration: none; }
+        .logo-mark { width: 20px; height: 20px; flex: none; }
+        .logo-ver { font: 500 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 3px 5px; }
+        .nav-links { display: flex; gap: 2px; align-items: center; overflow-x: auto; scrollbar-width: none; }
+        .nav-links::-webkit-scrollbar { display: none; }
+        .nav-link {
+            font-size: 13.5px; color: var(--ink-2); text-decoration: none; padding: 6px 10px; border-radius: var(--radius);
+            transition: background-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease); white-space: nowrap;
+        }
+        .nav-link:hover { background: var(--sunken); color: var(--ink); }
+        @media (max-width: 760px) { .nav-link.opt { display: none; } }
+
+        /* ---------- Type ---------- */
+        h1 { font-size: clamp(30px, 4.2vw, 44px); line-height: 1.12; font-weight: 600; letter-spacing: -0.02em; }
+        h2 { font-size: 24px; line-height: 1.25; font-weight: 600; letter-spacing: -0.01em; }
+        .card-title { font-size: 15px; font-weight: 600; line-height: 1.3; }
+        .eyebrow { font: 500 12px/1.4 var(--mono); color: var(--muted); letter-spacing: .02em; }
+        .section-head { margin-bottom: 20px; max-width: 720px; }
+        .section-head p { color: var(--ink-2); margin-top: 6px; }
+        section.block { padding: 56px 0 0; }
+
+        /* ---------- Hero ---------- */
+        .hero { display: grid; grid-template-columns: 1.15fr .85fr; gap: 48px; align-items: center; padding: 64px 0 40px; }
+        .hero h1 { margin: 12px 0 16px; }
+        .hero h1 em { font-style: normal; color: var(--brand); }
+        .hero-lead { color: var(--ink-2); font-size: 16.5px; max-width: 58ch; }
+        .hero-actions { display: flex; gap: 10px; margin-top: 24px; flex-wrap: wrap; }
+        .hero-install { margin-top: 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font: 400 13px/1.4 var(--mono); color: var(--muted); }
+        .hero-install code { white-space: nowrap; }
+        .hero-install code { color: var(--ink-2); background: var(--sunken); border: 1px solid var(--line); padding: 4px 6px; border-radius: 4px; }
+        @media (max-width: 900px) { .hero { grid-template-columns: 1fr; gap: 32px; padding-top: 40px; } }
+
+        .inspector {
+            background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg);
+            box-shadow: var(--shadow); overflow: hidden; font-family: var(--mono); font-size: 12.5px;
+        }
+        .inspector-head {
+            display: flex; justify-content: space-between; align-items: center; gap: 12px;
+            padding: 10px 14px; border-bottom: 1px solid var(--line); background: var(--surface-2); color: var(--muted);
+        }
+        .tag {
+            display: inline-flex; align-items: center; gap: 6px; font: 500 11px/1 var(--mono);
+            padding: 4px 7px; border-radius: 999px; border: 1px solid var(--ok-line); background: var(--ok-bg); color: var(--ok);
+            white-space: nowrap;
+        }
+        .tag::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+        .inspector-row { display: grid; grid-template-columns: 118px 1fr; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+        .inspector-row:last-child { border-bottom: 0; }
+        .inspector-row dt { color: var(--muted); }
+        .inspector-row dd { color: var(--ink); word-break: break-all; }
+        #heroPreviewToken { cursor: pointer; text-decoration: underline dotted var(--line-strong); text-underline-offset: 3px; }
+        #heroPreviewToken:hover { color: var(--brand); }
+
+        /* ---------- Spec strip ---------- */
+        .stat-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr);
+            border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); overflow: hidden;
+        }
+        .stat-box { padding: 16px 18px; border-right: 1px solid var(--line); }
+        .stat-box:last-child { border-right: 0; }
+        .stat-label { font-size: 12.5px; color: var(--muted); }
+        .stat-value { font: 500 15px/1.4 var(--mono); margin-top: 4px; }
+        @media (max-width: 760px) {
+            .stat-grid { grid-template-columns: 1fr 1fr; }
+            .stat-box:nth-child(2) { border-right: 0; }
+            .stat-box:nth-child(-n+2) { border-bottom: 1px solid var(--line); }
+        }
+
+        /* ---------- Cards / grid ---------- */
+        .grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; align-items: start; }
+        .col-12 { grid-column: span 12; } .col-6 { grid-column: span 6; } .col-3 { grid-column: span 3; }
+        @media (max-width: 960px) { .col-6, .col-3 { grid-column: span 12; } }
+        @media (min-width: 641px) and (max-width: 960px) { .col-3 { grid-column: span 6; } }
+        .card {
+            background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg);
+            padding: 20px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 14px; min-width: 0;
+            transition: border-color var(--t) var(--ease), box-shadow var(--t) var(--ease);
+        }
+        .card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+        .card-sub { font-size: 13px; color: var(--muted); margin-top: 3px; }
+        .card-step { font: 500 11.5px/1 var(--mono); color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 4px 6px; flex: none; }
+        .card.pulse-focus { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-soft); }
+
+        /* ---------- Forms ---------- */
+        .form-group { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        @media (max-width: 520px) { .form-row { grid-template-columns: 1fr; } }
+        label { font-size: 13px; font-weight: 500; color: var(--ink-2); }
+        label .opt { font-weight: 400; color: var(--muted); }
+        input, select {
+            width: 100%; height: 36px; padding: 0 10px; font: 400 14px/1 var(--font); color: var(--ink);
+            background: var(--surface); border: 1px solid var(--line-strong); border-radius: var(--radius);
+            transition: border-color var(--t-fast) var(--ease), box-shadow var(--t-fast) var(--ease);
+            appearance: none; -webkit-appearance: none;
+        }
+        input.mono, #verifyKey, #quotaKey, #verifyHw { font-family: var(--mono); font-size: 13px; }
+        select {
+            padding-right: 30px; cursor: pointer;
+            background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+            background-position: calc(100% - 15px) 52%, calc(100% - 10px) 52%; background-size: 5px 5px; background-repeat: no-repeat;
+        }
+        input::placeholder { color: var(--muted); opacity: .8; }
+        input:hover, select:hover { border-color: var(--muted); }
+        input:focus, select:focus { outline: none; border-color: var(--focus); box-shadow: 0 0 0 3px var(--brand-soft); }
+        input:disabled, select:disabled { background: var(--sunken); color: var(--muted); cursor: not-allowed; }
+
+        /* ---------- Buttons ---------- */
+        .btn {
+            position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+            height: 36px; padding: 0 14px; font: 500 14px/1 var(--font); text-decoration: none; white-space: nowrap;
+            color: var(--action-ink); background: var(--action); border: 1px solid var(--action); border-radius: var(--radius);
+            cursor: pointer; user-select: none;
+            transition: background-color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease), color var(--t-fast) var(--ease), transform var(--t-fast) var(--ease);
+        }
+        .btn:hover { background: var(--action-hover); border-color: var(--action-hover); }
+        .btn:active { transform: translateY(1px); }
+        .btn-secondary { color: var(--ink); background: var(--surface); border-color: var(--line-strong); }
+        .btn-secondary:hover { background: var(--sunken); border-color: var(--muted); }
+        .btn-danger { color: var(--err); background: var(--surface); border-color: var(--err-line); }
+        .btn-danger:hover { background: var(--err-bg); border-color: var(--err); }
+        .btn-inline { height: 30px; padding: 0 10px; font-size: 13px; }
+        .btn:disabled { cursor: not-allowed; opacity: .45; transform: none; }
+        .btn.is-loading { opacity: 1; color: transparent !important; }
+        .btn.is-loading::after {
+            content: ""; position: absolute; width: 14px; height: 14px; border-radius: 50%;
+            border: 2px solid var(--action-ink); border-right-color: transparent; animation: spin .7s linear infinite;
+        }
+        .btn-secondary.is-loading::after, .btn-danger.is-loading::after { border-color: var(--ink); border-right-color: transparent; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .action-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        .action-row .spacer { flex: 1; }
+        .card > .btn { align-self: flex-start; }
+
+        /* ---------- Result boxes ---------- */
+        .code-box {
+            position: relative; font: 400 12.5px/1.6 var(--mono); color: var(--ink);
+            background: var(--code-bg); border: 1px solid var(--line); border-left-width: 3px; border-radius: var(--radius);
+            padding: 30px 14px 12px; max-height: 340px; overflow: auto; white-space: pre-wrap; word-break: break-word;
+            animation: reveal var(--t) var(--ease);
+        }
+        .code-box::before {
+            position: absolute; top: 8px; left: 12px; font: 500 10.5px/1 var(--mono); letter-spacing: .06em;
+        }
+        .code-box.state-ok { border-left-color: var(--ok); }
+        .code-box.state-ok::before { content: "OK"; color: var(--ok); }
+        .code-box.state-warn { border-left-color: var(--warn); background: color-mix(in srgb, var(--warn-bg) 45%, var(--code-bg)); }
+        .code-box.state-warn::before { content: "AVISO"; color: var(--warn); }
+        .code-box.state-err { border-left-color: var(--err); background: color-mix(in srgb, var(--err-bg) 45%, var(--code-bg)); }
+        .code-box.state-err::before { content: "ERROR"; color: var(--err); }
+        .code-box.is-idle { border-left-color: var(--line-strong); color: var(--muted); }
+        .code-box.is-idle::before { content: "ESPERANDO"; color: var(--muted); }
+        @keyframes reveal { from { opacity: 0; transform: translateY(-2px); } to { opacity: 1; transform: none; } }
+        .is-hidden { display: none !important; }
+
+        /* ---------- Code showcase ---------- */
+        .showcase-card { padding: 0; gap: 0; overflow: hidden; }
+        .code-tabs-header { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; padding: 20px 20px 0; flex-wrap: wrap; }
+        .tab-btn-group { display: flex; gap: 0; border-bottom: 1px solid var(--line); width: 100%; margin-top: 4px; overflow-x: auto; scrollbar-width: none; }
+        .tab-btn {
+            font: 500 13px/1 var(--font); color: var(--muted); background: none; border: 0; border-bottom: 2px solid transparent;
+            padding: 12px 12px 11px; margin-bottom: -1px; cursor: pointer; white-space: nowrap;
+            transition: color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+        }
+        .tab-btn:hover { color: var(--ink); }
+        .tab-btn.active { color: var(--ink); border-bottom-color: var(--brand); }
+        .code-snippet-wrap { position: relative; background: var(--code-bg); }
+        .code-snippet-wrap pre { font: 400 13.5px/1.7 var(--mono); padding: 20px; overflow-x: auto; color: var(--ink); tab-size: 4; min-height: 200px; }
+        .btn-copy-code {
+            position: absolute; top: 12px; right: 12px; height: 28px; padding: 0 10px; font: 500 12px/1 var(--font);
+            color: var(--ink-2); background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); cursor: pointer;
+            transition: background-color var(--t-fast) var(--ease), border-color var(--t-fast) var(--ease);
+        }
+        .btn-copy-code:hover { background: var(--sunken); border-color: var(--line-strong); }
+        .hl-kw { color: var(--hl-kw); } .hl-fn { color: var(--hl-fn); } .hl-str { color: var(--hl-str); } .hl-cm { color: var(--hl-cm); font-style: italic; }
+
+        /* ---------- Comparison table ---------- */
+        .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); }
+        .comp-table { width: 100%; border-collapse: collapse; font-size: 14px; min-width: 640px; }
+        .comp-table th, .comp-table td { text-align: left; padding: 12px 16px; border-bottom: 1px solid var(--line); vertical-align: top; }
+        .comp-table thead th { font-size: 12.5px; font-weight: 500; color: var(--muted); background: var(--surface-2); }
+        .comp-table tbody tr:last-child td { border-bottom: 0; }
+        .comp-table td:first-child { color: var(--ink-2); font-weight: 500; width: 24%; }
+        .comp-table td { color: var(--ink-2); }
+        .comp-table .kf-col { color: var(--ink); background: color-mix(in srgb, var(--brand-soft) 35%, transparent); }
+        .comp-table thead .kf-col { color: var(--brand); font-weight: 600; }
+
+        /* ---------- Pricing ---------- */
+        .pricing-card { justify-content: space-between; gap: 20px; align-self: stretch; }
+        .pricing-card.featured { border-color: var(--brand); box-shadow: 0 0 0 1px var(--brand); }
+        .tier-name { font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .tier-flag { font: 500 10.5px/1 var(--mono); color: var(--brand); background: var(--brand-soft); padding: 3px 6px; border-radius: 4px; }
+        .tier-price { font: 500 28px/1.1 var(--mono); margin-top: 10px; letter-spacing: -0.02em; }
+        .tier-price span { font: 400 13px/1 var(--font); color: var(--muted); letter-spacing: 0; }
+        .tier-specs { list-style: none; margin-top: 16px; display: grid; gap: 8px; font-size: 13.5px; color: var(--ink-2); }
+        .tier-specs li { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px dashed var(--line); padding-bottom: 8px; }
+        .tier-specs li:last-child { border-bottom: 0; }
+        .tier-specs b { font: 500 13px/1.4 var(--mono); color: var(--ink); }
+        .pricing-card .btn { width: 100%; }
+        .note { font-size: 13px; color: var(--muted); margin-top: 12px; }
+        .note code { font-size: 12px; }
+        .guarantee-bar {
+            margin-top: 16px; display: flex; justify-content: space-between; align-items: center; gap: 16px; flex-wrap: wrap;
+            padding: 16px 20px; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface-2);
+        }
+        .guarantee-title { font-weight: 600; font-size: 14px; }
+        .guarantee-desc { font-size: 13.5px; color: var(--ink-2); margin-top: 2px; max-width: 70ch; }
+
+        /* ---------- FAQ ---------- */
+        .faq-list { border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); overflow: hidden; }
+        .faq-item { border-bottom: 1px solid var(--line); }
+        .faq-item:last-child { border-bottom: 0; }
+        .faq-question {
+            width: 100%; display: flex; justify-content: space-between; align-items: center; gap: 16px; text-align: left;
+            padding: 16px 20px; font: 500 14.5px/1.4 var(--font); color: var(--ink); background: none; border: 0; cursor: pointer;
+            transition: background-color var(--t-fast) var(--ease);
+        }
+        .faq-question:hover { background: var(--surface-2); }
+        .faq-question:focus-visible { outline-offset: -2px; border-radius: 0; }
+        .faq-icon { flex: none; width: 10px; height: 10px; position: relative; transition: transform var(--t) var(--ease); }
+        .faq-icon::before, .faq-icon::after { content: ""; position: absolute; background: var(--muted); }
+        .faq-icon::before { left: 0; right: 0; top: 4px; height: 2px; }
+        .faq-icon::after { top: 0; bottom: 0; left: 4px; width: 2px; transition: opacity var(--t) var(--ease); }
+        .faq-item.open .faq-icon { transform: rotate(180deg); }
+        .faq-item.open .faq-icon::after { opacity: 0; }
+        .faq-answer { display: grid; grid-template-rows: 0fr; transition: grid-template-rows var(--t) var(--ease); }
+        .faq-answer > div { overflow: hidden; padding: 0 20px; color: var(--ink-2); font-size: 14px; max-width: 80ch; }
+        .faq-item.open .faq-answer { grid-template-rows: 1fr; }
+        .faq-item.open .faq-answer > div { padding-bottom: 16px; }
+        .faq-answer code, .note code, .card-sub code {
+            font-size: 12.5px; background: var(--sunken); border: 1px solid var(--line); border-radius: 4px; padding: 1px 4px;
+        }
+
+        /* ---------- Footer / toast ---------- */
+        footer { margin-top: 72px; padding: 24px 0 40px; border-top: 1px solid var(--line); }
+        .footer-inner { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+        .footer-inner a { color: var(--ink-2); text-decoration: none; }
+        .footer-inner a:hover { color: var(--ink); text-decoration: underline; }
+        .toast {
+            position: fixed; left: 50%; bottom: 24px; z-index: 50; transform: translateX(-50%);
+            font-size: 13.5px; color: var(--action-ink); background: var(--action); padding: 10px 14px; border-radius: var(--radius);
+            box-shadow: 0 6px 24px rgba(0,0,0,.18); transition: opacity var(--t) var(--ease), transform var(--t) var(--ease);
+        }
+        .toast.is-hidden { display: block !important; opacity: 0; transform: translate(-50%, 8px); pointer-events: none; }
+
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+            .btn.is-loading::after { animation-duration: 1.2s !important; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container nav-inner">
+            <a class="logo" href="#" aria-label="KeyFlint, inicio">
+                <svg class="logo-mark" viewBox="0 0 20 20" aria-hidden="true">
+                    <rect x="1" y="1" width="18" height="18" rx="4" fill="none" stroke="currentColor" stroke-width="1.6"/>
+                    <circle cx="7.5" cy="10" r="2.6" fill="none" stroke="var(--brand)" stroke-width="1.8"/>
+                    <path d="M10.1 10H15.5M13.5 10v2.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                </svg>
+                <span>KeyFlint</span>
+                <span class="logo-ver">1.1.0</span>
+            </a>
+            <nav class="nav-links" aria-label="Secciones">
+                <a href="#showcase-section" class="nav-link">SDKs</a>
+                <a href="#console-section" class="nav-link">Consola</a>
+                <a href="#comparison-section" class="nav-link opt">Comparativa</a>
+                <a href="#pricing-section" class="nav-link opt">Niveles</a>
+                <a href="#portal-section" class="nav-link opt">Portal</a>
+                <a href="#faq-section" class="nav-link opt">FAQ</a>
+                <a href="/docs" class="nav-link">API</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="hero">
+            <div class="hero-copy">
+                <span class="eyebrow">Gateway autoalojado · Ed25519 (RFC 8032) · SQLite WAL</span>
+                <h1>Licencias firmadas y cuotas de créditos para <em>servidores MCP</em>, CLIs y APIs.</h1>
+                <p class="hero-lead">Emites tokens Ed25519 que el cliente verifica sin red. Cada llamada descuenta créditos de forma atómica e idempotente, y se reembolsa si la herramienta falla. Stripe y LemonSqueezy emiten y revocan licencias por webhook firmado.</p>
+                <div class="hero-actions">
+                    <button type="button" class="btn" id="btnHeroStart">Emitir licencia de prueba</button>
+                    <a href="#pricing-section" class="btn btn-secondary">Comprar licencia ($149)</a>
+                    <a href="https://github.com/ArceeDev/keyflint" target="_blank" rel="noopener noreferrer" class="btn btn-secondary">GitHub</a>
+                </div>
+                <p class="hero-install"><code>pip install keyflint-verify</code><code>npm i keyflint-verify</code></p>
+            </div>
+            <aside class="inspector" aria-label="Anatomía de un token">
+                <div class="inspector-head">
+                    <span>token</span>
+                    <span class="tag" id="heroPreviewStatus">Verificable sin red</span>
+                </div>
+                <dl>
+                    <div class="inspector-row">
+                        <dt>formato</dt>
+                        <dd id="heroPreviewToken">LIC-&lt;TIER&gt;-&lt;payload&gt;.&lt;firma&gt;</dd>
+                    </div>
+                    <div class="inspector-row">
+                        <dt>derechos</dt>
+                        <dd id="heroPreviewEntitlements">3 nodos / 500 créditos</dd>
+                    </div>
+                    <div class="inspector-row">
+                        <dt>firma</dt>
+                        <dd>Ed25519, 64 bytes, kid opcional</dd>
+                    </div>
+                    <div class="inspector-row">
+                        <dt>escritura</dt>
+                        <dd>BEGIN IMMEDIATE</dd>
+                    </div>
+                    <div class="inspector-row">
+                        <dt>idempotencia</dt>
+                        <dd>UNIQUE(license_id, key)</dd>
+                    </div>
+                </dl>
+            </aside>
+        </section>
+
+        <section class="stat-grid" aria-label="Especificaciones">
+            <div class="stat-box">
+                <div class="stat-label">Firma</div>
+                <div class="stat-value">Ed25519</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Verificación local</div>
+                <div class="stat-value">&lt; 1 ms, sin red</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Rotación de claves</div>
+                <div class="stat-value">kid + keyring</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Interfaces</div>
+                <div class="stat-value">REST · MCP</div>
+            </div>
+        </section>
+
+        <section class="block">
+            <div id="showcase-section" class="card showcase-card">
+                <div class="code-tabs-header">
+                    <div>
+                        <h2 class="card-title">Integración</h2>
+                        <p class="card-sub">Paquete <code>keyflint-verify</code> en PyPI y npm. Licencia MIT.</p>
+                    </div>
+                    <div class="tab-btn-group" role="tablist" aria-label="Ejemplos de código">
+                        <button type="button" class="tab-btn active" role="tab" aria-selected="true" data-tab="python-mcp">Python · MCP</button>
+                        <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="ts-mcp">TypeScript · MCP</button>
+                        <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="python-offline">Python · offline</button>
+                        <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="js-webcrypto">Node / navegador</button>
+                    </div>
+                </div>
+                <div class="code-snippet-wrap">
+                    <button type="button" class="btn-copy-code" id="btnCopySnippet">Copiar</button>
+                    <pre id="codeSnippet" role="tabpanel"><span class="hl-kw">from</span> keyflint_verify.mcp <span class="hl-kw">import</span> metered
+
+<span class="hl-cm"># 2 créditos por llamada; reembolso automático si la tool lanza o devuelve isError</span>
+<span class="hl-fn">@mcp.tool</span>()
+<span class="hl-fn">@metered</span>(credits=2)
+<span class="hl-kw">async def</span> <span class="hl-fn">analizar_codigo</span>(repo_url: str) -&gt; str:
+    <span class="hl-kw">return await</span> run_ai_audit(repo_url)</pre>
+                </div>
+            </div>
+        </section>
+
+        <section id="console-section" class="block">
+            <div class="section-head">
+                <h2>Consola</h2>
+                <p>Opera contra este gateway. Cada panel llama al endpoint real y muestra la respuesta sin procesar.</p>
+            </div>
+
+            <div class="grid">
+                <div class="card col-6" id="cardIssue">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title">Emitir licencia</h3>
+                            <p class="card-sub"><code>POST /api/v1/licenses/issue</code></p>
+                        </div>
+                        <span class="card-step">01</span>
+                    </div>
+                    <div class="form-group">
+                        <label for="issueEmail">Email del cliente</label>
+                        <input type="email" id="issueEmail" value="demo@empresa.com" autocomplete="email" spellcheck="false">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="issueTier">Nivel</label>
+                            <select id="issueTier">
+                                <option value="community">Community · 25 cr · 1 nodo</option>
+                                <option value="indie">Indie · 10.000 cr · 3 nodos</option>
+                                <option value="agency">Agency · 50.000 cr · 25 nodos</option>
+                                <option value="pro" selected>Pro · 500 cr · 3 nodos</option>
+                                <option value="studio">Studio · 5.000 cr · 25 nodos</option>
+                                <option value="lifetime">Lifetime · 10.000 cr · 3 nodos</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="issueAlgo">Firma</label>
+                            <select id="issueAlgo">
+                                <option value="ed25519" selected>Ed25519 · asimétrica</option>
+                                <option value="hmac-sha256">HMAC-SHA256 · simétrica, solo online</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="issueDomain">Dominio permitido <span class="opt">· opcional</span></label>
+                        <input type="text" id="issueDomain" class="mono" placeholder="*.empresa.com" spellcheck="false" autocomplete="off">
+                    </div>
+                    <button type="button" class="btn" id="btnIssue">Emitir</button>
+                    <pre class="code-box state-ok is-hidden" id="issueResult" aria-live="polite"></pre>
+                </div>
+
+                <div class="card col-6">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title">Verificar, activar y revocar</h3>
+                            <p class="card-sub">Online contra la API u offline con Web Crypto en este navegador.</p>
+                        </div>
+                        <span class="card-step">02</span>
+                    </div>
+                    <div class="form-group">
+                        <label for="verifyKey">Token</label>
+                        <input type="text" id="verifyKey" placeholder="LIC-PRO-eyJ…" spellcheck="false" autocomplete="off">
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="verifyHw">Hardware ID <span class="opt">· opcional</span></label>
+                            <input type="text" id="verifyHw" placeholder="hw-node-001" spellcheck="false" autocomplete="off">
+                        </div>
+                        <div class="form-group">
+                            <label for="verifyDomain">Dominio <span class="opt">· opcional</span></label>
+                            <input type="text" id="verifyDomain" class="mono" placeholder="app.empresa.com" spellcheck="false" autocomplete="off">
+                        </div>
+                    </div>
+                    <div class="action-row">
+                        <button type="button" class="btn btn-secondary" id="btnVerifyOnline">Verificar online</button>
+                        <button type="button" class="btn btn-secondary" id="btnVerifyOffline">Verificar offline</button>
+                        <button type="button" class="btn" id="btnActivate">Activar nodo</button>
+                        <span class="spacer"></span>
+                        <button type="button" class="btn btn-danger" id="btnRevoke">Revocar</button>
+                    </div>
+                    <pre class="code-box state-ok is-hidden" id="verifyResult" aria-live="polite"></pre>
+                </div>
+
+                <div class="card col-6">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title">Cuota de créditos</h3>
+                            <p class="card-sub">Descuento atómico; cada operación lleva su propia clave de idempotencia.</p>
+                        </div>
+                        <span class="card-step">03</span>
+                    </div>
+                    <div class="form-group">
+                        <label for="quotaKey">Token</label>
+                        <input type="text" id="quotaKey" placeholder="LIC-PRO-eyJ…" spellcheck="false" autocomplete="off">
+                    </div>
+                    <div class="form-group">
+                        <label for="quotaCredits">Créditos</label>
+                        <input type="number" id="quotaCredits" class="mono" value="5" min="1" step="1" inputmode="numeric">
+                    </div>
+                    <div class="action-row">
+                        <button type="button" class="btn btn-secondary" id="btnQuotaBalance">Saldo</button>
+                        <button type="button" class="btn" id="btnQuotaDeduct">Descontar</button>
+                        <button type="button" class="btn btn-secondary" id="btnQuotaReplenish">Recargar</button>
+                    </div>
+                    <pre class="code-box state-ok is-hidden" id="quotaResult" aria-live="polite"></pre>
+                </div>
+
+                <div class="card col-6">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title">Simular webhook de pago</h3>
+                            <p class="card-sub">Firma el evento con el secreto del proveedor y lo procesa como uno real.</p>
+                        </div>
+                        <span class="card-step">04</span>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="simEmail">Email</label>
+                            <input type="email" id="simEmail" value="demo@empresa.com" spellcheck="false">
+                        </div>
+                        <div class="form-group">
+                            <label for="simTier">Nivel</label>
+                            <select id="simTier">
+                                <option value="community">Community</option>
+                                <option value="indie">Indie</option>
+                                <option value="agency">Agency</option>
+                                <option value="pro" selected>Pro</option>
+                                <option value="studio">Studio</option>
+                                <option value="lifetime">Lifetime</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="simProvider">Proveedor</label>
+                            <select id="simProvider">
+                                <option value="stripe" selected>Stripe · Stripe-Signature</option>
+                                <option value="lemonsqueezy">LemonSqueezy · X-Signature</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="simEvent">Evento</label>
+                            <select id="simEvent">
+                                <option value="checkout.session.completed">checkout.session.completed · alta</option>
+                                <option value="invoice.payment_succeeded">invoice.payment_succeeded · renovación</option>
+                                <option value="invoice.payment_failed">invoice.payment_failed · gracia</option>
+                                <option value="customer.subscription.deleted">customer.subscription.deleted · baja</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button type="button" class="btn" id="btnSimulate">Enviar webhook</button>
+                    <pre class="code-box state-ok is-hidden" id="simResult" aria-live="polite"></pre>
+                </div>
+
+                <div class="card col-12">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title">Eventos de la licencia</h3>
+                            <p class="card-sub">Activaciones y consumos registrados para el token actual.</p>
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-inline" id="btnTelemetryRefresh">Actualizar</button>
+                    </div>
+                    <pre class="code-box state-ok is-idle" id="telemetryResult" aria-live="polite">Sin token. Emite una licencia o pega una en el panel 02.</pre>
+                </div>
+            </div>
+        </section>
+
+        <section id="comparison-section" class="block">
+            <div class="section-head">
+                <h2>Comparativa</h2>
+                <p>KeyFlint frente a un servicio de licencias en la nube y una implementación propia.</p>
+            </div>
+            <div class="table-wrap">
+                <table class="comp-table">
+                    <thead>
+                        <tr>
+                            <th scope="col"></th>
+                            <th scope="col" class="kf-col">KeyFlint</th>
+                            <th scope="col">SaaS de licencias</th>
+                            <th scope="col">Desarrollo propio</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Coste</td>
+                            <td class="kf-col">Pago único. Sin cuota mensual ni comisión por venta.</td>
+                            <td>Suscripción mensual, normalmente por volumen de licencias o validaciones.</td>
+                            <td>Horas de ingeniería y mantenimiento propio.</td>
+                        </tr>
+                        <tr>
+                            <td>Datos de clientes</td>
+                            <td class="kf-col">En tu servidor, en un archivo SQLite.</td>
+                            <td>En la infraestructura del proveedor.</td>
+                            <td>En tu servidor.</td>
+                        </tr>
+                        <tr>
+                            <td>Verificación offline</td>
+                            <td class="kf-col">Incluida. Ed25519 con rotación por <code>kid</code>.</td>
+                            <td>Según proveedor y plan.</td>
+                            <td>La implementas y auditas tú.</td>
+                        </tr>
+                        <tr>
+                            <td>Cobro por llamada en MCP</td>
+                            <td class="kf-col"><code>@metered</code> en Python y TypeScript, con reembolso si falla.</td>
+                            <td>Habitualmente fuera del producto.</td>
+                            <td>Lo implementas tú.</td>
+                        </tr>
+                        <tr>
+                            <td>Cliente de verificación</td>
+                            <td class="kf-col">SDK MIT. Web Crypto en JS. 43 vectores de conformidad.</td>
+                            <td>SDK del proveedor.</td>
+                            <td>Sin vectores de prueba compartidos.</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section id="pricing-section" class="block">
+            <div class="section-head">
+                <h2>Niveles y Licencias Oficiales</h2>
+                <p>Elige tu licencia para monetizar tus herramientas CLI y servidores MCP. Pago seguro con Stripe. Precios sin IVA: el impuesto aplicable a tu país se añade en el checkout.</p>
+            </div>
+
+            <div class="grid">
+                <!-- 1. Indie License ($149 One-time) -->
+                <div class="card col-3 pricing-card">
+                    <div>
+                        <div class="tier-name">Indie License</div>
+                        <div class="tier-price">$149 <span>/ pago único + IVA</span></div>
+                        <ul class="tier-specs">
+                            <li>Uso <b>Personal / Ilimitado</b></li>
+                            <li>Nodos / Clientes <b>3</b></li>
+                            <li>Créditos iniciales <b>10.000</b></li>
+                            <li>Verificación <b>Ed25519 offline (&lt;1ms)</b></li>
+                            <li>Actualizaciones <b>v1.x de por vida</b></li>
+                        </ul>
+                    </div>
+                    <a href="https://buy.stripe.com/eVq6oz64kbc7g7abF1awo03" target="_blank" rel="noopener noreferrer" class="btn btn-secondary js-checkout-link" data-tier="indie">Comprar Indie ($149)</a>
+                </div>
+
+                <!-- 2. Agency License ($349 One-time - Featured) -->
+                <div class="card col-3 pricing-card featured">
+                    <div>
+                        <div class="tier-name">Agency License <span class="tier-flag">Recomendado</span></div>
+                        <div class="tier-price">$349 <span>/ pago único + IVA</span></div>
+                        <ul class="tier-specs">
+                            <li>Uso <b>Agencias &amp; Clientes</b></li>
+                            <li>Nodos / Clientes <b>25</b></li>
+                            <li>Créditos iniciales <b>50.000</b></li>
+                            <li>Verificación <b>Ed25519 offline (&lt;1ms)</b></li>
+                            <li>Soporte <b>Prioritario directo</b></li>
+                        </ul>
+                    </div>
+                    <a href="https://buy.stripe.com/dRmeV578ogwr8EI24rawo02" target="_blank" rel="noopener noreferrer" class="btn js-checkout-link" data-tier="agency">Comprar Agency ($349)</a>
+                </div>
+
+                <!-- 3. Pro Cloud ($29/mo Recurring) -->
+                <div class="card col-3 pricing-card">
+                    <div>
+                        <div class="tier-name">Pro Cloud</div>
+                        <div class="tier-price">$29 <span>/ mes + IVA</span></div>
+                        <ul class="tier-specs">
+                            <li>Créditos / ciclo <b>500</b></li>
+                            <li>Nodos activos <b>3</b></li>
+                            <li>Verificación <b>offline + API</b></li>
+                            <li>Webhooks <b>Stripe integrados</b></li>
+                            <li>Facturación <b>Mensual recurrente</b></li>
+                        </ul>
+                    </div>
+                    <a href="https://buy.stripe.com/8x2eV578o7ZV6wAbF1awo01" target="_blank" rel="noopener noreferrer" class="btn btn-secondary js-checkout-link" data-tier="pro">Suscribir Pro ($29/mo)</a>
+                </div>
+
+                <!-- 4. Studio Cloud ($89/mo Recurring) -->
+                <div class="card col-3 pricing-card">
+                    <div>
+                        <div class="tier-name">Studio Cloud</div>
+                        <div class="tier-price">$89 <span>/ mes + IVA</span></div>
+                        <ul class="tier-specs">
+                            <li>Créditos / ciclo <b>5.000</b></li>
+                            <li>Nodos activos <b>25</b></li>
+                            <li>Telemetría &amp; Auditoría <b>Sí</b></li>
+                            <li>Transacciones <b>ACID SQLite</b></li>
+                            <li>Soporte <b>Prioritario 24/7</b></li>
+                        </ul>
+                    </div>
+                    <a href="https://buy.stripe.com/5kQeV52S8gwrbQUdN9awo00" target="_blank" rel="noopener noreferrer" class="btn btn-secondary js-checkout-link" data-tier="studio">Suscribir Studio ($89/mo)</a>
+                </div>
+
+                <!-- Community Banner -->
+                <div class="card col-12" style="background: var(--surface); border: 1px dashed var(--line-strong);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                        <div>
+                            <strong style="font-size: 14px; color: var(--ink);">¿Buscas la edición Open Source comunitaria?</strong>
+                            <p style="font-size: 13px; color: var(--muted); margin: 3px 0 0;">Acceso libre al repositorio y motor criptográfico básico bajo licencia MIT.</p>
+                        </div>
+                        <a href="https://github.com/ArceeDev/keyflint" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 13px;">Ver en GitHub ($0)</a>
+                    </div>
+                </div>
+
+                <div class="card col-12 is-hidden" id="billingActionCard">
+                    <div class="card-header">
+                        <div>
+                            <h3 class="card-title">Sesión de checkout API</h3>
+                            <p class="card-sub"><code>POST /api/v1/billing/checkout</code> · portal: <code>/api/v1/billing/portal</code></p>
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-inline" id="btnBillingPortal">Abrir portal del cliente</button>
+                    </div>
+                    <pre class="code-box state-ok" id="billingResult" aria-live="polite"></pre>
+                </div>
+            </div>
+
+            <div class="guarantee-bar">
+                <div>
+                    <div class="guarantee-title">Reembolso de 14 días</div>
+                    <div class="guarantee-desc">Si KeyFlint no cumple tus requisitos en tu infraestructura, se devuelve el importe completo de la licencia.</div>
+                </div>
+                <a class="btn btn-secondary btn-inline" href="/docs">Ver la API antes de comprar</a>
+            </div>
+        </section>
+
+        <section id="portal-section" class="block">
+            <div class="section-head">
+                <h2>Portal de Autoservicio de Licencias</h2>
+                <p>Consulta tus tokens Ed25519, saldo de créditos y fragmentos de integración introduciendo tu email de compra o token de licencia.</p>
+            </div>
+
+            <div class="card col-12">
+                <div class="form-row">
+                    <div class="form-group" style="flex: 3;">
+                        <label for="portalQuery">Email del comprador o Token de Licencia</label>
+                        <input type="text" id="portalQuery" placeholder="ejemplo: buyer@acme.ai o LIC-PRO-..." autocomplete="off">
+                    </div>
+                    <div class="form-group" style="flex: 1; align-self: flex-end;">
+                        <button type="button" class="btn" id="btnPortalLookup" style="width: 100%;">Consultar Licencia</button>
+                    </div>
+                </div>
+
+                <div id="portalResults" class="is-hidden" style="margin-top: 20px;">
+                    <div class="card-header" style="padding-bottom: 8px; border-bottom: 1px solid var(--line);">
+                        <div>
+                            <h3 class="card-title" id="portalCustomerEmail" style="color: var(--brand);"></h3>
+                            <p class="card-sub" id="portalCustomerCount"></p>
+                        </div>
+                    </div>
+                    <div id="portalLicensesContainer" style="margin: 16px 0;"></div>
+                    <div class="form-group" style="margin-top: 16px;">
+                        <label>Verificación en Python (Zero Dependencies)</label>
+                        <pre class="code-box state-ok" id="portalPySnippet"></pre>
+                    </div>
+                    <div class="form-group" style="margin-top: 16px;">
+                        <label>Verificación en TypeScript / Node (Web Crypto API)</label>
+                        <pre class="code-box state-ok" id="portalTsSnippet"></pre>
+                    </div>
+                </div>
+                <pre class="code-box is-hidden state-err" id="portalError"></pre>
+            </div>
+        </section>
+
+        <section id="faq-section" class="block faq-section">
+            <div class="section-head">
+                <h2>Preguntas frecuentes</h2>
+            </div>
+
+            <div class="faq-list">
+                <div class="faq-item">
+                    <button type="button" class="faq-question" aria-expanded="false">
+                        <span>¿Se puede validar una licencia sin conexión?</span>
+                        <span class="faq-icon" aria-hidden="true"></span>
+                    </button>
+                    <div class="faq-answer"><div>
+                        Sí, con tokens Ed25519. El cliente embebe la clave pública (o el keyring de <code>/api/v1/licenses/public-key</code>) y verifica firma, caducidad, nodo y dominio en local. Los tokens HMAC-SHA256 solo se validan online, porque el secreto no puede salir del servidor.
+                    </div></div>
+                </div>
+
+                <div class="faq-item">
+                    <button type="button" class="faq-question" aria-expanded="false">
+                        <span>¿Cómo roto la clave de firma sin invalidar licencias emitidas?</span>
+                        <span class="faq-icon" aria-hidden="true"></span>
+                    </button>
+                    <div class="faq-answer"><div>
+                        Define <code>ED25519_KID</code> para la clave nueva y mueve la anterior a <code>ED25519_RETIRED_PUBLIC_KEYS</code>. Los SDKs eligen la clave por <code>kid</code>; los tokens sin <code>kid</code> (v1.0) siguen siendo válidos.
+                    </div></div>
+                </div>
+
+                <div class="faq-item">
+                    <button type="button" class="faq-question" aria-expanded="false">
+                        <span>¿Qué infraestructura necesita el servidor?</span>
+                        <span class="faq-icon" aria-hidden="true"></span>
+                    </button>
+                    <div class="faq-answer"><div>
+                        Un contenedor Docker con un volumen persistente para el archivo SQLite. No requiere Postgres, Redis ni colas externas.
+                    </div></div>
+                </div>
+
+                <div class="faq-item">
+                    <button type="button" class="faq-question" aria-expanded="false">
+                        <span>¿Cómo se cobran créditos en un servidor MCP?</span>
+                        <span class="faq-icon" aria-hidden="true"></span>
+                    </button>
+                    <div class="faq-answer"><div>
+                        Decora la tool con <code>@metered(credits=N)</code>. El descuento es atómico en SQLite WAL. Sin saldo, la tool devuelve el error JSON-RPC <code>-32062</code> sin ejecutarse.
+                    </div></div>
+                </div>
+
+                <div class="faq-item">
+                    <button type="button" class="faq-question" aria-expanded="false">
+                        <span>¿Qué pasa si la tool falla después de cobrar?</span>
+                        <span class="faq-icon" aria-hidden="true"></span>
+                    </button>
+                    <div class="faq-answer"><div>
+                        Si lanza una excepción o devuelve <code>isError</code>, el SDK llama a <code>POST /api/v1/quota/refund</code> con la misma clave de idempotencia. El reembolso es idempotente y solo se acepta dentro de <code>QUOTA_REFUND_WINDOW_SECONDS</code> (900 s por defecto).
+                    </div></div>
+                </div>
+
+                <div class="faq-item">
+                    <button type="button" class="faq-question" aria-expanded="false">
+                        <span>¿Quién cobra a mis clientes?</span>
+                        <span class="faq-icon" aria-hidden="true"></span>
+                    </button>
+                    <div class="faq-answer"><div>
+                        Tu cuenta de Stripe o LemonSqueezy. KeyFlint recibe sus webhooks firmados, emite, renueva o revoca la licencia y no cobra comisión por transacción.
+                    </div></div>
+                </div>
+            </div>
+        </section>
+
+        <footer>
+            <div class="footer-inner">
+                <div>KeyFlint 1.1.0 · Servidor BSL 1.1 · SDKs MIT</div>
+                <div><a href="/docs">API</a> · FastAPI · SQLite WAL · Ed25519</div>
+            </div>
+        </footer>
+    </main>
+
+    <div id="toast" class="toast is-hidden" role="status" aria-live="polite"></div>
+
+    <script src="./app.js"></script>
+</body>
+</html>
