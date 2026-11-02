@@ -33,3 +33,19 @@ second (sync interval 1s).
 
 Real recovery (lost volume): create a fresh volume and deploy; the container restores from R2
 before starting and refuses to start if the restore fails. See the README backup section.
+
+## Retention and alerts
+
+- Retention: `LITESTREAM_RETENTION` (default `720h`): any point in the last 30 days can be restored.
+  Snapshots every 24h. Raise it only if you need older restore points; R2 cost is negligible.
+- Hourly self-check (`BACKUP_CHECK_INTERVAL_SECONDS`, default 3600): the gateway restores the replica
+  to a temp file and checks that `licenses`, `customers` and `webhook_events` are not behind the live
+  DB. Result in `GET /api/v1/health` → `backup.status` (`ok` / `failed` / `disabled`); details in
+  `fly logs` (`BACKUP VERIFICATION FAILED`).
+- Alerting: create a check at healthchecks.io (period 1 hour, grace 2 hours, email notification) and
+  set its ping URL as a secret. You get an email if a check fails or if pings stop (machine down,
+  R2 credentials revoked, replica stale):
+
+```bash
+fly secrets set BACKUP_HEARTBEAT_URL=https://hc-ping.com/<uuid> -a keyflint-gateway
+```

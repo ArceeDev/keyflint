@@ -65,6 +65,10 @@ class Settings(BaseSettings):
     SMTP_USE_TLS: bool = True
     EMAIL_RETRY_INTERVAL_SECONDS: int = 300  # 0 disables the automatic retry loop
 
+    # Backup verification: restore the Litestream replica to a temp file and compare row counts.
+    BACKUP_CHECK_INTERVAL_SECONDS: int = 3600  # 0 disables it
+    BACKUP_HEARTBEAT_URL: Optional[str] = None  # healthchecks.io-style ping URL (+ "/fail" on failure)
+
     BILLING_MODE: str = "mock"
     ENVIRONMENT: str = "development"
     HOST: str = "0.0.0.0"
