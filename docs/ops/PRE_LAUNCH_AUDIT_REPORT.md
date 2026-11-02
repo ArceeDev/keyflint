@@ -56,6 +56,7 @@ Todos los SDKs de verificación criptográfica offline (MIT) están publicados y
   - Notifica en tiempo real sobre errores en webhooks, reembolsos ambiguos o compras anónimas.
 - **PR #22:** `feat(landing): vista previa social (Open Graph + Twitter card)` (Merged & Live en Pages).
   - Etiquetas OG + Twitter card operativas con imagen en [keyflint.dev/og.png](https://keyflint.dev/og.png).
+- **Analítica Web:** Cloudflare Web Analytics integrada y activa en todas las páginas públicas (`index.html`, `privacy.html`, `dpa.html`) sin cookies y con token `3f969046e620462787c3a0fa2515d7e8`.
 
 ---
 
