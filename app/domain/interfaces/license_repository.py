@@ -30,6 +30,10 @@ class ILicenseRepository(Protocol):
         """Lists all licenses belonging to a specific customer."""
         ...
 
+    def find_by_payment_ref(self, ref: str) -> list[License]:
+        """Lists licenses linked to a payment provider reference (pi_, ch_, cus_, sub_...)."""
+        ...
+
     def update(self, license_entity: License) -> None:
         """Updates mutable state of an existing license."""
         ...

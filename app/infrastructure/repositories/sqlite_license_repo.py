@@ -133,6 +133,23 @@ class SqliteLicenseRepo(ILicenseRepository):
 
     get_by_customer_id = list_by_customer_id
 
+    def find_by_payment_ref(self, ref: str) -> list[License]:
+        """Finds licenses whose metadata.payment_refs contains the exact provider reference."""
+        if not ref:
+            return []
+        escaped = ref.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        cur = self._conn.execute(
+            "SELECT * FROM licenses WHERE metadata_json LIKE ? ESCAPE '\\' ORDER BY created_at DESC",
+            (f"%{escaped}%",),
+        )
+        result: list[License] = []
+        for row in cur.fetchall():
+            entity = self._row_to_entity(row)
+            refs = entity.metadata.get("payment_refs", [])
+            if isinstance(refs, list) and ref in refs:
+                result.append(entity)
+        return result
+
     def update(self, license_entity: License) -> None:
         self.save(license_entity)
 

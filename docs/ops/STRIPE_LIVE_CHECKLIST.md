@@ -11,6 +11,7 @@ Estado verificado el 2026-11-02. Mientras falte cualquier punto marcado ❌, **u
 | 5 | `STRIPE_WEBHOOK_SECRET` = `whsec_` **live** en la gateway (`fly secrets set`) | ✅ Inyectado y verificado en Fly.io |
 | 6 | Cada Payment Link live tiene `metadata.tier` = `indie` / `agency` / `pro` / `studio` | ✅ Verificado en `payment_links.csv` |
 | 7 | Email transaccional (Resend/SMTP) con dominio verificado | ❌ depende de 2 |
+| 8 | Webhook live suscrito además a `charge.refunded`, `charge.dispute.created`, `charge.dispute.closed` | ❌ añadir en Dashboard → Webhooks → endpoint → Eventos |
 
 ## Por qué importa `metadata.tier`
 
@@ -22,10 +23,17 @@ Comprobación (Dashboard → Payment Links → cada enlace → Metadata), o:
 stripe payment_links retrieve plink_1UXIly0g6p4KL4GWrF1MVWWA --live | jq .metadata
 ```
 
-## Comportamiento conocido del webhook (sin cambios en este PR)
+## Comportamiento conocido del webhook
 
 - **Idempotencia**: por `event.id` en `webhook_events`; un reintento de Stripe devuelve `already_processed`. Firma HMAC con tolerancia de 300 s.
-- **Reembolsos Stripe**: `charge.refunded` **no** está suscrito ni gestionado → reembolsar **no revoca** la licencia. Revocar a mano (`POST /api/v1/licenses/revoke` o CLI) tras cada reembolso.
+- **Reembolsos y disputas** (`BillingService._handle_stripe_payment_reversal`):
+  - Al provisionar (`checkout.session.completed`) y renovar (`invoice.payment_succeeded`) se guardan en `license.metadata.payment_refs` los IDs de Stripe (`cs_`, `pi_`, `in_`, `sub_`, `cus_`).
+  - Búsqueda de la licencia: `payment_intent`/`charge`/`invoice`/`subscription` → `customer` (`cus_`) → `billing_details.email`/`receipt_email`. Sin coincidencia: 200 con `no_matching_license` (Stripe no reintenta; revisar a mano).
+  - `charge.refunded` **total** (`refunded=true` o `amount_refunded >= amount`) → **revoca** (ledger permanente, motivo `payment_refunded`). **Parcial** → no cambia nada (`partial_refund_ignored`); si reembolsos parciales suman el total, el último evento revoca.
+  - Suscripciones: reembolsar cualquier cargo completo revoca la licencia (coincide por `cus_`). Cancelar la suscripción sigue llegando por `customer.subscription.deleted`. Para un reembolso de cortesía sin quitar acceso, usar reembolso parcial.
+  - `charge.dispute.created` → **suspende** (reversible). `charge.dispute.closed`: `lost` → revoca; `won`/`warning_closed` → reactiva solo si la suspensión vino de la disputa.
+  - Idempotente: deduplicación por `event.id` + revocar una licencia ya revocada no hace nada. Misma verificación de firma que el resto.
+  - LemonSqueezy `order_refunded` sigue revocando por email (sin cambios).
 - Pagos únicos (Indie/Agency) no emiten `invoice.payment_succeeded` ni `customer.subscription.deleted`.
 
 ## Compra de prueba real
