@@ -589,10 +589,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const billingResult = document.getElementById("billingResult");
 
     const STRIPE_DIRECT_LINKS = {
-        indie: "https://buy.stripe.com/test_cNi14fbm0gsecQo0HLbAs00",
-        agency: "https://buy.stripe.com/test_5kQcMXdu81xk7w4bmpbAs01",
-        pro: "https://buy.stripe.com/test_dRmfZ9eyc1xk6s01LPbAs02",
-        studio: "https://buy.stripe.com/test_cNi3cneyc7VI2bKduxbAs03",
+        indie: "https://buy.stripe.com/eVq6oz64kbc7g7abF1awo03",
+        agency: "https://buy.stripe.com/dRmeV578ogwr8EI24rawo02",
+        pro: "https://buy.stripe.com/8x2eV578o7ZV6wAbF1awo01",
+        studio: "https://buy.stripe.com/5kQeV52S8gwrbQUdN9awo00",
     };
 
     document.querySelectorAll(".js-checkout-link").forEach((link) => {

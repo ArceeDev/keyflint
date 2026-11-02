@@ -156,12 +156,12 @@ Feedback and questions on the crypto implementation or architecture are very wel
 
 ## 6. Configuración Oficial de Stripe Registrada
 
-| Nivel / Producto | Product ID | Price ID | Precio / Tipo | Enlace de Pago (Payment Link) | Metadata |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **KeyForge Indie License** | `prod_VY17LetY3Zgxmd` | `price_1UWv5I02SPcNSlQyW3ueUndQ` | $149 USD (Pago único) | [Comprar Indie ($149)](https://buy.stripe.com/test_cNi14fbm0gsecQo0HLbAs00) | `tier: indie` |
-| **KeyForge Agency License** | `prod_VY17xoRTfQMXh1` | `price_1UWv5J02SPcNSlQyqEt0Um9r` | $349 USD (Pago único) | [Comprar Agency ($349)](https://buy.stripe.com/test_5kQcMXdu81xk7w4bmpbAs01) | `tier: agency` |
-| **KeyForge Pro (Monthly)** | `prod_...` | `price_...` | $29 USD / mes (Recurrente) | [Suscribir Pro ($29/mo)](https://buy.stripe.com/test_dRmfZ9eyc1xk6s01LPbAs02) | `tier: pro` |
-| **KeyForge Studio (Monthly)** | `prod_...` | `price_...` | $89 USD / mes (Recurrente) | [Suscribir Studio ($89/mo)](https://buy.stripe.com/test_cNi3cneyc7VI2bKduxbAs03) | `tier: studio` |
+| Nivel / Producto | Payment Link ID | Precio / Tipo | Enlace de Pago Real (Live) | Metadata |
+| :--- | :--- | :--- | :--- | :--- |
+| **KeyForge Indie License** | `plink_1UXIly0g6p4KL4GWrF1MVWWA` | $149 USD (Pago único) | [Comprar Indie ($149)](https://buy.stripe.com/eVq6oz64kbc7g7abF1awo03) | `tier: indie` |
+| **KeyForge Agency License** | `plink_1UXIly0g6p4KL4GWk653Uhab` | $349 USD (Pago único) | [Comprar Agency ($349)](https://buy.stripe.com/dRmeV578ogwr8EI24rawo02) | `tier: agency` |
+| **KeyForge Pro (Monthly)** | `plink_1UXIlx0g6p4KL4GWB074NlVf` | $29 USD / mes (Recurrente) | [Suscribir Pro ($29/mo)](https://buy.stripe.com/8x2eV578o7ZV6wAbF1awo01) | `tier: pro` |
+| **KeyForge Studio (Monthly)** | `plink_1UXIlx0g6p4KL4GWryiAZxbe` | $89 USD / mes (Recurrente) | [Suscribir Studio ($89/mo)](https://buy.stripe.com/5kQeV52S8gwrbQUdN9awo00) | `tier: studio` |
 
 > **Nota sobre Impuestos e IVA (Managed Payments)**:
 > Tu cuenta de Stripe tiene **Managed Payments activo**. Stripe actúa como Merchant of Record (MoR) gestionando el IVA y los impuestos mundiales automáticamente.
