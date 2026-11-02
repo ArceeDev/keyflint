@@ -92,6 +92,7 @@ class TransactionalEmailService(IEmailSender):
         )
         html_body = f"""<!DOCTYPE html>
 <html lang="en">
+<head><meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark"></head>
 <body style="margin: 0; padding: 32px 16px; background-color: #0B0D17; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #FFFFFF;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #0B0D17;">
     <tr>
@@ -241,7 +242,7 @@ License key:
 Tier: {p.tier.capitalize()}
 Seats: {p.seats}
 Included credits: {p.credits:,}
-Expires: {p.expires_at or 'Never (perpetual)'}
+Expires: {(p.expires_at or '')[:10] or 'Never (perpetual)'}
 Gateway public key: {p.public_key_hex}
 
 Setup guide (Python, JS, Go): {_DOCS_URL}
@@ -257,12 +258,12 @@ Questions? Reply to this email or write to support@keyflint.dev.
                 ("Tier", p.tier.capitalize()),
                 ("Seats", p.seats),
                 ("Included credits", f"{p.credits:,}"),
-                ("Expires", p.expires_at or "Never (perpetual)"),
+                ("Expires", (p.expires_at or "")[:10] or "Never (perpetual)"),
             )
         )
         return f"""<!DOCTYPE html>
 <html lang="en">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Your KeyFlint license</title></head>
+<head><meta charset="utf-8"><meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Your KeyFlint license</title></head>
 <body style="margin: 0; padding: 32px 16px; background-color: #0B0D17; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #FFFFFF;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #0B0D17;">
     <tr>

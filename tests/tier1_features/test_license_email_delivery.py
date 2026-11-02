@@ -165,6 +165,9 @@ class TestLicenseEmailDelivery(BaseKeyFlintTestCase):
         self.assertNotIn("gradient", kw["html_body"])
         self.assertNotIn("\n\n\n", kw["text_body"])  # no double-spacing from CR line endings
 
+        dated = LicenseEmailPayload("a@example.com", "pro", key, key, "ab" * 32, 3, 500, "2027-11-02T14:30:53.916097+00:00")
+        self.assertIn("Expires: 2027-11-02\n", svc._render_license_text(dated))
+
 
 if __name__ == "__main__":
     unittest.main()
