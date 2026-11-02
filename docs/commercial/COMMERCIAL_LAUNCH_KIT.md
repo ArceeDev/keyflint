@@ -168,13 +168,12 @@ Feedback and questions on the crypto implementation or architecture are very wel
 > - Código fiscal Indie / Agency: `Downloadable Software - Business Use`
 > - Código fiscal Pro / Studio: `SaaS - Business Use`
 
-### Webhook Oficial Configurado:
-- **Webhook ID**: `we_1UWv5N02SPcNSlQySnK86Nxu`
-- **Endpoint URL**: `https://licenses.arceedev.com/api/v1/webhooks/stripe`
-- **Estado**: Activo
+### Webhook
+> ⚠️ **Live: PENDIENTE.** El webhook `we_1UWv5N02SPcNSlQySnK86Nxu` es del **sandbox de test** (`acct_1UWuyF02SPcNSlQy`); en live hay que crear uno nuevo. Además, a 2026-11-02 `arceedev.com` **no resuelve (NXDOMAIN)**: una compra live hoy cobra pero **no entrega licencia**. Checklist: [`docs/ops/STRIPE_LIVE_CHECKLIST.md`](../ops/STRIPE_LIVE_CHECKLIST.md).
+
+- **Webhook (test)**: `we_1UWv5N02SPcNSlQySnK86Nxu` → `https://licenses.arceedev.com/api/v1/webhooks/stripe`
 - **Eventos escuchados**:
-  1. `checkout.session.completed` (Emite la licencia de forma automática con los créditos y asientos correspondientes).
-  2. `invoice.payment_succeeded` (Renueva ciclos de suscripción o recargas de cuotas).
-  3. `customer.subscription.deleted` (Gestiona cancelaciones y revocaciones).
-- **Firma del Webhook (`whsec_...`)**:
-  Visible en el Dashboard de Stripe (*Developers -> Webhooks -> Signing secret*). Configúralo en la variable `STRIPE_WEBHOOK_SECRET` de la gateway cuando quieras procesar eventos reales.
+  1. `checkout.session.completed` (emite la licencia; el tier sale de `metadata.tier` del Payment Link).
+  2. `invoice.payment_succeeded` (renueva ciclos de suscripción).
+  3. `customer.subscription.deleted` (cancelaciones y revocaciones).
+- **Firma (`whsec_...`)**: Dashboard → Developers → Webhooks → Signing secret → variable `STRIPE_WEBHOOK_SECRET` de la gateway. El secreto de live es distinto del de test.
