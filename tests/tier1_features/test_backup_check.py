@@ -67,6 +67,24 @@ class TestBackupCheck(unittest.TestCase):
         self.assertIn("access denied", result["error"])
         self.assertEqual(url, "https://hc.example/abc/fail")
 
+    def test_loop_checks_one_minute_after_boot_then_every_interval(self):
+        import asyncio
+        from app import main
+
+        delays: list[float] = []
+
+        async def fake_sleep(seconds):
+            delays.append(seconds)
+            if len(delays) == 3:
+                raise asyncio.CancelledError
+
+        with mock.patch("asyncio.sleep", side_effect=fake_sleep), \
+                mock.patch("app.infrastructure.backup_check.verify_once") as verify:
+            with self.assertRaises(asyncio.CancelledError):
+                asyncio.run(main._backup_check_loop(3600, None))
+        self.assertEqual(delays, [60, 3600, 3600])
+        self.assertEqual(verify.call_count, 2)
+
     def test_unconfigured_instance_is_skipped(self):
         self.config.unlink()
         with mock.patch("subprocess.run") as run:

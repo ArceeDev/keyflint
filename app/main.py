@@ -28,6 +28,7 @@ from app.presentation.middlewares import (
 
 logger = get_logger("gateway")
 STATIC_DIR = Path(__file__).parent / "presentation" / "static"
+BACKUP_FIRST_CHECK_DELAY_SECONDS = 60
 
 
 def _retry_failed_emails_once() -> dict[str, int]:
@@ -59,8 +60,11 @@ async def _backup_check_loop(interval_seconds: int, heartbeat_url: str | None) -
     from app.infrastructure.backup_check import verify_once
 
     db_path = Path(get_settings().DATABASE_PATH)
+    # First pass soon after boot (once Litestream has synced) so every deploy is verified and pinged.
+    delay = min(BACKUP_FIRST_CHECK_DELAY_SECONDS, interval_seconds)
     while True:
-        await asyncio.sleep(interval_seconds)
+        await asyncio.sleep(delay)
+        delay = interval_seconds
         try:
             await asyncio.to_thread(verify_once, db_path, Path(LITESTREAM_CONFIG), heartbeat_url)
         except Exception as exc:  # keep the loop alive
