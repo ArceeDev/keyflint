@@ -3,7 +3,7 @@
 #   fly volumes create keyforge_data --size 1 --region <region>
 #   fly deploy && fly scale count 1
 # SQLite = exactly one machine; do not scale horizontally.
-app = "keyforge"
+app = "keyflint-gateway"
 primary_region = "cdg"
 
 [build]
