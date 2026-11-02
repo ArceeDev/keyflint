@@ -58,7 +58,7 @@
         ::selection { background: var(--brand-soft); color: var(--ink); }
         .container { max-width: 1160px; margin: 0 auto; padding: 0 24px; }
         @media (max-width: 640px) { .container { padding: 0 16px; } }
-        section { scroll-margin-top: 72px; }
+        section { scroll-margin-top: 80px; }
 
         /* ---------- Header ---------- */
         header {
@@ -67,10 +67,10 @@
             backdrop-filter: saturate(1.4) blur(8px); -webkit-backdrop-filter: saturate(1.4) blur(8px);
             border-bottom: 1px solid var(--line);
         }
-        .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 56px; gap: 16px; }
-        .logo { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 15px; text-decoration: none; }
-        .logo-mark { width: 20px; height: 20px; flex: none; }
-        .logo-ver { font: 500 11px/1 var(--mono); color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 3px 5px; }
+        .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 64px; gap: 16px; }
+        .logo { display: flex; align-items: center; gap: 10px; font-weight: 600; font-size: 18px; letter-spacing: -0.01em; text-decoration: none; }
+        .logo-mark { width: 26px; height: 26px; flex: none; }
+        .logo-ver { font: 500 12.5px/1 var(--mono); color: var(--ink); border: 1px solid var(--line-strong); border-radius: 5px; padding: 4px 7px; }
         .nav-links { display: flex; gap: 2px; align-items: center; overflow-x: auto; scrollbar-width: none; }
         .nav-links::-webkit-scrollbar { display: none; }
         .nav-link {
@@ -257,14 +257,16 @@
         /* ---------- Pricing ---------- */
         .pricing-card { justify-content: space-between; gap: 20px; align-self: stretch; }
         .pricing-card.featured { border-color: var(--brand); box-shadow: 0 0 0 1px var(--brand); }
-        .tier-name { font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .tier-name { font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+        .tier-for { font-size: 13.5px; color: var(--ink); opacity: .75; margin-top: 4px; }
         .tier-flag { font: 500 10.5px/1 var(--mono); color: var(--brand); background: var(--brand-soft); padding: 3px 6px; border-radius: 4px; }
-        .tier-price { font: 500 28px/1.1 var(--mono); margin-top: 10px; letter-spacing: -0.02em; }
+        .tier-price { font: 600 32px/1.1 var(--font); margin-top: 14px; letter-spacing: -0.02em; }
         .tier-price span { font: 400 13px/1 var(--font); color: var(--muted); letter-spacing: 0; }
-        .tier-specs { list-style: none; margin-top: 16px; display: grid; gap: 8px; font-size: 13.5px; color: var(--ink-2); }
-        .tier-specs li { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px dashed var(--line); padding-bottom: 8px; }
-        .tier-specs li:last-child { border-bottom: 0; }
-        .tier-specs b { font: 500 13px/1.4 var(--mono); color: var(--ink); }
+        .tier-specs { list-style: none; margin-top: 18px; display: grid; gap: 0; font-size: 14px; line-height: 1.4; color: var(--ink); }
+        .tier-specs li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 9px 0; border-top: 1px solid var(--line); }
+        .tier-specs li > span { opacity: .75; }
+        .tier-specs li:last-child { padding-bottom: 0; }
+        .tier-specs b { font-weight: 600; color: var(--ink); text-align: right; }
         .pricing-card .btn { width: 100%; }
         .note { font-size: 13px; color: var(--muted); margin-top: 12px; }
         .note code { font-size: 12px; }
@@ -302,9 +304,17 @@
 
         /* ---------- Footer / toast ---------- */
         footer { margin-top: 72px; padding: 24px 0 40px; border-top: 1px solid var(--line); }
-        .footer-inner { display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
-        .footer-inner a { color: var(--ink-2); text-decoration: none; }
-        .footer-inner a:hover { color: var(--ink); text-decoration: underline; }
+        .footer-inner { display: flex; justify-content: space-between; align-items: center; gap: 16px 32px; flex-wrap: wrap; font-size: 14px; color: var(--ink); }
+        .footer-links { display: flex; flex-wrap: wrap; gap: 12px 28px; list-style: none; }
+        .footer-inner a { color: var(--ink); text-decoration: none; opacity: .8; }
+        .footer-inner a:hover { opacity: 1; text-decoration: underline; text-underline-offset: 3px; }
+        .tag.tag-warn { color: var(--warn); border-color: var(--warn-line); }
+        .portal-row { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: end; }
+        @media (max-width: 520px) { .portal-row { grid-template-columns: 1fr; } }
+        .portal-results { margin-top: 20px; display: grid; gap: 16px; }
+        .portal-results .card-header { padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+        .demo-note { display: flex; gap: 10px; align-items: flex-start; margin-bottom: 16px; padding: 12px 16px; border: 1px solid var(--line-strong); border-radius: var(--radius-lg); font-size: 14px; }
+        .demo-note .ico { margin-top: 2px; color: var(--brand); }
         .foot-gh { display: inline-flex; align-items: center; gap: 5px; vertical-align: middle; }
         .foot-gh .ico { width: 14px; height: 14px; }
         .toast {
@@ -682,7 +692,7 @@
                     <tbody>
                         <tr>
                             <td>Coste</td>
-                            <td class="kf-col">Pago único. Sin cuota mensual ni comisión por venta.</td>
+                            <td class="kf-col">Pago único (Indie, Agency) o mensual (Pro, Studio). Sin comisión por venta.</td>
                             <td>Suscripción mensual, normalmente por volumen de licencias o validaciones.</td>
                             <td>Horas de ingeniería y mantenimiento propio.</td>
                         </tr>
@@ -717,72 +727,72 @@
 
         <section id="pricing-section" class="block">
             <div class="section-head">
-                <h2>Niveles y Licencias Oficiales</h2>
-                <p>Elige tu licencia para monetizar tus herramientas CLI y servidores MCP. Pago seguro con Stripe. Precios sin IVA: el impuesto aplicable a tu país se añade en el checkout.</p>
+                <h2>Niveles y licencias</h2>
+                <p>Pago único para alojarlo tú, o suscripción mensual si prefieres que lo gestionemos. Pago con Stripe; los precios no incluyen IVA, que se calcula en el checkout según tu país.</p>
             </div>
 
             <div class="grid">
-                <!-- 1. Indie License ($149 One-time) -->
                 <div class="card col-3 pricing-card">
                     <div>
-                        <div class="tier-name">Indie License</div>
+                        <div class="tier-name">Indie</div>
+                        <p class="tier-for">Un desarrollador o un producto.</p>
                         <div class="tier-price">$149 <span>/ pago único + IVA</span></div>
                         <ul class="tier-specs">
-                            <li>Uso <b>Personal / Ilimitado</b></li>
-                            <li>Nodos / Clientes <b>3</b></li>
-                            <li>Créditos iniciales <b>10.000</b></li>
-                            <li>Verificación <b>Ed25519 offline (&lt;1ms)</b></li>
-                            <li>Actualizaciones <b>v1.x de por vida</b></li>
-                            <li>Soporte <b>Respuesta en ≤ 2 días laborables</b></li>
+                            <li><span>Licencia</span><b>Perpetua</b></li>
+                            <li><span>Nodos</span><b>3</b></li>
+                            <li><span>Créditos iniciales</span><b>10.000</b></li>
+                            <li><span>Verificación</span><b>Offline, Ed25519</b></li>
+                            <li><span>Actualizaciones</span><b>Toda la v1.x</b></li>
+                            <li><span>Soporte</span><b>≤ 2 días laborables</b></li>
                         </ul>
                     </div>
                     <a href="https://buy.stripe.com/eVq6oz64kbc7g7abF1awo03" target="_blank" rel="noopener noreferrer" class="btn btn-secondary js-checkout-link" data-tier="indie">Comprar Indie ($149)</a>
                 </div>
 
-                <!-- 2. Agency License ($349 One-time - Featured) -->
                 <div class="card col-3 pricing-card featured">
                     <div>
-                        <div class="tier-name">Agency License <span class="tier-flag">Recomendado</span></div>
+                        <div class="tier-name">Agency <span class="tier-flag">Recomendado</span></div>
+                        <p class="tier-for">Agencias que venden a varios clientes.</p>
                         <div class="tier-price">$349 <span>/ pago único + IVA</span></div>
                         <ul class="tier-specs">
-                            <li>Uso <b>Agencias &amp; Clientes</b></li>
-                            <li>Nodos / Clientes <b>25</b></li>
-                            <li>Créditos iniciales <b>50.000</b></li>
-                            <li>Verificación <b>Ed25519 offline (&lt;1ms)</b></li>
-                            <li>Soporte <b>Prioritario, ≤ 1 día laborable</b></li>
+                            <li><span>Licencia</span><b>Perpetua</b></li>
+                            <li><span>Nodos</span><b>25</b></li>
+                            <li><span>Créditos iniciales</span><b>50.000</b></li>
+                            <li><span>Verificación</span><b>Offline, Ed25519</b></li>
+                            <li><span>Actualizaciones</span><b>Toda la v1.x</b></li>
+                            <li><span>Soporte</span><b>≤ 1 día laborable</b></li>
                         </ul>
                     </div>
                     <a href="https://buy.stripe.com/dRmeV578ogwr8EI24rawo02" target="_blank" rel="noopener noreferrer" class="btn js-checkout-link" data-tier="agency">Comprar Agency ($349)</a>
                 </div>
 
-                <!-- 3. Pro Cloud ($29/mo Recurring) -->
                 <div class="card col-3 pricing-card">
                     <div>
                         <div class="tier-name">Pro Cloud</div>
+                        <p class="tier-for">Gateway gestionado, sin servidor propio.</p>
                         <div class="tier-price">$29 <span>/ mes + IVA</span></div>
                         <ul class="tier-specs">
-                            <li>Créditos / ciclo <b>500</b></li>
-                            <li>Nodos activos <b>3</b></li>
-                            <li>Verificación <b>offline + API</b></li>
-                            <li>Webhooks <b>Stripe integrados</b></li>
-                            <li>Facturación <b>Mensual recurrente</b></li>
-                            <li>Soporte <b>Respuesta en ≤ 2 días laborables</b></li>
+                            <li><span>Créditos por ciclo</span><b>500</b></li>
+                            <li><span>Nodos</span><b>3</b></li>
+                            <li><span>Verificación</span><b>Offline y API</b></li>
+                            <li><span>Webhooks</span><b>Stripe incluidos</b></li>
+                            <li><span>Soporte</span><b>≤ 2 días laborables</b></li>
                         </ul>
                     </div>
                     <a href="https://buy.stripe.com/8x2eV578o7ZV6wAbF1awo01" target="_blank" rel="noopener noreferrer" class="btn btn-secondary js-checkout-link" data-tier="pro">Suscribir Pro ($29/mo)</a>
                 </div>
 
-                <!-- 4. Studio Cloud ($89/mo Recurring) -->
                 <div class="card col-3 pricing-card">
                     <div>
                         <div class="tier-name">Studio Cloud</div>
+                        <p class="tier-for">Equipos con más volumen y auditoría.</p>
                         <div class="tier-price">$89 <span>/ mes + IVA</span></div>
                         <ul class="tier-specs">
-                            <li>Créditos / ciclo <b>5.000</b></li>
-                            <li>Nodos activos <b>25</b></li>
-                            <li>Telemetría &amp; Auditoría <b>Sí</b></li>
-                            <li>Transacciones <b>ACID SQLite</b></li>
-                            <li>Soporte <b>Prioritario, ≤ 1 día laborable</b></li>
+                            <li><span>Créditos por ciclo</span><b>5.000</b></li>
+                            <li><span>Nodos</span><b>25</b></li>
+                            <li><span>Telemetría</span><b>Auditoría incluida</b></li>
+                            <li><span>Transacciones</span><b>ACID, SQLite</b></li>
+                            <li><span>Soporte</span><b>≤ 1 día laborable</b></li>
                         </ul>
                     </div>
                     <a href="https://buy.stripe.com/5kQeV52S8gwrbQUdN9awo00" target="_blank" rel="noopener noreferrer" class="btn btn-secondary js-checkout-link" data-tier="studio">Suscribir Studio ($89/mo)</a>
@@ -822,35 +832,33 @@
 
         <section id="portal-section" class="block">
             <div class="section-head">
-                <h2>Portal de Autoservicio de Licencias</h2>
-                <p>Consulta tus tokens Ed25519, saldo de créditos y fragmentos de integración introduciendo tu email de compra o token de licencia.</p>
+                <h2>Portal del comprador</h2>
+                <p>Consulta tu token Ed25519, tu saldo de créditos y el código de integración con tu email de compra o tu token.</p>
             </div>
 
             <div class="card col-12">
-                <div class="form-row">
-                    <div class="form-group" style="flex: 3;">
-                        <label for="portalQuery">Email del comprador o Token de Licencia</label>
-                        <input type="text" id="portalQuery" placeholder="ejemplo: buyer@acme.ai o LIC-PRO-..." autocomplete="off">
+                <div class="portal-row">
+                    <div class="form-group">
+                        <label for="portalQuery">Email de compra o token de licencia</label>
+                        <input type="text" id="portalQuery" placeholder="tu@empresa.com o LIC-PRO-…" autocomplete="off">
                     </div>
-                    <div class="form-group" style="flex: 1; align-self: flex-end;">
-                        <button type="button" class="btn" id="btnPortalLookup" style="width: 100%;">Consultar Licencia</button>
-                    </div>
+                    <button type="button" class="btn" id="btnPortalLookup">Consultar licencia</button>
                 </div>
 
-                <div id="portalResults" class="is-hidden" style="margin-top: 20px;">
-                    <div class="card-header" style="padding-bottom: 8px; border-bottom: 1px solid var(--line);">
+                <div id="portalResults" class="portal-results is-hidden">
+                    <div class="card-header">
                         <div>
-                            <h3 class="card-title" id="portalCustomerEmail" style="color: var(--brand);"></h3>
+                            <h3 class="card-title" id="portalCustomerEmail"></h3>
                             <p class="card-sub" id="portalCustomerCount"></p>
                         </div>
                     </div>
-                    <div id="portalLicensesContainer" style="margin: 16px 0;"></div>
-                    <div class="form-group" style="margin-top: 16px;">
-                        <label>Verificación en Python (Zero Dependencies)</label>
+                    <div id="portalLicensesContainer"></div>
+                    <div class="form-group">
+                        <label>Verificación en Python (sin dependencias)</label>
                         <pre class="code-box state-ok" id="portalPySnippet"></pre>
                     </div>
-                    <div class="form-group" style="margin-top: 16px;">
-                        <label>Verificación en TypeScript / Node (Web Crypto API)</label>
+                    <div class="form-group">
+                        <label>Verificación en TypeScript / Node (Web Crypto)</label>
                         <pre class="code-box state-ok" id="portalTsSnippet"></pre>
                     </div>
                 </div>
@@ -928,8 +936,12 @@
 
         <footer>
             <div class="footer-inner">
-                <div>KeyFlint 1.1.0 · Servidor BSL 1.1 · SDKs MIT</div>
-                <div><a href="/docs">API</a> · FastAPI · SQLite WAL · Ed25519</div>
+                <div>KeyFlint 1.1.0</div>
+                <ul class="footer-links">
+                    <li><a href="/docs">API</a></li>
+                    <li><a href="https://github.com/ArceeDev/keyflint" target="_blank" rel="noopener noreferrer" class="foot-gh"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a></li>
+                    <li><a href="mailto:support@keyflint.dev">Soporte</a></li>
+                </ul>
             </div>
         </footer>
     </main>
