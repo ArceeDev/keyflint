@@ -45,3 +45,11 @@ htmlcov/
 
 # Teamwork metadata
 .agents/teamwork/
+
+# Billing exports & generated secrets (never commit)
+*.csv
+payment_links*
+secrets.env
+.env.*
+!.env.example
+!.env.production.example
