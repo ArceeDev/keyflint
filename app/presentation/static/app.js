@@ -588,13 +588,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const billingActionCard = document.getElementById("billingActionCard");
     const billingResult = document.getElementById("billingResult");
 
-    const STRIPE_DIRECT_LINKS = {
-        indie: "https://buy.stripe.com/test_cNi14fbm0gsecQo0HLbAs00",
-        agency: "https://buy.stripe.com/test_5kQcMXdu81xk7w4bmpbAs01",
-        pro: "https://buy.stripe.com/test_dRmfZ9eyc1xk6s01LPbAs02",
-        studio: "https://buy.stripe.com/test_cNi3cneyc7VI2bKduxbAs03",
-    };
-
     document.querySelectorAll(".js-checkout-link").forEach((link) => {
         link.addEventListener("click", () => {
             const tier = link.getAttribute("data-tier") || "indie";

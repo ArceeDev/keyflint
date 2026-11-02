@@ -156,25 +156,24 @@ Feedback and questions on the crypto implementation or architecture are very wel
 
 ## 6. Configuración Oficial de Stripe Registrada
 
-| Nivel / Producto | Product ID | Price ID | Precio / Tipo | Enlace de Pago (Payment Link) | Metadata |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **KeyForge Indie License** | `prod_VY17LetY3Zgxmd` | `price_1UWv5I02SPcNSlQyW3ueUndQ` | $149 USD (Pago único) | [Comprar Indie ($149)](https://buy.stripe.com/test_cNi14fbm0gsecQo0HLbAs00) | `tier: indie` |
-| **KeyForge Agency License** | `prod_VY17xoRTfQMXh1` | `price_1UWv5J02SPcNSlQyqEt0Um9r` | $349 USD (Pago único) | [Comprar Agency ($349)](https://buy.stripe.com/test_5kQcMXdu81xk7w4bmpbAs01) | `tier: agency` |
-| **KeyForge Pro (Monthly)** | `prod_...` | `price_...` | $29 USD / mes (Recurrente) | [Suscribir Pro ($29/mo)](https://buy.stripe.com/test_dRmfZ9eyc1xk6s01LPbAs02) | `tier: pro` |
-| **KeyForge Studio (Monthly)** | `prod_...` | `price_...` | $89 USD / mes (Recurrente) | [Suscribir Studio ($89/mo)](https://buy.stripe.com/test_cNi3cneyc7VI2bKduxbAs03) | `tier: studio` |
+| Nivel / Producto | Payment Link ID | Precio / Tipo | Enlace de Pago Real (Live) | Metadata |
+| :--- | :--- | :--- | :--- | :--- |
+| **KeyForge Indie License** | `plink_1UXIly0g6p4KL4GWrF1MVWWA` | $149 USD (Pago único) | [Comprar Indie ($149)](https://buy.stripe.com/eVq6oz64kbc7g7abF1awo03) | `tier: indie` |
+| **KeyForge Agency License** | `plink_1UXIly0g6p4KL4GWk653Uhab` | $349 USD (Pago único) | [Comprar Agency ($349)](https://buy.stripe.com/dRmeV578ogwr8EI24rawo02) | `tier: agency` |
+| **KeyForge Pro (Monthly)** | `plink_1UXIlx0g6p4KL4GWB074NlVf` | $29 USD / mes (Recurrente) | [Suscribir Pro ($29/mo)](https://buy.stripe.com/8x2eV578o7ZV6wAbF1awo01) | `tier: pro` |
+| **KeyForge Studio (Monthly)** | `plink_1UXIlx0g6p4KL4GWryiAZxbe` | $89 USD / mes (Recurrente) | [Suscribir Studio ($89/mo)](https://buy.stripe.com/5kQeV52S8gwrbQUdN9awo00) | `tier: studio` |
 
 > **Nota sobre Impuestos e IVA (Managed Payments)**:
 > Tu cuenta de Stripe tiene **Managed Payments activo**. Stripe actúa como Merchant of Record (MoR) gestionando el IVA y los impuestos mundiales automáticamente.
 > - Código fiscal Indie / Agency: `Downloadable Software - Business Use`
 > - Código fiscal Pro / Studio: `SaaS - Business Use`
 
-### Webhook Oficial Configurado:
-- **Webhook ID**: `we_1UWv5N02SPcNSlQySnK86Nxu`
-- **Endpoint URL**: `https://licenses.arceedev.com/api/v1/webhooks/stripe`
-- **Estado**: Activo
+### Webhook
+> ⚠️ **Live: PENDIENTE.** El webhook `we_1UWv5N02SPcNSlQySnK86Nxu` es del **sandbox de test** (`acct_1UWuyF02SPcNSlQy`); en live hay que crear uno nuevo. Además, a 2026-11-02 `arceedev.com` **no resuelve (NXDOMAIN)**: una compra live hoy cobra pero **no entrega licencia**. Checklist: [`docs/ops/STRIPE_LIVE_CHECKLIST.md`](../ops/STRIPE_LIVE_CHECKLIST.md).
+
+- **Webhook (test)**: `we_1UWv5N02SPcNSlQySnK86Nxu` → `https://licenses.arceedev.com/api/v1/webhooks/stripe`
 - **Eventos escuchados**:
-  1. `checkout.session.completed` (Emite la licencia de forma automática con los créditos y asientos correspondientes).
-  2. `invoice.payment_succeeded` (Renueva ciclos de suscripción o recargas de cuotas).
-  3. `customer.subscription.deleted` (Gestiona cancelaciones y revocaciones).
-- **Firma del Webhook (`whsec_...`)**:
-  Visible en el Dashboard de Stripe (*Developers -> Webhooks -> Signing secret*). Configúralo en la variable `STRIPE_WEBHOOK_SECRET` de la gateway cuando quieras procesar eventos reales.
+  1. `checkout.session.completed` (emite la licencia; el tier sale de `metadata.tier` del Payment Link).
+  2. `invoice.payment_succeeded` (renueva ciclos de suscripción).
+  3. `customer.subscription.deleted` (cancelaciones y revocaciones).
+- **Firma (`whsec_...`)**: Dashboard → Developers → Webhooks → Signing secret → variable `STRIPE_WEBHOOK_SECRET` de la gateway. El secreto de live es distinto del de test.
