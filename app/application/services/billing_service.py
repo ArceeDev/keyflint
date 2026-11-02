@@ -368,6 +368,110 @@ class BillingService:
 
         return event_id, raw_event_type, customer_email, tier_enum
 
+    # Stripe object reference prefixes used to link a payment back to its license.
+    _PAYMENT_REF_FIELDS = ("payment_intent", "charge", "invoice", "subscription", "customer")
+    _PAYMENT_REF_PREFIXES = ("pi_", "ch_", "in_", "sub_", "cus_", "cs_")
+
+    @classmethod
+    def _extract_payment_refs(cls, data_obj: dict[str, Any]) -> list[str]:
+        """Collects Stripe IDs (session, payment_intent, charge, invoice, subscription, customer)."""
+        refs: list[str] = []
+        obj_id = data_obj.get("id")
+        if isinstance(obj_id, str) and obj_id.startswith(cls._PAYMENT_REF_PREFIXES):
+            refs.append(obj_id)
+        for field_name in cls._PAYMENT_REF_FIELDS:
+            val = data_obj.get(field_name)
+            if isinstance(val, dict):
+                val = val.get("id")
+            if isinstance(val, str) and val.startswith(cls._PAYMENT_REF_PREFIXES) and val not in refs:
+                refs.append(val)
+        return refs
+
+    def _attach_payment_refs(self, license_key: Optional[str], refs: list[str]) -> None:
+        """Stores payment references in license metadata so refunds/disputes can find it later."""
+        if not license_key or not refs:
+            return
+        lic = self._license_repo.get_by_key(license_key)
+        if lic is None:
+            return
+        existing = lic.metadata.get("payment_refs", [])
+        if not isinstance(existing, list):
+            existing = []
+        merged = existing + [r for r in refs if r not in existing]
+        if merged != existing:
+            lic.metadata["payment_refs"] = merged[-50:]
+            self._license_repo.save(lic)
+
+    def _resolve_payment_licenses(self, data_obj: dict[str, Any]) -> tuple[list[Any], str]:
+        """Finds licenses for a charge/dispute: specific refs first, then customer id, then email."""
+        finder = getattr(self._license_repo, "find_by_payment_ref", None)
+        refs = self._extract_payment_refs(data_obj)
+        if finder is not None:
+            # Most specific first: payment_intent/charge/invoice/subscription, customer last.
+            for ref in sorted(refs, key=lambda r: r.startswith("cus_")):
+                found = finder(ref)
+                if found:
+                    return found, ref
+        billing = data_obj.get("billing_details") if isinstance(data_obj.get("billing_details"), dict) else {}
+        email = billing.get("email") or data_obj.get("receipt_email")
+        if isinstance(email, str) and email.strip():
+            customer = self._customer_repo.get_by_email(email.strip())
+            if customer:
+                return self._license_repo.list_by_customer_id(customer.id), "email"
+        return [], "none"
+
+    def _handle_stripe_payment_reversal(self, event_type: str, data_obj: dict[str, Any]) -> dict[str, Any]:
+        """charge.refunded / charge.dispute.* lifecycle. Returns outcome details."""
+        licenses, matched_by = self._resolve_payment_licenses(data_obj)
+        outcome: dict[str, Any] = {"matched_by": matched_by, "license_key": None, "license_status": None}
+
+        if event_type == "charge.refunded":
+            amount = int(data_obj.get("amount") or 0)
+            refunded_amt = int(data_obj.get("amount_refunded") or 0)
+            full = bool(data_obj.get("refunded")) or (amount > 0 and refunded_amt >= amount)
+            if not full:
+                outcome["action"] = "partial_refund_ignored"
+                return outcome
+            action, reason = "revoke", "payment_refunded"
+        elif event_type == "charge.dispute.created":
+            action, reason = "suspend", "payment_dispute"
+        else:  # charge.dispute.closed
+            dispute_status = str(data_obj.get("status") or "")
+            if dispute_status == "lost":
+                action, reason = "revoke", "payment_dispute_lost"
+            elif dispute_status in ("won", "warning_closed"):
+                action, reason = "reinstate", "payment_dispute_won"
+            else:
+                outcome["action"] = f"dispute_{dispute_status or 'unknown'}_ignored"
+                return outcome
+
+        outcome["action"] = action if licenses else "no_matching_license"
+        for lic in licenses:
+            already_revoked = lic.status == LicenseStatus.REVOKED or self._license_service.is_revoked_id(lic.id)
+            if action == "revoke":
+                if not already_revoked:
+                    self._license_service.revoke(
+                        LicenseRevokeRequest(license_key=lic.license_key, reason=reason)
+                    )
+                status = LicenseStatus.REVOKED
+            elif already_revoked:
+                status = LicenseStatus.REVOKED
+            elif action == "suspend":
+                if lic.status != LicenseStatus.SUSPENDED:
+                    lic.suspend()
+                    lic.metadata["suspension_reason"] = reason
+                    self._license_repo.save(lic)
+                status = lic.status
+            else:  # reinstate only what a dispute suspended
+                if lic.status == LicenseStatus.SUSPENDED and lic.metadata.get("suspension_reason") == "payment_dispute":
+                    lic.reinstate()
+                    lic.metadata.pop("suspension_reason", None)
+                    self._license_repo.save(lic)
+                status = lic.status
+            outcome["license_key"] = lic.license_key
+            outcome["license_status"] = status.value
+        return outcome
+
     def process_webhook(
         self,
         provider: str,
@@ -393,6 +497,9 @@ class BillingService:
             raise ValueError("Webhook body must be a JSON object")
 
         event_id, event_type, customer_email, target_tier = self._extract_webhook_context(body, raw_body)
+        data_node = body.get("data") if isinstance(body.get("data"), dict) else {}
+        data_obj = data_node.get("object") if isinstance(data_node.get("object"), dict) else {}
+        reversal: Optional[dict[str, Any]] = None
 
         # 1. Idempotency Check (Deduplication)
         if self._webhook_repo.is_processed(event_id):
@@ -422,6 +529,7 @@ class BillingService:
             "order_refunded",
         }
         failure_events = {"invoice.payment_failed", "subscription_payment_failed"}
+        reversal_events = {"charge.refunded", "charge.dispute.created", "charge.dispute.closed"}
 
         # 2. Lifecycle Handling
         if event_type in provision_events:
@@ -476,6 +584,9 @@ class BillingService:
                 )
                 license_key = issue_resp.license_key
 
+            if provider == "stripe":
+                self._attach_payment_refs(license_key, self._extract_payment_refs(data_obj))
+
             if self._email_sender and license_key:
                 try:
                     pub_key = self._license_service.get_public_key_hex()
@@ -520,6 +631,8 @@ class BillingService:
                             )
                         )
                         license_key = lic.license_key
+                        if provider == "stripe":
+                            self._attach_payment_refs(lic.license_key, self._extract_payment_refs(data_obj))
                         if self._email_sender:
                             try:
                                 self._email_sender.send_quota_replenished(
@@ -530,6 +643,11 @@ class BillingService:
                                 )
                             except Exception:
                                 pass
+
+        elif provider == "stripe" and event_type in reversal_events:
+            reversal = self._handle_stripe_payment_reversal(event_type, data_obj)
+            license_key = reversal["license_key"]
+            license_status = reversal["license_status"]
 
         elif event_type in cancel_events:
             if customer_email:
@@ -578,6 +696,7 @@ class BillingService:
             "event_type": event_type,
             "license_key": license_key,
             "license_status": license_status,
+            **({"reversal": reversal} if reversal is not None else {}),
         }
 
     def simulate_webhook(self, request: WebhookSimulationRequest) -> WebhookSimulationResponse:
