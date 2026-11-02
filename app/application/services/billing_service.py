@@ -75,7 +75,7 @@ def _resolve_tier(raw: Optional[str]) -> Optional[Tier]:
     return hits.pop() if len(hits) == 1 else None
 
 
-_PLACEHOLDER_EMAIL = re.compile(r"^buyer_[0-9a-f]{6}@acme\.ai$")
+_PLACEHOLDER_EMAIL = re.compile(r"^(buyer_[0-9a-f]{6}@acme\.ai|missing-email-[0-9a-f]{6}@keyflint\.invalid)$")
 
 
 _TIER_UNIT_AMOUNTS_CENTS: dict[str, int] = {
@@ -450,6 +450,11 @@ class BillingService:
                             "Payment reversal matched %d licenses by customer %s only; none changed. "
                             "Revoke the right one by hand.", len(found), ref,
                         )
+                        self._ops_alert(
+                            "Reembolso/disputa ambiguo: no se cambió ninguna licencia",
+                            matched_by=ref, licenses=", ".join(lic.license_key for lic in found),
+                            fix="Revoca o suspende a mano la licencia de ese pago.",
+                        )
                         return [], "ambiguous_customer"
                     return found, ref
         billing = data_obj.get("billing_details") if isinstance(data_obj.get("billing_details"), dict) else {}
@@ -462,6 +467,11 @@ class BillingService:
                     logger.error(
                         "Payment reversal matched %d licenses by email only; none changed. "
                         "Revoke the right one by hand.", len(found),
+                    )
+                    self._ops_alert(
+                        "Reembolso/disputa ambiguo: no se cambió ninguna licencia",
+                        matched_by="email", licenses=", ".join(lic.license_key for lic in found),
+                        fix="Revoca o suspende a mano la licencia de ese pago.",
                     )
                     return [], "ambiguous_email"
                 return found, "email"
@@ -636,13 +646,44 @@ class BillingService:
                 summary["failed"] += 1
         return summary
 
+    def _ops_alert(self, subject: str, **details: Any) -> None:
+        """Emails OPS_ALERT_EMAIL about a billing incident that needs a human. Never raises."""
+        to = (get_settings().OPS_ALERT_EMAIL or "").strip()
+        if not to or self._email_sender is None:
+            return
+        body = "\n".join(f"{k}: {v}" for k, v in details.items() if v is not None)
+        try:
+            if not self._email_sender.send_ops_alert(to, subject, body):
+                logger.warning("OPS ALERT NOT DELIVERED: %s", subject)
+        except Exception as exc:  # an alert must never break billing
+            logger.warning("OPS ALERT failed (%s): %s", exc, subject)
+
     def process_webhook(
         self,
         provider: str,
         raw_body: bytes,
         headers: dict[str, str],
     ) -> dict[str, Any]:
-        """Verifies and processes incoming webhook events idempotently."""
+        """Verifies and processes incoming webhook events idempotently; alerts on processing crashes."""
+        try:
+            return self._process_webhook(provider, raw_body, headers)
+        except (WebhookAuthenticationError, ValueError):
+            raise  # bad signature or payload: the sender's problem, not an incident
+        except Exception as exc:
+            self._ops_alert(
+                "Webhook falló al procesarse (el proveedor lo reintentará)",
+                provider=provider, error=f"{type(exc).__name__}: {exc}",
+                payload_sha256=hashlib.sha256(raw_body).hexdigest(),
+                fix="fly logs | grep -i webhook",
+            )
+            raise
+
+    def _process_webhook(
+        self,
+        provider: str,
+        raw_body: bytes,
+        headers: dict[str, str],
+    ) -> dict[str, Any]:
         provider = provider.strip().lower()
         lower_headers = {k.lower(): v for k, v in headers.items()}
         if provider == "stripe":
@@ -699,7 +740,8 @@ class BillingService:
 
         # 2. Lifecycle Handling
         if event_type in provision_events:
-            resolved_email = customer_email or f"buyer_{uuid.uuid4().hex[:6]}@acme.ai"
+            # RFC 2606 reserved domain: obviously not a person, never routable, never emailed.
+            resolved_email = customer_email or f"missing-email-{uuid.uuid4().hex[:6]}@keyflint.invalid"
             customer = self._customer_repo.get_by_email(resolved_email)
             if target_tier is None:
                 # Never grant a paid tier on a guess: issue COMMUNITY, flag it, leave existing licenses alone.
@@ -713,6 +755,11 @@ class BillingService:
                 )
                 target_tier = Tier.COMMUNITY
                 unresolved_tier = tier_raw or "missing"
+                self._ops_alert(
+                    "Tier sin resolver: licencia Community emitida",
+                    event_id=event_id, event_type=event_type, email=resolved_email, tier=tier_raw or "missing",
+                    fix="POST /api/v1/licenses/issue con el tier correcto + revocar la Community; poner metadata.tier en el Payment Link.",
+                )
                 issue_resp = self._license_service.issue(
                     LicenseIssueRequest(customer_email=resolved_email, tier=target_tier.value)
                 )
@@ -753,6 +800,11 @@ class BillingService:
             email_delivered: Optional[bool] = None
             if license_key:
                 if customer_email is None:
+                    self._ops_alert(
+                        "Compra sin correo: licencia emitida pero NO enviada",
+                        event_id=event_id, event_type=event_type, license_key=license_key,
+                        fix=f"keyflint resend-license {license_key} --to <correo del comprador en Stripe>",
+                    )
                     logger.error(
                         "Webhook %s (%s) has no customer email; license issued but NOT emailed. "
                         "Resend with: keyflint resend-license <key> --to <email>",

@@ -39,3 +39,7 @@ class IEmailSender(ABC):
     ) -> bool:
         """Dispatches quota cycle replenishment notification."""
         raise NotImplementedError
+
+    def send_ops_alert(self, recipient_email: str, subject: str, text_body: str) -> bool:
+        """Plain-text incident alert to the operator. Optional for implementations."""
+        return False

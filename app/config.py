@@ -64,6 +64,7 @@ class Settings(BaseSettings):
     SMTP_PASSWORD: Optional[str] = None
     SMTP_USE_TLS: bool = True
     EMAIL_RETRY_INTERVAL_SECONDS: int = 300  # 0 disables the automatic retry loop
+    OPS_ALERT_EMAIL: Optional[str] = None  # operator inbox for billing incidents; unset = log only
 
     # Backup verification: restore the Litestream replica to a temp file and compare row counts.
     BACKUP_CHECK_INTERVAL_SECONDS: int = 3600  # 0 disables it

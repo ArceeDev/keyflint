@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import html
+
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import logging
@@ -126,6 +128,16 @@ class TransactionalEmailService(IEmailSender):
             subject=subject,
             text_body=text_body,
             html_body=html_body,
+        )
+
+    def send_ops_alert(self, recipient_email: str, subject: str, text_body: str) -> bool:
+        """Plain-text operator alert (billing incidents). Never raises."""
+        safe = html.escape(text_body)
+        return self._dispatch(
+            recipient=recipient_email,
+            subject=f"[KeyFlint alert] {subject}",
+            text_body=text_body,
+            html_body=f"<pre style=\"font-family:monospace;white-space:pre-wrap\">{safe}</pre>",
         )
 
     def _dispatch(
