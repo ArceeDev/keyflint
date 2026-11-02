@@ -5,10 +5,9 @@
 
 ## ⚠️ Antes de empezar: la región `mad` ya no sirve
 
-Fly.io está cerrando Madrid (`mad`): ya no deja crear apps ni volúmenes nuevos allí ([hilo oficial](https://community.fly.io/t/mad-region-is-closed/25525)). `kf_managed.py` usa `--region mad` por defecto y `fly.toml` tiene `primary_region = "mad"`.
+Fly.io está cerrando Madrid (`mad`): ya no deja crear apps ni volúmenes nuevos allí ([hilo oficial](https://community.fly.io/t/mad-region-is-closed/25525)).
 
-- **Ahora:** pasa siempre `--region cdg` (París) o `--region fra` (Fráncfort). Comprueba la lista vigente con `fly platform regions`.
-- **Después (cambio de código, cuando lo apruebes):** default `--region` → `cdg` en `kf_managed.py` y `primary_region = "cdg"` en `fly.toml` (afecta también al despliegue 1 clic de Fly).
+- **Hecho:** `kf_managed.py` usa `--region cdg` (París) por defecto y `fly.toml` tiene `primary_region = "cdg"`. Alternativa UE: `--region fra` (Fráncfort). Lista vigente: `fly platform regions`.
 
 ---
 

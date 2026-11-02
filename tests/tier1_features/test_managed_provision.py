@@ -51,7 +51,7 @@ class TestManagedProvision(unittest.TestCase):
 
     def test_create_runs_expected_flyctl_sequence_and_keeps_secrets_off_argv(self) -> None:
         fake = FakeFly()
-        meta = kf.cmd_create(self._fly(fake), "acme", "mad", "ghcr.io/arceedev/keyforge:1.2.0",
+        meta = kf.cmd_create(self._fly(fake), "acme", "cdg", "ghcr.io/arceedev/keyforge:1.2.0",
                              "lic.acme.com", None, dict(BACKUP_ENV))
         verbs = [c[0][1:3] for c in fake.calls]
         self.assertEqual(verbs, [["apps", "create"], ["volumes", "create"], ["secrets", "import"],
@@ -72,7 +72,7 @@ class TestManagedProvision(unittest.TestCase):
             self.assertEqual(stat.S_IMODE((self.vault / "acme.env").stat().st_mode), 0o600)
 
     def test_generated_secrets_pass_production_check(self) -> None:
-        kf.cmd_create(self._fly(FakeFly()), "beta", "mad", "img", None, None, dict(BACKUP_ENV))
+        kf.cmd_create(self._fly(FakeFly()), "beta", "cdg", "img", None, None, dict(BACKUP_ENV))
         vals = dict(l.split("=", 1) for l in (self.vault / "beta.env").read_text().splitlines())
         Settings(_env_file=None, ENVIRONMENT="production", ED25519_PUBLIC_KEY_HEX="",
                  **{k: vals[k] for k in ("SECRET_KEY", "ED25519_PRIVATE_KEY_HEX", "ADMIN_API_KEY",
@@ -81,15 +81,15 @@ class TestManagedProvision(unittest.TestCase):
 
     def test_vault_written_before_fly_so_a_failed_deploy_loses_nothing(self) -> None:
         with self.assertRaises(SystemExit):
-            kf.cmd_create(self._fly(FakeFly(fail_on="deploy")), "gamma", "mad", "img", None, None, dict(BACKUP_ENV))
+            kf.cmd_create(self._fly(FakeFly(fail_on="deploy")), "gamma", "cdg", "img", None, None, dict(BACKUP_ENV))
         self.assertTrue((self.vault / "gamma.env").exists())
         with self.assertRaises(SystemExit):  # and it refuses to overwrite an existing customer key
-            kf.cmd_create(self._fly(FakeFly()), "gamma", "mad", "img", None, None, dict(BACKUP_ENV))
+            kf.cmd_create(self._fly(FakeFly()), "gamma", "cdg", "img", None, None, dict(BACKUP_ENV))
 
     def test_backup_required_unless_explicitly_skipped(self) -> None:
         with self.assertRaises(SystemExit):
-            kf.cmd_create(self._fly(FakeFly()), "delta", "mad", "img", None, None, {})
-        meta = kf.cmd_create(self._fly(FakeFly()), "delta", "mad", "img", None, None, {}, require_backup=False)
+            kf.cmd_create(self._fly(FakeFly()), "delta", "cdg", "img", None, None, {})
+        meta = kf.cmd_create(self._fly(FakeFly()), "delta", "cdg", "img", None, None, {}, require_backup=False)
         self.assertFalse(meta["backup"])
         with self.assertRaises(SystemExit):
             kf.backup_settings("x", {"KF_BACKUP_BUCKET": "b"})  # bucket without credentials
@@ -101,7 +101,7 @@ class TestManagedProvision(unittest.TestCase):
         self.assertEqual(kf.validate_slug("acme-01"), "acme-01")
 
     def test_destroy_requires_confirmation_and_archives_vault(self) -> None:
-        kf.cmd_create(self._fly(FakeFly()), "omega", "mad", "img", None, None, dict(BACKUP_ENV))
+        kf.cmd_create(self._fly(FakeFly()), "omega", "cdg", "img", None, None, dict(BACKUP_ENV))
         with self.assertRaises(SystemExit):
             kf.cmd_destroy(self._fly(FakeFly()), "omega", None)
         fake = FakeFly()
@@ -120,7 +120,7 @@ class TestManagedProvision(unittest.TestCase):
     def test_dry_run_runs_nothing_and_redacts_stdin(self) -> None:
         fake = FakeFly()
         fly = kf.Fly(dry_run=True, runner=fake, out=self.out.append)
-        kf.cmd_create(fly, "zeta", "mad", "img", None, None, dict(BACKUP_ENV))
+        kf.cmd_create(fly, "zeta", "cdg", "img", None, None, dict(BACKUP_ENV))
         self.assertEqual(fake.calls, [])
         self.assertFalse((self.vault / "zeta.env").exists())
         self.assertTrue(any("redacted" in line for line in self.out))

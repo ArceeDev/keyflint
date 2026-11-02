@@ -38,6 +38,38 @@ jobs:
       - name: Run Deterministic E2E Suite (Strict ResourceWarning)
         run: python -W error::ResourceWarning run_tests.py
 
+  sdks:
+    name: SDK conformance (JS, Python, Go)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: JS build + tests
+        working-directory: sdks/js-verify
+        run: npm ci && npm test && npm pack --dry-run
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Python tests + package check
+        working-directory: sdks/python-verify
+        run: |
+          python -m pip install --upgrade pip build twine
+          pip install ".[test]"
+          python -m pytest -q tests
+          python -m build && twine check --strict dist/*
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+      - name: Go vet + tests
+        working-directory: sdks/go-verify
+        run: |
+          test -z "$(gofmt -l .)" || { gofmt -l .; exit 1; }
+          go vet ./...
+          go test -count=1 ./...
+
   container-e2e:
     name: Container E2E (one-click deploy path)
     runs-on: ubuntu-latest
