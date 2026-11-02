@@ -445,14 +445,66 @@ class BillingService:
             for ref in sorted(refs, key=lambda r: r.startswith("cus_")):
                 found = finder(ref)
                 if found:
+                    if ref.startswith("cus_") and len(found) > 1:
+                        logger.error(
+                            "Payment reversal matched %d licenses by customer %s only; none changed. "
+                            "Revoke the right one by hand.", len(found), ref,
+                        )
+                        return [], "ambiguous_customer"
                     return found, ref
         billing = data_obj.get("billing_details") if isinstance(data_obj.get("billing_details"), dict) else {}
         email = billing.get("email") or data_obj.get("receipt_email")
         if isinstance(email, str) and email.strip():
             customer = self._customer_repo.get_by_email(email.strip())
             if customer:
-                return self._license_repo.list_by_customer_id(customer.id), "email"
+                found = self._license_repo.list_by_customer_id(customer.id)
+                if len(found) > 1:
+                    logger.error(
+                        "Payment reversal matched %d licenses by email only; none changed. "
+                        "Revoke the right one by hand.", len(found),
+                    )
+                    return [], "ambiguous_email"
+                return found, "email"
         return [], "none"
+
+    _RECURRING_TIERS = (Tier.PRO, Tier.STUDIO)
+
+    def _promotable_free_license(self, customer: Any) -> Optional[Any]:
+        """A free Community license that was never billed: the only kind a purchase may upgrade in place."""
+        for lic in self._license_repo.list_by_customer_id(customer.id):
+            if (
+                lic.tier == Tier.COMMUNITY
+                and lic.status in (LicenseStatus.ACTIVE, LicenseStatus.GRACE_PERIOD, LicenseStatus.EXPIRED)
+                and not self._license_service.is_revoked_id(lic.id)
+                and not lic.metadata.get("payment_refs")
+                and not lic.metadata.get("tier_unresolved")
+            ):
+                return lic
+        return None
+
+    def _resolve_subscription_licenses(self, data_obj: dict[str, Any], email: Optional[str]) -> list[Any]:
+        """Licenses of one subscription: by its sub_ id, else the buyer's recurring-tier licenses only.
+
+        Perpetual purchases (Indie, Agency, Lifetime) are never touched by subscription events.
+        """
+        sub_id = data_obj.get("subscription")
+        if isinstance(sub_id, dict):
+            sub_id = sub_id.get("id")
+        if not sub_id and isinstance(data_obj.get("id"), str) and data_obj["id"].startswith("sub_"):
+            sub_id = data_obj["id"]
+        finder = getattr(self._license_repo, "find_by_payment_ref", None)
+        if isinstance(sub_id, str) and sub_id and finder is not None:
+            found = finder(sub_id)
+            if found:
+                return found
+        if not email:
+            return []
+        customer = self._customer_repo.get_by_email(email)
+        if not customer:
+            return []
+        return [
+            lic for lic in self._license_repo.list_by_customer_id(customer.id) if lic.tier in self._RECURRING_TIERS
+        ]
 
     def _handle_stripe_payment_reversal(self, event_type: str, data_obj: dict[str, Any]) -> dict[str, Any]:
         """charge.refunded / charge.dispute.* lifecycle. Returns outcome details."""
@@ -666,27 +718,13 @@ class BillingService:
                 )
                 license_key = issue_resp.license_key
                 self._flag_license(license_key, {"tier_unresolved": unresolved_tier})
-            elif customer:
-                existing_licenses = self._license_repo.list_by_customer_id(customer.id)
-                upgradable = [
-                    lic
-                    for lic in existing_licenses
-                    if lic.status
-                    in (
-                        LicenseStatus.ACTIVE,
-                        LicenseStatus.GRACE_PERIOD,
-                        LicenseStatus.EXPIRED,
-                    )
-                    and not self._license_service.is_revoked_id(lic.id)
-                ]
-                upgradable.sort(
-                    key=lambda item: 0
-                    if item.status in (LicenseStatus.ACTIVE, LicenseStatus.GRACE_PERIOD)
-                    else 1
-                )
-                if upgradable:
+            else:
+                # One license per purchase: a paid license is never merged into another. Only a free,
+                # never-billed Community license is promoted, so the buyer keeps the key already in use.
+                promotable = self._promotable_free_license(customer) if customer else None
+                if promotable is not None:
                     upgraded = self._license_service.upgrade_existing(
-                        license_entity=upgradable[0],
+                        license_entity=promotable,
                         target_tier=target_tier,
                         customer_email=customer.email,
                     )
@@ -706,14 +744,6 @@ class BillingService:
                         )
                     )
                     license_key = issue_resp.license_key
-            else:
-                issue_resp = self._license_service.issue(
-                    LicenseIssueRequest(
-                        customer_email=resolved_email,
-                        tier=target_tier.value,
-                    )
-                )
-                license_key = issue_resp.license_key
 
             if tier_raw and license_key:
                 self._flag_license(license_key, {"product": tier_raw.lower()})
@@ -737,10 +767,9 @@ class BillingService:
             logger.info("Ignoring %s with billing_reason=%r", event_type, data_obj.get("billing_reason"))
 
         elif event_type in renewal_events:
-            if customer_email:
-                customer = self._customer_repo.get_by_email(customer_email)
-                if customer:
-                    licenses = self._license_repo.list_by_customer_id(customer.id)
+            if customer_email or data_obj:
+                licenses = self._resolve_subscription_licenses(data_obj, customer_email)
+                if licenses:
                     for lic in licenses:
                         if (
                             lic.status
@@ -782,10 +811,9 @@ class BillingService:
             license_status = reversal["license_status"]
 
         elif event_type in cancel_events:
-            if customer_email:
-                customer = self._customer_repo.get_by_email(customer_email)
-                if customer:
-                    licenses = self._license_repo.list_by_customer_id(customer.id)
+            if customer_email or data_obj:
+                licenses = self._resolve_subscription_licenses(data_obj, customer_email)
+                if licenses:
                     for lic in licenses:
                         if lic.status != LicenseStatus.REVOKED:
                             self._license_service.revoke(
@@ -797,10 +825,9 @@ class BillingService:
                             license_status = LicenseStatus.REVOKED.value
 
         elif event_type in failure_events:
-            if customer_email:
-                customer = self._customer_repo.get_by_email(customer_email)
-                if customer:
-                    licenses = self._license_repo.list_by_customer_id(customer.id)
+            if customer_email or data_obj:
+                licenses = self._resolve_subscription_licenses(data_obj, customer_email)
+                if licenses:
                     for lic in licenses:
                         if lic.status not in (LicenseStatus.REVOKED, LicenseStatus.SUSPENDED):
                             self._license_repo.update_status(lic.id, LicenseStatus.GRACE_PERIOD)
