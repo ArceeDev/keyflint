@@ -1,4 +1,4 @@
-"""KeyForge Security & Cryptography Infrastructure Package."""
+"""KeyFlint Security & Cryptography Infrastructure Package."""
 
 from app.infrastructure.security.ed25519_signer import Ed25519Signer
 from app.infrastructure.security.fingerprint import compute_machine_id

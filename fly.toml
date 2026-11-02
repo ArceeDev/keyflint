@@ -1,4 +1,4 @@
-# Fly.io: one KeyForge machine with a persistent volume.
+# Fly.io: one KeyFlint machine with a persistent volume.
 #   fly launch --copy-config --no-deploy --name <your-app>
 #   fly volumes create keyforge_data --size 1 --region <region>
 #   fly deploy && fly scale count 1

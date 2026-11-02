@@ -1,4 +1,4 @@
-# KeyForge Managed — Configurar Cloudflare R2 + Fly.io (Windows / PowerShell)
+# KeyFlint Managed — Configurar Cloudflare R2 + Fly.io (Windows / PowerShell)
 
 > Ejecuta todo tú con tus credenciales. Nunca pegues claves en el chat, en archivos del repo ni en la línea de comandos (quedan en el historial de PowerShell). Los comandos de abajo las piden con `Read-Host`.
 > Nombres de variables tomados de `scripts/managed/kf_managed.py` y `app/bootstrap.py` (main 3e1befb).
@@ -55,25 +55,25 @@ fly auth whoami
 Recomendado: una org separada para clientes Managed (aisla facturación y permisos de tus pruebas).
 ```powershell
 fly orgs list
-fly orgs create keyforge-managed     # opcional; luego usa --org keyforge-managed
+fly orgs create keyflint-managed     # opcional; luego usa --org keyflint-managed
 ```
 Añade tarjeta en https://fly.io/dashboard → (org) → **Billing**. Sin billing no deja crear volúmenes.
 
 ### 2.3 Imagen pública
 `kf_managed.py` despliega `--image`. La imagen debe:
 - existir en GHCR con Litestream dentro (build de main ≥ 3e1befb; la 1.1.0 actual **no** lo lleva),
-- ser **pública** (GitHub → Packages → keyforge → Package settings → Change visibility).
+- ser **pública** (GitHub → Packages → keyflint → Package settings → Change visibility).
 
 Comprobar sin login:
 ```powershell
-docker manifest inspect ghcr.io/arceedev/keyforge:<TAG>
+docker manifest inspect ghcr.io/arceedev/keyflint:<TAG>
 ```
 
 ---
 
 ## 3. Entorno local para `kf_managed.py`
 
-Desde la raíz del repo (`C:\Users\Usuario\teamwork_projects\monetizable_project` o tu clon de keyforge):
+Desde la raíz del repo (`C:\Users\Usuario\teamwork_projects\monetizable_project` o tu clon de keyflint):
 ```powershell
 py -3.12 -m venv .venv
 .\.venv\Scripts\Activate.ps1
@@ -107,15 +107,15 @@ Y haz copia cifrada de esa carpeta (BitLocker, VeraCrypt o adjunto en tu gestor 
 
 ## 4. Prueba en seco (no crea nada)
 ```powershell
-python scripts/managed/kf_managed.py --dry-run create smoke-test --region cdg --org keyforge-managed `
-  --image ghcr.io/arceedev/keyforge:<TAG>
+python scripts/managed/kf_managed.py --dry-run create smoke-test --region cdg --org keyflint-managed `
+  --image ghcr.io/arceedev/keyflint:<TAG>
 ```
 Debe imprimir, en orden: `fly apps create kf-smoke-test`, `fly volumes create keyforge_data ... --region cdg`, `fly secrets import --stage ... <<< [secrets via stdin, redacted]`, `fly deploy ... --primary-region cdg --ha=false`. Si dice *No backups configured*, falta alguna variable del paso 3.1.
 
 ## 5. Create de prueba real (cuesta céntimos)
 ```powershell
-python scripts/managed/kf_managed.py create smoke-test --region cdg --org keyforge-managed `
-  --image ghcr.io/arceedev/keyforge:<TAG>
+python scripts/managed/kf_managed.py create smoke-test --region cdg --org keyflint-managed `
+  --image ghcr.io/arceedev/keyflint:<TAG>
 
 python scripts/managed/kf_managed.py status smoke-test
 curl.exe -s https://kf-smoke-test.fly.dev/api/v1/health

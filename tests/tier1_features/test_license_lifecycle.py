@@ -13,7 +13,7 @@ from __future__ import annotations
 import time
 import unittest
 from tests.conftest import (
-    BaseKeyForgeTestCase,
+    BaseKeyFlintTestCase,
     decode_license_token,
     verify_payload_ed25519,
     verify_payload_hmac,
@@ -22,7 +22,7 @@ from tests.conftest import (
 )
 
 
-class TestLicenseLifecycle(BaseKeyForgeTestCase):
+class TestLicenseLifecycle(BaseKeyFlintTestCase):
     """E2E Verification for FEAT-LIC-01: Cryptographic License Generator."""
 
     def test_feat1_issue_license_creates_valid_ed25519_signature(self):

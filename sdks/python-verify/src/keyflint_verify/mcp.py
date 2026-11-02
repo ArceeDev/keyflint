@@ -1,8 +1,8 @@
-"""KeyForge licensing for MCP servers (FastMCP, MCPServer and the low-level ``mcp`` SDK).
+"""KeyFlint licensing for MCP servers (FastMCP, MCPServer and the low-level ``mcp`` SDK).
 
-    from keyforge_verify.mcp import KeyForge
+    from keyflint_verify.mcp import KeyFlint
 
-    kf = KeyForge()                        # reads KEYFORGE_* environment variables
+    kf = KeyFlint()                        # reads KEYFLINT_* environment variables
 
     @mcp.tool()
     @kf.require_license                    # offline Ed25519 check, no network
@@ -12,7 +12,7 @@
     @kf.metered(credits=5)                 # offline check + POST /api/v1/quota/deduct
     async def summarize(url: str) -> str: ...
 
-Put the KeyForge decorator *below* ``@mcp.tool()`` so the tool sees the wrapped function.
+Put the KeyFlint decorator *below* ``@mcp.tool()`` so the tool sees the wrapped function.
 Both decorators work on sync and async functions and keep the original signature, so
 the generated tool schema is unchanged.
 
@@ -22,12 +22,12 @@ receives a JSON-RPC error with ``code``, ``message`` and ``data``. Without ``mcp
 plain ``Exception``.
 
 Environment variables:
-    KEYFORGE_LICENSE        license token (LIC-...)
-    KEYFORGE_PUBLIC_KEYS    hex key, comma-separated keys, or kid=hex pairs
-    KEYFORGE_URL            gateway base URL (required for @metered)
-    KEYFORGE_MACHINE_ID     machine id for node-locked licenses (default: auto)
-    KEYFORGE_DOMAIN         caller domain for domain-locked licenses
-    KEYFORGE_CHECKOUT_URL   upgrade link shown when credits run out
+    KEYFLINT_LICENSE        license token (LIC-...)
+    KEYFLINT_PUBLIC_KEYS    hex key, comma-separated keys, or kid=hex pairs
+    KEYFLINT_URL            gateway base URL (required for @metered)
+    KEYFLINT_MACHINE_ID     machine id for node-locked licenses (default: auto)
+    KEYFLINT_DOMAIN         caller domain for domain-locked licenses
+    KEYFLINT_CHECKOUT_URL   upgrade link shown when credits run out
 """
 
 from __future__ import annotations
@@ -47,7 +47,7 @@ from . import PublicKeys, VerifyResult, decode_payload, verify_license
 from .fingerprint import compute_machine_id
 
 __all__ = [
-    "KeyForge",
+    "KeyFlint",
     "LicenseError",
     "LICENSE_INVALID",
     "FEATURE_NOT_ENTITLED",
@@ -63,11 +63,11 @@ QUOTA_EXHAUSTED = -32062
 GATEWAY_ERROR = -32063
 
 _LICENSE_MESSAGES = {
-    "ERR_EMPTY_TOKEN": "No KeyForge license is configured. Set KEYFORGE_LICENSE.",
+    "ERR_EMPTY_TOKEN": "No KeyFlint license is configured. Set KEYFLINT_LICENSE.",
     "ERR_SIGNATURE_TAMPERED": "This license was not issued for this server (signature check failed). "
-    "Check KEYFORGE_LICENSE and KEYFORGE_PUBLIC_KEYS.",
+    "Check KEYFLINT_LICENSE and KEYFLINT_PUBLIC_KEYS.",
     "ERR_UNKNOWN_KID": "This license was signed with a key this server does not trust. "
-    "Check KEYFORGE_PUBLIC_KEYS.",
+    "Check KEYFLINT_PUBLIC_KEYS.",
     "ERR_NODE_LOCK_VIOLATION": "This license is locked to another machine.",
     "ERR_DOMAIN_LOCK_VIOLATION": "This license is not valid for this domain.",
     "ERR_CLOCK_BEFORE_ISSUANCE": "The system clock is earlier than the license issue date. "
@@ -83,7 +83,7 @@ def _license_message(error: Optional[str], payload: Optional[Mapping[str, Any]],
         when = time.strftime("%Y-%m-%d", time.gmtime(exp)) if isinstance(exp, (int, float)) else None
         text = f"Your license expired on {when}." if when else "Your license has expired."
     else:
-        text = _LICENSE_MESSAGES.get(code, f"The KeyForge license is invalid ({code}).")
+        text = _LICENSE_MESSAGES.get(code, f"The KeyFlint license is invalid ({code}).")
     if checkout_url and code not in ("ERR_CLOCK_BEFORE_ISSUANCE", "ERR_UNKNOWN_KID", "ERR_SIGNATURE_TAMPERED"):
         text += f" Get or renew a license: {checkout_url}"
     return text
@@ -106,9 +106,9 @@ except ImportError:  # pragma: no cover - depends on installed SDK
 
 
 class LicenseError(_MCPBase):  # type: ignore[misc,valid-type]
-    """Standard MCP error carrying KeyForge details in ``data``.
+    """Standard MCP error carrying KeyFlint details in ``data``.
 
-    ``data["reason"]`` is the KeyForge error code (``ERR_LICENSE_EXPIRED``,
+    ``data["reason"]`` is the KeyFlint error code (``ERR_LICENSE_EXPIRED``,
     ``QUOTA_EXHAUSTED``, ...). ``data["checkout_url"]`` is set when an upgrade link is configured.
     """
 
@@ -148,7 +148,7 @@ def _parse_keys_env(raw: str) -> PublicKeys:
     return items[0] if len(items) == 1 else items
 
 
-class KeyForge:
+class KeyFlint:
     """Holds the license configuration and exposes the MCP decorators."""
 
     def __init__(
@@ -163,14 +163,15 @@ class KeyForge:
         timeout: float = 5.0,
         event_type: str = "mcp_tool_call",
     ) -> None:
-        env = os.environ
-        self.license_key = license_key or env.get("KEYFORGE_LICENSE", "")
-        keys_env = env.get("KEYFORGE_PUBLIC_KEYS") or env.get("KEYFORGE_PUBLIC_KEY", "")
+        # KEYFORGE_* (pre-rename) is accepted as a fallback for every KEYFLINT_* variable.
+        env = {**{"KEYFLINT_" + k[9:]: v for k, v in os.environ.items() if k.startswith("KEYFORGE_")}, **os.environ}
+        self.license_key = license_key or env.get("KEYFLINT_LICENSE", "")
+        keys_env = env.get("KEYFLINT_PUBLIC_KEYS") or env.get("KEYFLINT_PUBLIC_KEY", "")
         self.public_keys: PublicKeys = public_keys if public_keys is not None else _parse_keys_env(keys_env)
-        self.gateway_url = (gateway_url or env.get("KEYFORGE_URL", "")).rstrip("/")
-        self.machine_id = env.get("KEYFORGE_MACHINE_ID", machine_id) if machine_id == "auto" else machine_id
-        self.domain = domain or env.get("KEYFORGE_DOMAIN") or None
-        self.checkout_url = checkout_url or env.get("KEYFORGE_CHECKOUT_URL") or None
+        self.gateway_url = (gateway_url or env.get("KEYFLINT_URL", "")).rstrip("/")
+        self.machine_id = env.get("KEYFLINT_MACHINE_ID", machine_id) if machine_id == "auto" else machine_id
+        self.domain = domain or env.get("KEYFLINT_DOMAIN") or None
+        self.checkout_url = checkout_url or env.get("KEYFLINT_CHECKOUT_URL") or None
         self.timeout = timeout
         self.event_type = event_type
         self._cached: Optional[VerifyResult] = None
@@ -236,7 +237,7 @@ class KeyForge:
     ) -> dict[str, Any]:
         """POST /api/v1/quota/deduct. Retries once on network errors with the same idempotency key."""
         if not self.gateway_url:
-            raise _error(GATEWAY_ERROR, "GATEWAY_NOT_CONFIGURED", "KEYFORGE_URL is not set; metered tools need the gateway.")
+            raise _error(GATEWAY_ERROR, "GATEWAY_NOT_CONFIGURED", "KEYFLINT_URL is not set; metered tools need the gateway.")
         key = idempotency_key or f"mcp-{uuid.uuid4().hex}"
         body = {
             "license_key": self.license_key,
@@ -263,7 +264,7 @@ class KeyForge:
             except (urllib.error.URLError, TimeoutError, OSError) as exc:
                 last_exc = exc
         raise _error(GATEWAY_ERROR, "GATEWAY_UNREACHABLE",
-                     f"Could not reach the KeyForge license server at {self.gateway_url} ({last_exc}). "
+                     f"Could not reach the KeyFlint license server at {self.gateway_url} ({last_exc}). "
                      "The tool did not run.")
 
     def refund(self, idempotency_key: str, reason: Optional[str] = None) -> bool:
@@ -305,9 +306,9 @@ class KeyForge:
             return _error(QUOTA_EXHAUSTED, "QUOTA_EXHAUSTED", text, status=402, checkout_url=self.checkout_url,
                           gateway_details=err.get("details") or None)
         if status in (401, 403, 404):
-            return _error(LICENSE_INVALID, code, f"KeyForge license rejected: {message}", status=status,
+            return _error(LICENSE_INVALID, code, f"KeyFlint license rejected: {message}", status=status,
                           checkout_url=self.checkout_url)
-        return _error(GATEWAY_ERROR, code, f"KeyForge gateway error: {message} The tool did not run.", status=status)
+        return _error(GATEWAY_ERROR, code, f"KeyFlint gateway error: {message} The tool did not run.", status=status)
 
     # --------------------------------------------------------------- decorators
 

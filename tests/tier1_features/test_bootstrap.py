@@ -90,7 +90,8 @@ class TestBootstrap(unittest.TestCase):
         self.assertEqual(resolve_data_dir({"DATABASE_URL": "sqlite:////app/data/keyforge.db"}), Path("/app/data"))
         self.assertEqual(resolve_data_dir({"DATABASE_URL": "sqlite:///data/keyforge.db"}), Path("data"))
         self.assertEqual(resolve_data_dir({"DATABASE_URL": "sqlite:///:memory:"}), Path("/app/data"))
-        self.assertEqual(resolve_data_dir({"KEYFORGE_DATA_DIR": "/srv/kf"}), Path("/srv/kf"))
+        self.assertEqual(resolve_data_dir({"KEYFLINT_DATA_DIR": "/srv/kf"}), Path("/srv/kf"))
+        self.assertEqual(resolve_data_dir({"KEYFORGE_DATA_DIR": "/srv/legacy"}), Path("/srv/legacy"))
         self.assertEqual(resolve_data_dir({}), Path("/app/data"))
 
     def test_default_args_follow_platform_port(self) -> None:

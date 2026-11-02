@@ -1,14 +1,14 @@
 /**
- * keyforge-verify/mcp — license gating and credit metering for MCP tool handlers.
+ * keyflint-verify/mcp — license gating and credit metering for MCP tool handlers.
  *
- *   import { createKeyForge } from "keyforge-verify/mcp";
- *   const kf = createKeyForge();                                  // reads KEYFORGE_* env vars
+ *   import { createKeyFlint } from "keyflint-verify/mcp";
+ *   const kf = createKeyFlint();                                  // reads KEYFLINT_* env vars
  *   server.registerTool("search", cfg, kf.requireLicense(async (args) => ...));   // offline
  *   server.registerTool("summarize", cfg, kf.metered(5, async (args) => ...));    // + /quota/deduct
  *
  * Works with any handler shape (`McpServer.registerTool`, `server.tool`, low-level
  * `setRequestHandler`), because the wrappers keep the handler's arguments and return type.
- * Failures throw `KeyForgeMcpError`, which has the same shape as the SDK's McpError
+ * Failures throw `KeyFlintMcpError`, which has the same shape as the SDK's McpError
  * (`code`, `message`, `data`) and the same JSON-RPC codes as the Python package.
  */
 
@@ -22,10 +22,10 @@ export const QUOTA_EXHAUSTED = -32062;
 export const GATEWAY_ERROR = -32063;
 
 const LICENSE_MESSAGES: Record<string, string> = {
-  ERR_EMPTY_TOKEN: "No KeyForge license is configured. Set KEYFORGE_LICENSE.",
+  ERR_EMPTY_TOKEN: "No KeyFlint license is configured. Set KEYFLINT_LICENSE.",
   ERR_SIGNATURE_TAMPERED:
-    "This license was not issued for this server (signature check failed). Check KEYFORGE_LICENSE and KEYFORGE_PUBLIC_KEYS.",
-  ERR_UNKNOWN_KID: "This license was signed with a key this server does not trust. Check KEYFORGE_PUBLIC_KEYS.",
+    "This license was not issued for this server (signature check failed). Check KEYFLINT_LICENSE and KEYFLINT_PUBLIC_KEYS.",
+  ERR_UNKNOWN_KID: "This license was signed with a key this server does not trust. Check KEYFLINT_PUBLIC_KEYS.",
   ERR_NODE_LOCK_VIOLATION: "This license is locked to another machine.",
   ERR_DOMAIN_LOCK_VIOLATION: "This license is not valid for this domain.",
   ERR_CLOCK_BEFORE_ISSUANCE: "The system clock is earlier than the license issue date. Correct the clock and retry.",
@@ -42,13 +42,13 @@ function licenseMessage(error: string | null, payload: VerifyResult["payload"], 
       ? `Your license expired on ${new Date(exp * 1000).toISOString().slice(0, 10)}.`
       : "Your license has expired.";
   } else {
-    text = LICENSE_MESSAGES[code] ?? `The KeyForge license is invalid (${code}).`;
+    text = LICENSE_MESSAGES[code] ?? `The KeyFlint license is invalid (${code}).`;
   }
   if (checkoutUrl && !NO_CHECKOUT_HINT.has(code)) text += ` Get or renew a license: ${checkoutUrl}`;
   return text;
 }
 
-export interface KeyForgeErrorData {
+export interface KeyFlintErrorData {
   reason: string;
   status?: number;
   checkoutUrl?: string;
@@ -57,10 +57,10 @@ export interface KeyForgeErrorData {
   [key: string]: unknown;
 }
 
-export class KeyForgeMcpError extends Error {
+export class KeyFlintMcpError extends Error {
   readonly code: number;
-  readonly data: KeyForgeErrorData;
-  constructor(code: number, message: string, data: KeyForgeErrorData) {
+  readonly data: KeyFlintErrorData;
+  constructor(code: number, message: string, data: KeyFlintErrorData) {
     super(message);
     this.name = "McpError";
     this.code = code;
@@ -71,18 +71,18 @@ export class KeyForgeMcpError extends Error {
   }
 }
 
-export interface KeyForgeOptions {
-  /** License token. Default: KEYFORGE_LICENSE. */
+export interface KeyFlintOptions {
+  /** License token. Default: KEYFLINT_LICENSE. */
   licenseKey?: string;
-  /** Trusted public key(s). Default: KEYFORGE_PUBLIC_KEYS (hex, comma list, or kid=hex pairs). */
+  /** Trusted public key(s). Default: KEYFLINT_PUBLIC_KEYS (hex, comma list, or kid=hex pairs). */
   publicKeys?: PublicKeys;
-  /** Gateway base URL, required for `metered`. Default: KEYFORGE_URL. */
+  /** Gateway base URL, required for `metered`. Default: KEYFLINT_URL. */
   gatewayUrl?: string;
-  /** Machine id for node-locked licenses. Default: KEYFORGE_MACHINE_ID. */
+  /** Machine id for node-locked licenses. Default: KEYFLINT_MACHINE_ID. */
   machineId?: string;
-  /** Caller domain for domain-locked licenses. Default: KEYFORGE_DOMAIN. */
+  /** Caller domain for domain-locked licenses. Default: KEYFLINT_DOMAIN. */
   domain?: string;
-  /** Upgrade link added to quota errors. Default: KEYFORGE_CHECKOUT_URL. */
+  /** Upgrade link added to quota errors. Default: KEYFLINT_CHECKOUT_URL. */
   checkoutUrl?: string;
   /** Per-request timeout in ms (default 5000). */
   timeoutMs?: number;
@@ -111,10 +111,10 @@ export interface MeteredOptions extends GateOptions {
 type AnyFn = (...args: never[]) => unknown;
 type Wrapped<F extends AnyFn> = (...args: Parameters<F>) => Promise<Awaited<ReturnType<F>>>;
 
-export interface KeyForge {
-  /** Offline license check (cached for up to 60 s). Throws KeyForgeMcpError. */
+export interface KeyFlint {
+  /** Offline license check (cached for up to 60 s). Throws KeyFlintMcpError. */
   check(options?: GateOptions): Promise<VerifyResult>;
-  /** POST /api/v1/quota/deduct with an automatic idempotency key. Throws KeyForgeMcpError. */
+  /** POST /api/v1/quota/deduct with an automatic idempotency key. Throws KeyFlintMcpError. */
   deduct(credits?: number, options?: DeductOptions): Promise<Record<string, unknown>>;
   /** Best-effort POST /api/v1/quota/refund for a previous deduct. Never throws; resolves true on success. */
   refund(idempotencyKey: string, reason?: string): Promise<boolean>;
@@ -124,8 +124,13 @@ export interface KeyForge {
 
 function env(name: string): string | undefined {
   const p = (globalThis as { process?: { env?: Record<string, string | undefined> } }).process;
-  const v = p?.env?.[name];
-  return v && v.trim() ? v.trim() : undefined;
+  // KEYFORGE_* (pre-rename) is accepted as a fallback for every KEYFLINT_* variable.
+  const legacy = name.startsWith("KEYFLINT_") ? "KEYFORGE_" + name.slice(9) : undefined;
+  for (const n of legacy ? [name, legacy] : [name]) {
+    const v = p?.env?.[n];
+    if (v && v.trim()) return v.trim();
+  }
+  return undefined;
 }
 
 /** Parses `hex`, `hex,hex` or `kid=hex` entries; bare keys in a named list become `legacy-<i>`. */
@@ -157,13 +162,13 @@ function strip<T extends Record<string, unknown>>(o: T): T {
   return o;
 }
 
-export function createKeyForge(options: KeyForgeOptions = {}): KeyForge {
-  const licenseKey = options.licenseKey ?? env("KEYFORGE_LICENSE") ?? "";
-  const publicKeys = options.publicKeys ?? parseKeysEnv(env("KEYFORGE_PUBLIC_KEYS") ?? env("KEYFORGE_PUBLIC_KEY"));
-  const gatewayUrl = (options.gatewayUrl ?? env("KEYFORGE_URL") ?? "").replace(/\/+$/, "");
-  const machineId = options.machineId ?? env("KEYFORGE_MACHINE_ID");
-  const domain = options.domain ?? env("KEYFORGE_DOMAIN");
-  const checkoutUrl = options.checkoutUrl ?? env("KEYFORGE_CHECKOUT_URL");
+export function createKeyFlint(options: KeyFlintOptions = {}): KeyFlint {
+  const licenseKey = options.licenseKey ?? env("KEYFLINT_LICENSE") ?? "";
+  const publicKeys = options.publicKeys ?? parseKeysEnv(env("KEYFLINT_PUBLIC_KEYS") ?? env("KEYFLINT_PUBLIC_KEY"));
+  const gatewayUrl = (options.gatewayUrl ?? env("KEYFLINT_URL") ?? "").replace(/\/+$/, "");
+  const machineId = options.machineId ?? env("KEYFLINT_MACHINE_ID");
+  const domain = options.domain ?? env("KEYFLINT_DOMAIN");
+  const checkoutUrl = options.checkoutUrl ?? env("KEYFLINT_CHECKOUT_URL");
   const timeoutMs = options.timeoutMs ?? 5000;
   const defaultEvent = options.eventType ?? "mcp_tool_call";
   const doFetch = options.fetch ?? (globalThis.fetch as typeof fetch | undefined);
@@ -172,7 +177,7 @@ export function createKeyForge(options: KeyForgeOptions = {}): KeyForge {
   let cachedUntil = 0;
 
   const fail = (code: number, message: string, data: { reason: string; [k: string]: unknown }): never => {
-    throw new KeyForgeMcpError(code, message, strip(data) as KeyForgeErrorData);
+    throw new KeyFlintMcpError(code, message, strip(data) as KeyFlintErrorData);
   };
 
   async function check(gate: GateOptions = {}): Promise<VerifyResult> {
@@ -208,7 +213,7 @@ export function createKeyForge(options: KeyForgeOptions = {}): KeyForge {
   }
 
   async function deduct(credits = 1, opts: DeductOptions = {}): Promise<Record<string, unknown>> {
-    if (!gatewayUrl) fail(GATEWAY_ERROR, "KEYFORGE_URL is not set; metered tools need the gateway.", { reason: "GATEWAY_NOT_CONFIGURED" });
+    if (!gatewayUrl) fail(GATEWAY_ERROR, "KEYFLINT_URL is not set; metered tools need the gateway.", { reason: "GATEWAY_NOT_CONFIGURED" });
     if (!doFetch) fail(GATEWAY_ERROR, "No fetch implementation available.", { reason: "GATEWAY_NOT_CONFIGURED" });
     const key = opts.idempotencyKey ?? randomKey();
     const body = JSON.stringify(
@@ -252,13 +257,13 @@ export function createKeyForge(options: KeyForgeOptions = {}): KeyForge {
         });
       }
       if (res.status === 401 || res.status === 403 || res.status === 404) {
-        fail(LICENSE_INVALID, `KeyForge license rejected: ${message}`, { reason: code, status: res.status, checkoutUrl });
+        fail(LICENSE_INVALID, `KeyFlint license rejected: ${message}`, { reason: code, status: res.status, checkoutUrl });
       }
-      fail(GATEWAY_ERROR, `KeyForge gateway error: ${message} The tool did not run.`, { reason: code, status: res.status });
+      fail(GATEWAY_ERROR, `KeyFlint gateway error: ${message} The tool did not run.`, { reason: code, status: res.status });
     }
     return fail(
       GATEWAY_ERROR,
-      `Could not reach the KeyForge license server at ${gatewayUrl} (${String(lastErr)}). The tool did not run.`,
+      `Could not reach the KeyFlint license server at ${gatewayUrl} (${String(lastErr)}). The tool did not run.`,
       { reason: "GATEWAY_UNREACHABLE" },
     );
   }

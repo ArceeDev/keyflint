@@ -14,10 +14,10 @@ from __future__ import annotations
 import unittest
 import uuid
 
-from tests.conftest import BaseKeyForgeTestCase
+from tests.conftest import BaseKeyFlintTestCase
 
 
-class TestQuotaMetering(BaseKeyForgeTestCase):
+class TestQuotaMetering(BaseKeyFlintTestCase):
     """E2E Verification for FEAT-QUO-01: Token-Bucket Usage Quotas and Atomic Deductions."""
 
     def test_feat3_new_account_initialized_with_tier_credits(self):

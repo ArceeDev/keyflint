@@ -19,7 +19,7 @@ from app.domain.exceptions import (
 
 
 class Tier(StrEnum):
-    """KeyForge Commercial Subscription and License Tiers."""
+    """KeyFlint Commercial Subscription and License Tiers."""
 
     COMMUNITY = "community"
     PRO = "pro"

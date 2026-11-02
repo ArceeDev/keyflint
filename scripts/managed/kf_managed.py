@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""KeyForge Managed: one isolated Fly.io instance per customer.
+"""KeyFlint Managed: one isolated Fly.io instance per customer.
 
   python scripts/managed/kf_managed.py create  acme --region cdg [--domain lic.acme.com] [--dry-run]
-  python scripts/managed/kf_managed.py upgrade acme --image ghcr.io/arceedev/keyforge:1.2.0
-  python scripts/managed/kf_managed.py upgrade --all --image ghcr.io/arceedev/keyforge:1.2.0
+  python scripts/managed/kf_managed.py upgrade acme --image ghcr.io/arceedev/keyflint:1.2.0
+  python scripts/managed/kf_managed.py upgrade --all --image ghcr.io/arceedev/keyflint:1.2.0
   python scripts/managed/kf_managed.py status  acme
   python scripts/managed/kf_managed.py list
   python scripts/managed/kf_managed.py destroy acme --confirm acme
@@ -35,7 +35,7 @@ from typing import Callable, Optional
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-DEFAULT_IMAGE = "ghcr.io/arceedev/keyforge:latest"
+DEFAULT_IMAGE = "ghcr.io/arceedev/keyflint:latest"
 FLY_CONFIG = ROOT / "fly.toml"
 SLUG_RE = re.compile(r"^[a-z0-9](?:[a-z0-9-]{1,38}[a-z0-9])$")
 SECRET_NAMES = ("SECRET_KEY", "ED25519_PRIVATE_KEY_HEX", "ADMIN_API_KEY",

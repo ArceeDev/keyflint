@@ -13,13 +13,13 @@ from __future__ import annotations
 import time
 import unittest
 from tests.conftest import (
-    BaseKeyForgeTestCase,
+    BaseKeyFlintTestCase,
     encode_license_token,
     sign_payload_ed25519,
 )
 
 
-class TestValidatorBoundaries(BaseKeyForgeTestCase):
+class TestValidatorBoundaries(BaseKeyFlintTestCase):
     """Boundary verification for activations, hardware locking, and seat limits."""
 
     def test_bound2_seat_limit_overflow_rejects_new_activation(self):

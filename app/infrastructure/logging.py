@@ -1,4 +1,4 @@
-"""Structured Logging Configuration for KeyForge."""
+"""Structured Logging Configuration for KeyFlint."""
 
 from __future__ import annotations
 
@@ -53,4 +53,4 @@ def configure_logging(log_level: str = "INFO", use_json: bool = False) -> None:
 
 def get_logger(name: str) -> logging.Logger:
     """Convenience getter for namespaced loggers."""
-    return logging.getLogger(f"keyforge.{name}")
+    return logging.getLogger(f"keyflint.{name}")

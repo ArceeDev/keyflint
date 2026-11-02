@@ -1,4 +1,4 @@
-"""Search GitHub for MCP (Model Context Protocol) creators and projects to prospect for KeyForge.
+"""Search GitHub for MCP (Model Context Protocol) creators and projects to prospect for KeyFlint.
 
 Usage:
     python scripts/find_mcp_prospects.py
@@ -23,7 +23,7 @@ if sys.stdout.encoding and sys.stdout.encoding.lower() != "utf-8":
 def search_github_mcp_repos(query: str = "modelcontextprotocol+stars:>10", per_page: int = 15) -> list[dict]:
     url = f"https://api.github.com/search/repositories?q={query}&sort=stars&order=desc&per_page={per_page}"
     headers = {
-        "User-Agent": "KeyForge-Prospector/1.1",
+        "User-Agent": "KeyFlint-Prospector/1.1",
         "Accept": "application/vnd.github.v3+json",
     }
     req = urllib.request.Request(url, headers=headers)
@@ -38,7 +38,7 @@ def search_github_mcp_repos(query: str = "modelcontextprotocol+stars:>10", per_p
 
 def main() -> None:
     print("=" * 78)
-    print("  KeyForge: Active Model Context Protocol (MCP) Prospects on GitHub")
+    print("  KeyFlint: Active Model Context Protocol (MCP) Prospects on GitHub")
     print("=" * 78)
     items = search_github_mcp_repos()
     if not items:

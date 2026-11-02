@@ -1,4 +1,4 @@
-"""KeyForge License Application Service.
+"""KeyFlint License Application Service.
 
 File: app/application/services/license_service.py
 """

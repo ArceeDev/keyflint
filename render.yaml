@@ -1,9 +1,9 @@
-# Render Blueprint: one KeyForge instance with a persistent disk.
-# Deploy: https://render.com/deploy?repo=https://github.com/ArceeDev/keyforge
+# Render Blueprint: one KeyFlint instance with a persistent disk.
+# Deploy: https://render.com/deploy?repo=https://github.com/ArceeDev/keyflint
 # Disks require a paid instance type (starter or above). SQLite = exactly one instance.
 services:
   - type: web
-    name: keyforge
+    name: keyflint
     runtime: docker
     dockerfilePath: ./Dockerfile
     plan: starter

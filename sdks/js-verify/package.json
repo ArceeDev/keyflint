@@ -1,17 +1,17 @@
 {
-  "name": "keyforge-verify",
+  "name": "keyflint-verify",
   "version": "1.1.0",
-  "description": "Zero-dependency offline verifier and MCP tool gating for KeyForge Ed25519 license tokens (Web Crypto API).",
+  "description": "Zero-dependency offline verifier and MCP tool gating for KeyFlint Ed25519 license tokens (Web Crypto API).",
   "license": "MIT",
   "author": "ArceeDev",
-  "homepage": "https://arceedev.github.io/keyforge/",
+  "homepage": "https://keyflint.dev/",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/ArceeDev/keyforge.git",
+    "url": "git+https://github.com/ArceeDev/keyflint.git",
     "directory": "sdks/js-verify"
   },
   "bugs": {
-    "url": "https://github.com/ArceeDev/keyforge/issues"
+    "url": "https://github.com/ArceeDev/keyflint/issues"
   },
   "type": "module",
   "sideEffects": false,
@@ -51,7 +51,7 @@
   },
   "keywords": [
     "ed25519",
-    "keyforge",
+    "keyflint",
     "license",
     "licensing",
     "mcp",

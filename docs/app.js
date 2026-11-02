@@ -1,4 +1,4 @@
-// KeyForge v1.1.0 — Consola operativa
+// KeyFlint v1.1.0 — Consola operativa
 
 document.addEventListener("DOMContentLoaded", () => {
     const issueEmail = document.getElementById("issueEmail");
@@ -710,7 +710,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     portalTsSnippet.textContent = data.typescript_snippet;
                     portalResults.classList.remove("is-hidden");
                 } catch (err) {
-                    portalError.textContent = `Consulta no disponible en modo estático sin backend. Requiere gateway KeyForge activo en Railway/Render: ${err.message}`;
+                    portalError.textContent = `Consulta no disponible en modo estático sin backend. Requiere gateway KeyFlint activo en Railway/Render: ${err.message}`;
                     portalError.classList.remove("is-hidden");
                 }
             })
@@ -721,7 +721,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const codeSnippet = document.getElementById("codeSnippet");
     const btnCopySnippet = document.getElementById("btnCopySnippet");
     const codeSnippets = {
-        "python-mcp": `<span class="hl-kw">from</span> keyforge_verify.mcp <span class="hl-kw">import</span> metered
+        "python-mcp": `<span class="hl-kw">from</span> keyflint_verify.mcp <span class="hl-kw">import</span> metered
 
 <span class="hl-cm"># 2 créditos por llamada; reembolso automático si la tool lanza o devuelve isError</span>
 <span class="hl-fn">@mcp.tool</span>()
@@ -729,7 +729,7 @@ document.addEventListener("DOMContentLoaded", () => {
 <span class="hl-kw">async def</span> <span class="hl-fn">analizar_codigo</span>(repo_url: str) -> str:
     <span class="hl-kw">return await</span> run_ai_audit(repo_url)`,
 
-        "ts-mcp": `<span class="hl-kw">import</span> { createMcpWrapper } <span class="hl-kw">from</span> <span class="hl-str">"keyforge-verify/mcp"</span>;
+        "ts-mcp": `<span class="hl-kw">import</span> { createMcpWrapper } <span class="hl-kw">from</span> <span class="hl-str">"keyflint-verify/mcp"</span>;
 
 <span class="hl-kw">const</span> kf = createMcpWrapper({ gatewayUrl: <span class="hl-str">"https://licenses.tu-dominio.com"</span> });
 
@@ -738,7 +738,7 @@ server.tool(<span class="hl-str">"analizar_codigo"</span>, schema, kf.metered(2,
     <span class="hl-kw">return await</span> runAiAudit(args);
 }));`,
 
-        "python-offline": `<span class="hl-kw">from</span> keyforge_verify <span class="hl-kw">import</span> validate_offline
+        "python-offline": `<span class="hl-kw">from</span> keyflint_verify <span class="hl-kw">import</span> validate_offline
 
 <span class="hl-cm"># Verificación local, sin red</span>
 is_valid, payload, err = validate_offline(
@@ -749,7 +749,7 @@ is_valid, payload, err = validate_offline(
 <span class="hl-kw">if not</span> is_valid:
     sys.exit(<span class="hl-str">f"Licencia inválida: {err}"</span>)`,
 
-        "js-webcrypto": `<span class="hl-kw">import</span> { verifyLicense } <span class="hl-kw">from</span> <span class="hl-str">"keyforge-verify"</span>;
+        "js-webcrypto": `<span class="hl-kw">import</span> { verifyLicense } <span class="hl-kw">from</span> <span class="hl-str">"keyflint-verify"</span>;
 
 <span class="hl-cm">// Web Crypto: mismo código en Node y navegador</span>
 <span class="hl-kw">const</span> { valid, payload, errorCode } = <span class="hl-kw">await</span> verifyLicense(token, publicKeyHex);

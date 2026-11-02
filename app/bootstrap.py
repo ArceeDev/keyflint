@@ -3,11 +3,11 @@
 Run as ``python -m app.bootstrap [cli args...]``. With no args it starts the gateway on
 ``$PORT`` (default 8000), which is what Render, Railway and Fly expect.
 
-1. If started as root, the data directory is created/chowned to the ``keyforge`` user and
+1. If started as root, the data directory is created/chowned to the ``keyflint`` user and
    privileges are dropped (platform volumes are usually mounted root-owned).
 2. Secrets missing from the environment are loaded from ``<data_dir>/secrets.env`` or, on
    first boot, generated there (mode 0600). Values set in the environment always win.
-   Set ``KEYFORGE_AUTO_SECRETS=0`` to disable this step.
+   Set ``KEYFLINT_AUTO_SECRETS=0`` (legacy: ``KEYFORGE_AUTO_SECRETS``) to disable this step.
 3. If ``LITESTREAM_BUCKET`` (S3/R2) or ``LITESTREAM_FILE_PATH`` is set and the command is
    ``serve``: restore the database from the replica when it is missing (fails closed if the
    restore fails), then run the gateway under ``litestream replicate -exec`` for continuous
@@ -31,7 +31,7 @@ from typing import Callable, Mapping, MutableMapping, Optional
 
 SECRETS_FILENAME = "secrets.env"
 DEFAULT_DATA_DIR = "/app/data"
-RUNTIME_USER = "keyforge"
+RUNTIME_USER = "keyflint"
 
 _KEY_RE = re.compile(r"^[A-Z][A-Z0-9_]*$")
 _VALUE_RE = re.compile(r"^[A-Za-z0-9_\-]+$")
@@ -54,7 +54,7 @@ GENERATORS: dict[str, Callable[[], str]] = {
 
 
 def resolve_data_dir(env: Mapping[str, str]) -> Path:
-    explicit = (env.get("KEYFORGE_DATA_DIR") or "").strip()
+    explicit = (env.get("KEYFLINT_DATA_DIR") or env.get("KEYFORGE_DATA_DIR") or "").strip()
     if explicit:
         return Path(explicit)
     url = (env.get("DATABASE_URL") or "").strip()
@@ -81,7 +81,7 @@ def read_secrets_file(path: Path) -> dict[str, str]:
 
 def write_secrets_file(path: Path, values: Mapping[str, str]) -> None:
     lines = [
-        "# KeyForge secrets generated on first boot. Keep this volume persistent and backed up:",
+        "# KeyFlint secrets generated on first boot. Keep this volume persistent and backed up:",
         "# losing ED25519_PRIVATE_KEY_HEX invalidates every license already issued.",
     ]
     for key in GENERATORS:
@@ -106,7 +106,7 @@ def provision_secrets(env: MutableMapping[str, str], data_dir: Path, log: Callab
         if (env.get(key) or "").strip():
             continue  # operator-provided value wins
         if key == "ED25519_PRIVATE_KEY_HEX" and (env.get("ED25519_PUBLIC_KEY_HEX") or "").strip():
-            log("[keyforge] ED25519_PUBLIC_KEY_HEX is set without its private key: not generating one.")
+            log("[keyflint] ED25519_PUBLIC_KEY_HEX is set without its private key: not generating one.")
             continue
         if key not in stored:
             stored[key] = gen()
@@ -121,17 +121,17 @@ def provision_secrets(env: MutableMapping[str, str], data_dir: Path, log: Callab
 
 
 def _announce(env: Mapping[str, str], generated: list[str], path: Path, log: Callable[[str], None]) -> None:
-    log(f"[keyforge] First boot: generated {', '.join(generated)} in {path}")
+    log(f"[keyflint] First boot: generated {', '.join(generated)} in {path}")
     if "ED25519_PRIVATE_KEY_HEX" in generated:
         from app.infrastructure.security.ed25519_signer import Ed25519Signer
         pub = Ed25519Signer(private_key_hex=env["ED25519_PRIVATE_KEY_HEX"]).get_public_key_hex()
-        log(f"[keyforge] Ed25519 public key (embed in your app / SDK): {pub}")
-        log("[keyforge] WARNING: this key lives on the data volume. If the volume is not persistent,")
-        log("[keyforge]          a redeploy creates a new key and every issued license stops verifying.")
+        log(f"[keyflint] Ed25519 public key (embed in your app / SDK): {pub}")
+        log("[keyflint] WARNING: this key lives on the data volume. If the volume is not persistent,")
+        log("[keyflint]          a redeploy creates a new key and every issued license stops verifying.")
     if "ADMIN_API_KEY" in generated:
-        log(f"[keyforge] Admin API key (shown once, also in {path}): {env['ADMIN_API_KEY']}")
+        log(f"[keyflint] Admin API key (shown once, also in {path}): {env['ADMIN_API_KEY']}")
     if any(k.endswith("WEBHOOK_SECRET") for k in generated):
-        log("[keyforge] Webhook secrets are placeholders: set STRIPE_WEBHOOK_SECRET / "
+        log("[keyflint] Webhook secrets are placeholders: set STRIPE_WEBHOOK_SECRET / "
             "LEMONSQUEEZY_WEBHOOK_SECRET to your provider's whsec before taking payments.")
 
 
@@ -210,18 +210,18 @@ def litestream_wrap(env: Mapping[str, str], args: list[str], log: Callable[[str]
         return cli
     binary = shutil.which("litestream")
     if not binary:
-        raise SystemExit("[keyforge] LITESTREAM_* is set but the litestream binary is not installed.")
+        raise SystemExit("[keyflint] LITESTREAM_* is set but the litestream binary is not installed.")
     Path(LITESTREAM_CONFIG).write_text(config, encoding="utf-8")
     db_path.parent.mkdir(parents=True, exist_ok=True)
     if not db_path.exists():
-        log(f"[keyforge] No database at {db_path}: restoring from backup replica if one exists...")
+        log(f"[keyflint] No database at {db_path}: restoring from backup replica if one exists...")
         res = run([binary, "restore", "-config", LITESTREAM_CONFIG, "-if-db-not-exists",
                    "-if-replica-exists", str(db_path)])
         if res.returncode != 0:
             # Fail closed: starting empty would issue licenses against a blank database.
-            raise SystemExit(f"[keyforge] Backup restore failed (exit {res.returncode}); refusing to start.")
-        log("[keyforge] Restore step done." if db_path.exists() else "[keyforge] No replica yet: starting fresh.")
-    log("[keyforge] Continuous backup enabled (litestream).")
+            raise SystemExit(f"[keyflint] Backup restore failed (exit {res.returncode}); refusing to start.")
+        log("[keyflint] Restore step done." if db_path.exists() else "[keyflint] No replica yet: starting fresh.")
+    log("[keyflint] Continuous backup enabled (litestream).")
     return [binary, "replicate", "-config", LITESTREAM_CONFIG, "-exec", shlex.join(cli)]
 
 
@@ -234,7 +234,8 @@ def main(argv: Optional[list[str]] = None) -> None:
     args = list(sys.argv[1:] if argv is None else argv) or default_args(os.environ)
     data_dir = resolve_data_dir(os.environ)
     drop_privileges(data_dir)
-    if (os.environ.get("KEYFORGE_AUTO_SECRETS") or "1").strip() != "0":
+    auto = os.environ.get("KEYFLINT_AUTO_SECRETS") or os.environ.get("KEYFORGE_AUTO_SECRETS")  # legacy name
+    if (auto or "1").strip() != "0":
         provision_secrets(os.environ, data_dir, lambda m: print(m, file=sys.stderr, flush=True))
     argv_exec = litestream_wrap(os.environ, args, lambda m: print(m, file=sys.stderr, flush=True))
     os.execvp(argv_exec[0], argv_exec)

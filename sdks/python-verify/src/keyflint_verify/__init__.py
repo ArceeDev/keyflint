@@ -1,9 +1,9 @@
-"""keyforge-verify: offline verification of KeyForge license tokens.
+"""keyflint-verify: offline verification of KeyFlint license tokens.
 
-``validate_offline`` is a verbatim copy of the KeyForge gateway's
+``validate_offline`` is a verbatim copy of the KeyFlint gateway's
 ``app/infrastructure/security/offline_validator.py``. ``verify_license`` adds
 key-ring support (single key, list of historical keys, or ``{kid: hex}``),
-matching the ``keyforge-verify`` npm package.
+matching the ``keyflint-verify`` npm package.
 """
 
 from __future__ import annotations
@@ -87,7 +87,7 @@ def verify_license(
 ) -> VerifyResult:
     """Verifies a token against one or more trusted public keys.
 
-    Tokens without ``kid`` (all KeyForge v1.0 tokens) are tried against every key.
+    Tokens without ``kid`` (all KeyFlint v1.0 tokens) are tried against every key.
     With a ``{kid: hex}`` mapping, a token with a signed ``kid`` is checked only against
     that key (``ERR_UNKNOWN_KID`` when the mapping has no such kid). A single key or a
     list has no names, so every key is tried.

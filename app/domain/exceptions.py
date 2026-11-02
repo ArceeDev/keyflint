@@ -1,4 +1,4 @@
-"""Domain Exceptions for KeyForge.
+"""Domain Exceptions for KeyFlint.
 
 100% Pure Python Standard Library. Zero external dependencies.
 Aligned with RFC 7807 Problem Details.
@@ -8,7 +8,7 @@ from typing import Any, Optional
 
 
 class DomainError(Exception):
-    """Base domain exception for all KeyForge business domain errors."""
+    """Base domain exception for all KeyFlint business domain errors."""
 
     code: str = "DOMAIN_ERROR"
     status_code: int = 400

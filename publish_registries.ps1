@@ -1,14 +1,14 @@
-# KeyForge v1.1.0 — Fast Registry Publishing Helper
+# KeyFlint v1.1.0 — Fast Registry Publishing Helper
 param(
     [string]$NpmOtp = "",
     [string]$PypiToken = ""
 )
 
-Write-Host "=== KeyForge Registry Publisher ===" -ForegroundColor Cyan
+Write-Host "=== KeyFlint Registry Publisher ===" -ForegroundColor Cyan
 
 # 1. npm publishing
 if ($NpmOtp -ne "") {
-    Write-Host "`n[1/2] Publishing keyforge-verify to npm using OTP..." -ForegroundColor Yellow
+    Write-Host "`n[1/2] Publishing keyflint-verify to npm using OTP..." -ForegroundColor Yellow
     Set-Location "$PSScriptRoot\sdks\js-verify"
     npm publish --access public --otp=$NpmOtp
     if ($LASTEXITCODE -eq 0) {
@@ -22,7 +22,7 @@ if ($NpmOtp -ne "") {
 
 # 2. PyPI publishing
 if ($PypiToken -ne "") {
-    Write-Host "`n[2/2] Publishing keyforge-verify to PyPI..." -ForegroundColor Yellow
+    Write-Host "`n[2/2] Publishing keyflint-verify to PyPI..." -ForegroundColor Yellow
     Set-Location "$PSScriptRoot\sdks\python-verify"
     $env:TWINE_USERNAME = "__token__"
     $env:TWINE_PASSWORD = $PypiToken

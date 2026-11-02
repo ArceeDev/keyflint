@@ -31,7 +31,7 @@ _INSECURE_ADMIN_KEYS = frozenset({
 
 
 class Settings(BaseSettings):
-    """Central configuration for KeyForge."""
+    """Central configuration for KeyFlint."""
 
     DATABASE_URL: str = "sqlite:///data/keyforge.db"
     SECRET_KEY: str = "test_super_secret_key_32_characters_long_1234"
@@ -56,7 +56,7 @@ class Settings(BaseSettings):
 
     # Transactional Email Dispatch (Resend / SMTP)
     EMAIL_ENABLED: bool = False
-    EMAIL_FROM: str = "KeyForge <licenses@arceedev.com>"
+    EMAIL_FROM: str = "KeyFlint <licenses@keyflint.dev>"
     RESEND_API_KEY: Optional[str] = None
     SMTP_HOST: Optional[str] = None
     SMTP_PORT: int = 587

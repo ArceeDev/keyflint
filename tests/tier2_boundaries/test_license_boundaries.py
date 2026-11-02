@@ -13,7 +13,7 @@ from __future__ import annotations
 import time
 import unittest
 from tests.conftest import (
-    BaseKeyForgeTestCase,
+    BaseKeyFlintTestCase,
     decode_license_token,
     encode_license_token,
     verify_payload_ed25519,
@@ -23,7 +23,7 @@ from tests.conftest import (
 )
 
 
-class TestLicenseBoundaries(BaseKeyForgeTestCase):
+class TestLicenseBoundaries(BaseKeyFlintTestCase):
     """Boundary verification for cryptographic license parsing and verification."""
 
     def test_bound1_tampered_payload_byte_fails_signature_check(self):

@@ -1,4 +1,4 @@
-"""KeyForge Domain Layer Package Root.
+"""KeyFlint Domain Layer Package Root.
 
 100% Pure Python Standard Library. Zero external dependencies.
 """

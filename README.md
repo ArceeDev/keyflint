@@ -1,4 +1,4 @@
-# KeyForge v1.1.0
+# KeyFlint v1.1.0
 
 Self-hosted license issuing and credit metering for MCP servers, CLIs and desktop apps.
 The gateway signs Ed25519 license tokens; your code verifies them offline with a 32-byte
@@ -10,7 +10,7 @@ public key and debits credits with one HTTP call per metered tool.
 [![Server License: BSL 1.1](https://img.shields.io/badge/gateway%20license-BSL--1.1-orange.svg)](LICENSE)
 [![SDK License: MIT](https://img.shields.io/badge/sdk%20license-MIT-green.svg)](sdks/js-verify/LICENSE)
 [![Tests: 167/167 Pass](https://img.shields.io/badge/tests-167%2F167%20pass-brightgreen.svg)](run_tests.py)
-[![Docker: GHCR](https://img.shields.io/badge/docker-ghcr.io%2Farceedev%2Fkeyforge%3A1.1.0-blue.svg)](https://github.com/ArceeDev/keyforge/pkgs/container/keyforge)
+[![Docker: GHCR](https://img.shields.io/badge/docker-ghcr.io%2Farceedev%2Fkeyflint%3A1.1.0-blue.svg)](https://github.com/ArceeDev/keyflint/pkgs/container/keyflint)
 
 ---
 
@@ -23,8 +23,8 @@ public key and debits credits with one HTTP call per metered tool.
 python -m app.cli init --env production
 
 # 2. Run the gateway container:
-docker run -d --name keyforge -p 8000:8000 -v keyforge_data:/app/data \
-  --env-file .env ghcr.io/arceedev/keyforge:1.1.0
+docker run -d --name keyflint -p 8000:8000 -v keyforge_data:/app/data \
+  --env-file .env ghcr.io/arceedev/keyflint:1.1.0
 # (Or run natively: python -m app.cli serve --host 0.0.0.0 --port 8000)
 
 # 3. Check readiness probe:
@@ -46,8 +46,8 @@ STRIPE_WEBHOOK_SECRET=whsec_$(openssl rand -hex 24)
 LEMONSQUEEZY_WEBHOOK_SECRET=$(openssl rand -hex 24)
 EOF
 
-docker run -d --name keyforge -p 8000:8000 -v keyforge_data:/app/data \
-  --env-file .env ghcr.io/arceedev/keyforge:1.1.0
+docker run -d --name keyflint -p 8000:8000 -v keyforge_data:/app/data \
+  --env-file .env ghcr.io/arceedev/keyflint:1.1.0
 ```
 </details>
 
@@ -71,17 +71,17 @@ curl -s -X POST localhost:8000/api/v1/licenses/issue \
 ### 3. Protect an MCP tool (TypeScript)
 
 ```bash
-npm install https://github.com/ArceeDev/keyforge/releases/download/v1.1.0/keyforge-verify-1.1.0.tgz
-export KEYFORGE_LICENSE=LIC-PRO-...  KEYFORGE_PUBLIC_KEYS=<keyring>  KEYFORGE_URL=http://localhost:8000
+npm install https://github.com/ArceeDev/keyflint/releases/download/v1.1.0/keyflint-verify-1.1.0.tgz
+export KEYFLINT_LICENSE=LIC-PRO-...  KEYFLINT_PUBLIC_KEYS=<keyring>  KEYFLINT_URL=http://localhost:8000
 ```
 
 ```typescript
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { createKeyForge } from "keyforge-verify/mcp";
+import { createKeyFlint } from "keyflint-verify/mcp";
 import { z } from "zod";
 
 const server = new McpServer({ name: "research", version: "1.0.0" });
-const kf = createKeyForge(); // KEYFORGE_LICENSE, KEYFORGE_PUBLIC_KEYS, KEYFORGE_URL
+const kf = createKeyFlint(); // KEYFLINT_LICENSE, KEYFLINT_PUBLIC_KEYS, KEYFLINT_URL
 
 // Offline check only. Rejects licenses without the "premium" feature.
 server.registerTool("code_review", { inputSchema: { repo: z.string() } },
@@ -97,13 +97,13 @@ server.registerTool("deep_research", { inputSchema: { query: z.string() } },
 );
 ```
 
-Python (FastMCP) uses the same environment variables: see [Python SDK](#python-sdk-keyforge_verify).
+Python (FastMCP) uses the same environment variables: see [Python SDK](#python-sdk-keyflint_verify).
 
 ### What is enforced where
 
 | Check | Where it runs | Network |
 | :--- | :--- | :--- |
-| Signature, expiry, issued_at, tier, features, machine/domain lock | Your process (`keyforge-verify`) | None |
+| Signature, expiry, issued_at, tier, features, machine/domain lock | Your process (`keyflint-verify`) | None |
 | Credit debit / refund | Gateway (`/api/v1/quota/*`) | 1 request per call |
 
 Metering is enforceable only when the metered tool runs on infrastructure you control (for example a
@@ -116,13 +116,13 @@ deducted again (HTTP 409, `KEY_REFUNDED`).
 
 ## Deploy in one click
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/ArceeDev/keyforge)
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/ArceeDev/keyflint)
 [![Deploy on Railway](https://railway.com/button.svg)](RAILWAY_TEMPLATE_URL)
 
 No secrets to prepare: on first boot the image generates the Ed25519 signing key, `SECRET_KEY`,
 `ADMIN_API_KEY` and placeholder webhook secrets into `/app/data/secrets.env` (mode 600) and prints
 the **public key** and the **admin key** once in the logs. Anything you set as an environment
-variable wins over the generated value. Set `KEYFORGE_AUTO_SECRETS=0` to disable this.
+variable wins over the generated value. Set `KEYFLINT_AUTO_SECRETS=0` to disable this.
 
 | Platform | Config | Notes |
 |---|---|---|
@@ -177,14 +177,14 @@ Hosting customers yourself: see [`scripts/managed/README.md`](scripts/managed/RE
 
 Both SDKs have no runtime dependencies (Python uses `cryptography` when installed, for speed).
 
-### TypeScript / JavaScript SDK (`keyforge-verify`)
+### TypeScript / JavaScript SDK (`keyflint-verify`)
 
 ```bash
-npm install https://github.com/ArceeDev/keyforge/releases/download/v1.1.0/keyforge-verify-1.1.0.tgz
+npm install https://github.com/ArceeDev/keyflint/releases/download/v1.1.0/keyflint-verify-1.1.0.tgz
 ```
 
 ```typescript
-import { verifyLicense } from "keyforge-verify";
+import { verifyLicense } from "keyflint-verify";
 
 const result = await verifyLicense("LIC-PRO-eyJ...", PUBLIC_KEYS);
 if (!result.valid) throw new Error(`License rejected: ${result.error}`);
@@ -193,23 +193,23 @@ console.log(`Tier: ${result.payload.tier}, Features:`, result.payload.features);
 
 Pass `{ machineId }` only for node-locked licenses; passing it for a floating license returns `ERR_NODE_LOCK_VIOLATION`.
 
-MCP errors use the JSON-RPC codes `-32060` invalid license, `-32061` feature not in plan, `-32062` credits exhausted, `-32063` gateway error (`-32042` is reserved by MCP). MCP clients show the message text, so each message states the cause, whether credits were charged, and the next step (with `KEYFORGE_CHECKOUT_URL` when set).
+MCP errors use the JSON-RPC codes `-32060` invalid license, `-32061` feature not in plan, `-32062` credits exhausted, `-32063` gateway error (`-32042` is reserved by MCP). MCP clients show the message text, so each message states the cause, whether credits were charged, and the next step (with `KEYFLINT_CHECKOUT_URL` when set).
 
 ---
 
-### Python SDK (`keyforge_verify`)
+### Python SDK (`keyflint_verify`)
 
 ```bash
 # Direct from Release Asset:
-pip install https://github.com/ArceeDev/keyforge/releases/download/v1.1.0/keyforge_verify-1.1.0-py3-none-any.whl
+pip install https://github.com/ArceeDev/keyflint/releases/download/v1.1.0/keyflint_verify-1.1.0-py3-none-any.whl
 
 # Or via Git:
-pip install git+https://github.com/ArceeDev/keyforge.git#subdirectory=sdks/python-verify
+pip install git+https://github.com/ArceeDev/keyflint.git#subdirectory=sdks/python-verify
 ```
 
 #### 1. Air-Gapped Offline Verification
 ```python
-from keyforge_verify import verify_license
+from keyflint_verify import verify_license
 
 res = verify_license("LIC-PRO-eyJ...", PUBLIC_KEYS)  # machine_id=... only for node-locked licenses
 if not res:
@@ -221,10 +221,10 @@ print(f"Tier: {res.payload['tier']}, Allowed Features: {res.payload['features']}
 #### 2. Model Context Protocol (FastMCP) Integration
 ```python
 from mcp.server.fastmcp import FastMCP
-from keyforge_verify.mcp import KeyForge
+from keyflint_verify.mcp import KeyFlint
 
 mcp = FastMCP("DataExtractionAgent")
-kf = KeyForge() # Reads KEYFORGE_LICENSE, KEYFORGE_PUBLIC_KEYS, KEYFORGE_URL
+kf = KeyFlint() # Reads KEYFLINT_LICENSE, KEYFLINT_PUBLIC_KEYS, KEYFLINT_URL
 
 @mcp.tool()
 @kf.require_license(features=["pro"])
@@ -241,9 +241,9 @@ async def analyze_document(url: str) -> str:
 
 ---
 
-## Comparison: KeyForge vs. Hosted Licensing SaaS
+## Comparison: KeyFlint vs. Hosted Licensing SaaS
 
-| Feature | KeyForge (Self-Hosted) | Keygen.sh / Cryptolens | Stripe Metered Billing |
+| Feature | KeyFlint (Self-Hosted) | Keygen.sh / Cryptolens | Stripe Metered Billing |
 | :--- | :--- | :--- | :--- |
 | **Pricing Model** | **One-time payment ($149 / $349)** | Monthly subscription | Per-usage fee |
 | **Verification** | **Local Ed25519, ~0.13 ms (OpenSSL)** | HTTP API call (offline mode varies by plan) | N/A (billing only) |
@@ -279,7 +279,7 @@ cd sdks/python-verify && PYTHONPATH=src python -m unittest discover -s tests
 
 ## Licensing
 
-KeyForge uses two licenses:
+KeyFlint uses two licenses:
 
 1. **Client SDKs (`sdks/js-verify`, `sdks/python-verify`)**: Licensed under the permissive **[MIT License](sdks/js-verify/LICENSE)**. You can freely vendor, bundle, and distribute them with any commercial product.
 2. **Server Gateway (`app/`)**: Licensed under the **[Business Source License 1.1 (BSL 1.1)](LICENSE)**.
@@ -298,9 +298,9 @@ KeyForge uses two licenses:
 
 ### Infrastructure & Operations
 - **[Cloudflare R2 & Fly.io Setup Guide](docs/ops/R2_FLY_SETUP.md)**: Private EU R2 bucket configuration, S3 token provisioning, and Fly.io deployment runbook.
-- **[KeyForge Managed Provisioning CLI](scripts/managed/README.md)**: Isolated single-tenant customer management and continuous Litestream replication.
+- **[KeyFlint Managed Provisioning CLI](scripts/managed/README.md)**: Isolated single-tenant customer management and continuous Litestream replication.
 - **[Distribution & Release Commands](docs/ops/DISTRIBUTION_COMMANDS.md)**: Publishing SDK packages to npm, PyPI, and GitHub Container Registry.
 
 ### Legal & Compliance (EU GDPR)
-- **[Data Processing Agreement (DPA Borrador)](docs/legal/DPA_BORRADOR.md)**: Article 28 GDPR compliant data processing terms for KeyForge Managed.
+- **[Data Processing Agreement (DPA Borrador)](docs/legal/DPA_BORRADOR.md)**: Article 28 GDPR compliant data processing terms for KeyFlint Managed.
 - **[Privacy Policy (Privacidad Borrador)](docs/legal/PRIVACIDAD_BORRADOR.md)**: Privacy policy tailored to Stripe Merchant of Record and EU data retention rules.

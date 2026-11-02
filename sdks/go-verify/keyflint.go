@@ -1,9 +1,9 @@
-// Package keyforge provides offline Ed25519 license verification for KeyForge tokens.
+// Package keyflint provides offline Ed25519 license verification for KeyFlint tokens.
 //
 // Zero external dependencies (Go standard library only). Behaviour is conformant with the
 // shared test vectors in sdks/vectors/vectors.json, the npm package and the PyPI package:
 // same token grammar, same checks, same order, same error codes.
-package keyforge
+package keyflint
 
 import (
 	"bytes"
@@ -48,21 +48,21 @@ const (
 
 // Sentinel errors for errors.Is. Every *VerifyError matches exactly one of them.
 var (
-	ErrInvalidFormat       = errors.New("keyforge: invalid license token format")
-	ErrInvalidSignature    = errors.New("keyforge: invalid or tampered signature")
-	ErrExpired             = errors.New("keyforge: license has expired")
-	ErrInvalidPublicKey    = errors.New("keyforge: invalid ed25519 public key")
-	ErrClockBeforeIssuance = errors.New("keyforge: local clock is before token issuance")
-	ErrNodeLockViolation   = errors.New("keyforge: machine lock violation")
-	ErrDomainLockViolation = errors.New("keyforge: domain lock violation")
-	ErrUnknownKID          = errors.New("keyforge: token kid is not in the trusted key ring")
+	ErrInvalidFormat       = errors.New("keyflint: invalid license token format")
+	ErrInvalidSignature    = errors.New("keyflint: invalid or tampered signature")
+	ErrExpired             = errors.New("keyflint: license has expired")
+	ErrInvalidPublicKey    = errors.New("keyflint: invalid ed25519 public key")
+	ErrClockBeforeIssuance = errors.New("keyflint: local clock is before token issuance")
+	ErrNodeLockViolation   = errors.New("keyflint: machine lock violation")
+	ErrDomainLockViolation = errors.New("keyflint: domain lock violation")
+	ErrUnknownKID          = errors.New("keyflint: token kid is not in the trusted key ring")
 )
 
 // VerifyError carries the cross-SDK error code. Use errors.Is with the sentinels above, or
 // errors.As to read Code.
 type VerifyError struct{ Code string }
 
-func (e *VerifyError) Error() string { return "keyforge: " + e.Code }
+func (e *VerifyError) Error() string { return "keyflint: " + e.Code }
 
 // Is maps the code to its sentinel.
 func (e *VerifyError) Is(target error) bool { return sentinelFor(e.Code) == target }

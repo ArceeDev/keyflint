@@ -8,12 +8,12 @@ import unittest
 import uuid
 from pathlib import Path
 
-from tests.conftest import BaseKeyForgeTestCase, TEST_ED25519_PUBLIC_KEY_HEX, decode_license_token
+from tests.conftest import BaseKeyFlintTestCase, TEST_ED25519_PUBLIC_KEY_HEX, decode_license_token
 
 _ROTATION_ENV = ("ED25519_KID", "ED25519_RETIRED_PUBLIC_KEYS", "QUOTA_REFUND_WINDOW_SECONDS")
 
 
-class TestKidRotation(BaseKeyForgeTestCase):
+class TestKidRotation(BaseKeyFlintTestCase):
     def tearDown(self):
         for k in _ROTATION_ENV:
             os.environ.pop(k, None)
@@ -65,12 +65,12 @@ class TestKidRotation(BaseKeyForgeTestCase):
         self.assertTrue(data["keyring"].startswith("k2="))
         self.assertIn(f"legacy-1={TEST_ED25519_PUBLIC_KEY_HEX}", data["keyring"])
 
-        # Published keyring is consumable by the client SDK (KEYFORGE_PUBLIC_KEYS format).
+        # Published keyring is consumable by the client SDK (KEYFLINT_PUBLIC_KEYS format).
         sdk = Path(__file__).resolve().parents[2] / "sdks" / "python-verify" / "src"
         sys.path.insert(0, str(sdk))
         try:
-            from keyforge_verify import verify_license
-            from keyforge_verify.mcp import _parse_keys_env
+            from keyflint_verify import verify_license
+            from keyflint_verify.mcp import _parse_keys_env
             ring = _parse_keys_env(data["keyring"])
             for token in (old, new):
                 self.assertTrue(verify_license(token, ring).valid, token[:20])
@@ -121,7 +121,7 @@ class TestKidRotation(BaseKeyForgeTestCase):
             Ed25519Signer(*Ed25519Signer.generate_keypair(), retired_public_keys="k1=abcd")
 
 
-class TestMeteredRefund(BaseKeyForgeTestCase):
+class TestMeteredRefund(BaseKeyFlintTestCase):
     def tearDown(self):
         os.environ.pop("QUOTA_REFUND_WINDOW_SECONDS", None)
         from app.config import get_settings

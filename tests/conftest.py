@@ -1,7 +1,7 @@
-"""KeyForge E2E Automated Test Infrastructure & Fixtures.
+"""KeyFlint E2E Automated Test Infrastructure & Fixtures.
 
 Provides in-memory SQLite persistence, Starlette TestClient, cryptographic helper utilities,
-deterministic keypairs, signature generators, and BaseKeyForgeTestCase.
+deterministic keypairs, signature generators, and BaseKeyFlintTestCase.
 """
 
 from __future__ import annotations
@@ -145,7 +145,7 @@ def b64url_decode(s: str) -> bytes:
 
 
 def decode_license_token(token: str) -> Tuple[str, Dict[str, Any], str]:
-    """Parse a KeyForge license token into (tier, payload_dict, signature_b64).
+    """Parse a KeyFlint license token into (tier, payload_dict, signature_b64).
     
     Format: LIC-<TIER>-<BASE64URL_PAYLOAD>.<BASE64URL_SIGNATURE>
     """
@@ -169,7 +169,7 @@ def decode_license_token(token: str) -> Tuple[str, Dict[str, Any], str]:
 
 
 def encode_license_token(tier: str, payload: Dict[str, Any], sig_b64: str) -> str:
-    """Build a KeyForge license token from components."""
+    """Build a KeyFlint license token from components."""
     payload_json = json.dumps(payload, separators=(",", ":"), sort_keys=True)
     payload_b64 = b64url_encode(payload_json.encode("utf-8"))
     return f"LIC-{tier.upper()}-{payload_b64}.{sig_b64}"
@@ -230,7 +230,7 @@ def generate_lemonsqueezy_signature(raw_body: bytes, secret: str = TEST_LEMONSQU
 # ==============================================================================
 
 def create_in_memory_db() -> sqlite3.Connection:
-    """Initialize an in-memory SQLite database populated with KeyForge schemas."""
+    """Initialize an in-memory SQLite database populated with KeyFlint schemas."""
     conn = sqlite3.connect(":memory:", check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.executescript(TEST_SCHEMA_SQL)
@@ -242,7 +242,7 @@ def create_in_memory_db() -> sqlite3.Connection:
 # Base Test Case Class (Standard library unittest + Starlette TestClient)
 # ==============================================================================
 
-class BaseKeyForgeTestCase(unittest.TestCase):
+class BaseKeyFlintTestCase(unittest.TestCase):
     """Base test case providing clean isolation, in-memory DB, TestClient, and helpers."""
 
     client = None
@@ -300,7 +300,7 @@ class BaseKeyForgeTestCase(unittest.TestCase):
     def require_app(self):
         """Helper to ensure application is present when running E2E HTTP assertions."""
         if self.client is None or self.app is None:
-            self.fail("KeyForge application ('app.main') is not yet implemented or could not be imported.")
+            self.fail("KeyFlint application ('app.main') is not yet implemented or could not be imported.")
 
     # --------------------------------------------------------------------------
     # Common Test Helpers (Opaque-box orchestration)

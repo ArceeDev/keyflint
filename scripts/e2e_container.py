@@ -10,7 +10,7 @@ Builds the image, then on a root-owned bind mount (how Render/Railway/Fly mount 
      secrets reprinted;
   5. checks CLI passthrough (`docker run IMAGE --help`).
 
-Usage: python scripts/e2e_container.py [--image keyforge:e2e] [--no-build]
+Usage: python scripts/e2e_container.py [--image keyflint:e2e] [--no-build]
 Stdlib only; needs a working `docker`.
 """
 
@@ -89,10 +89,10 @@ def ok(msg: str) -> None:
 
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--image", default="keyforge:e2e")
+    ap.add_argument("--image", default="keyflint:e2e")
     ap.add_argument("--no-build", action="store_true")
     args = ap.parse_args()
-    image, name = args.image, "keyforge-e2e"
+    image, name = args.image, "keyflint-e2e"
 
     if not args.no_build:
         print("Building image...")

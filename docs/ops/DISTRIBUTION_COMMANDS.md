@@ -1,13 +1,13 @@
-# KeyForge v1.1.0 — Guía de Publicación Oficial
+# KeyFlint v1.1.0 — Guía de Publicación Oficial
 
 > **Estado Actual**:
-> - ✅ Repositorio público en GitHub: `https://github.com/ArceeDev/keyforge`
-> - ✅ GitHub Release v1.1.0 creada y publicada: `https://github.com/ArceeDev/keyforge/releases/tag/v1.1.0`
-> - ✅ Contenedor Docker v1.1.0 compilado y publicado en GHCR: `ghcr.io/arceedev/keyforge:1.1.0`
+> - ✅ Repositorio público en GitHub: `https://github.com/ArceeDev/keyflint`
+> - ✅ GitHub Release v1.1.0 creada y publicada: `https://github.com/ArceeDev/keyflint/releases/tag/v1.1.0`
+> - ✅ Contenedor Docker v1.1.0 compilado y publicado en GHCR: `ghcr.io/arceedev/keyflint:1.1.0`
 > - ✅ Binarios SDK (.whl, .tar.gz, .tgz) generados y subidos como Release Assets
 > - ✅ Instalación directa lista para usuarios:
->   - `pip install https://github.com/ArceeDev/keyforge/releases/download/v1.1.0/keyforge_verify-1.1.0-py3-none-any.whl`
->   - `npm install https://github.com/ArceeDev/keyforge/releases/download/v1.1.0/keyforge-verify-1.1.0.tgz`
+>   - `pip install https://github.com/ArceeDev/keyflint/releases/download/v1.1.0/keyflint_verify-1.1.0-py3-none-any.whl`
+>   - `npm install https://github.com/ArceeDev/keyflint/releases/download/v1.1.0/keyflint-verify-1.1.0.tgz`
 
 ---
 
@@ -31,7 +31,7 @@ En la raíz de `monetizable_project`:
 
 ### Método 2: 100% Automático vía GitHub Actions
 Si prefieres no tocar más la consola:
-1. Ve a `https://github.com/ArceeDev/keyforge/settings/secrets/actions`
+1. Ve a `https://github.com/ArceeDev/keyflint/settings/secrets/actions`
 2. Añade los dos secretos:
    - `NPM_TOKEN`: Tu Granular Access Token de npmjs.com (con permiso Read/Write y Bypass 2FA).
    - `PYPI_API_TOKEN`: Tu token de API de pypi.org (`pypi-...`).
@@ -39,7 +39,7 @@ Si prefieres no tocar más la consola:
 
 ---
 
-## Paso 1: Publicar el SDK en npm (`keyforge-verify`)
+## Paso 1: Publicar el SDK en npm (`keyflint-verify`)
 
 Abre PowerShell en tu equipo y ejecuta:
 
@@ -63,12 +63,12 @@ npm pack --dry-run
 npm publish --access public
 
 # 6. Comprobar que ya está publicado en npm
-npm view keyforge-verify version
+npm view keyflint-verify version
 ```
 
 ---
 
-## Paso 2: Publicar el SDK en PyPI (`keyforge-verify`)
+## Paso 2: Publicar el SDK en PyPI (`keyflint-verify`)
 
 En la misma ventana de PowerShell:
 
@@ -93,7 +93,7 @@ twine check dist/*
 twine upload dist/*
 
 # 6. Comprobar instalación en limpio
-pip install keyforge-verify==1.1.0
+pip install keyflint-verify==1.1.0
 ```
 
 ---
@@ -106,23 +106,23 @@ Regresa a la raíz del proyecto:
 cd C:\Users\Usuario\teamwork_projects\monetizable_project
 
 # 1. Crear el tag de la versión 1.1.0
-git tag -a v1.1.0 -m "KeyForge v1.1.0"
+git tag -a v1.1.0 -m "KeyFlint v1.1.0"
 
 # 2. Subir commits y tags a tu repositorio de GitHub
 git push origin main --follow-tags
 
 # 3. (Opcional si tienes GitHub CLI instalado) Crear la Release oficial
-gh release create v1.1.0 --title "KeyForge v1.1.0" --generate-notes --verify-tag
+gh release create v1.1.0 --title "KeyFlint v1.1.0" --generate-notes --verify-tag
 
 # 4. El workflow .github/workflows/release.yml compilará y subirá la imagen a:
-# ghcr.io/<tu-usuario-github>/keyforge:1.1.0
+# ghcr.io/<tu-usuario-github>/keyflint:1.1.0
 ```
 
 ### Configuración de visibilidad en GitHub:
 1. Entra en tu perfil de **GitHub -> Packages**.
-2. Abre el paquete **keyforge**.
+2. Abre el paquete **keyflint**.
 3. Entra en **Package settings** y cambia la visibilidad a **Public** (para que cualquiera pueda descargarlo con `docker pull`).
 4. Prueba que funciona desde cualquier máquina con:
    ```bash
-   docker run --rm ghcr.io/<tu-usuario-github>/keyforge:1.1.0 --help
+   docker run --rm ghcr.io/<tu-usuario-github>/keyflint:1.1.0 --help
    ```

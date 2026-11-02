@@ -1,4 +1,4 @@
-"""KeyForge Persistence - SQLite WAL Connection Factory.
+"""KeyFlint Persistence - SQLite WAL Connection Factory.
 
 File: app/infrastructure/database/connection.py
 """
@@ -37,7 +37,7 @@ def get_shared_memory_holder() -> sqlite3.Connection:
     global _SHARED_MEMORY_HOLDER
     if _SHARED_MEMORY_HOLDER is None:
         _SHARED_MEMORY_HOLDER = sqlite3.connect(
-            "file:keyforge_shared_mem?mode=memory&cache=shared",
+            "file:keyflint_shared_mem?mode=memory&cache=shared",
             uri=True,
             isolation_level=None,
             check_same_thread=False,
@@ -81,7 +81,7 @@ def create_connection(
     if db_str == ":memory:":
         get_shared_memory_holder()
         conn = sqlite3.connect(
-            "file:keyforge_shared_mem?mode=memory&cache=shared",
+            "file:keyflint_shared_mem?mode=memory&cache=shared",
             uri=True,
             timeout=timeout,
             isolation_level=None,

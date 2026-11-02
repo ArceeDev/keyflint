@@ -20,12 +20,12 @@ from app.infrastructure.repositories.sqlite_license_repo import SqliteLicenseRep
 from app.infrastructure.security.ed25519_signer import _L_PARAM, b64url_decode, b64url_encode
 from app.infrastructure.security.offline_validator import validate_offline
 from tests.conftest import (
-    BaseKeyForgeTestCase,
+    BaseKeyFlintTestCase,
     TEST_ED25519_PUBLIC_KEY_HEX,
 )
 
 
-class TestValidatorAndNodeLocking(BaseKeyForgeTestCase):
+class TestValidatorAndNodeLocking(BaseKeyFlintTestCase):
     """E2E Verification for FEAT-LIC-02 and FEAT-LIC-03: Dual Verification & Hardware Locking."""
 
     def test_feat2_offline_validator_verifies_valid_key_without_network(self):

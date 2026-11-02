@@ -1,4 +1,4 @@
-"""Tests for keyforge_verify.mcp against a fake gateway and (if installed) the real mcp SDK."""
+"""Tests for keyflint_verify.mcp against a fake gateway and (if installed) the real mcp SDK."""
 
 from __future__ import annotations
 
@@ -10,12 +10,12 @@ import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-from keyforge_verify.mcp import (
+from keyflint_verify.mcp import (
     FEATURE_NOT_ENTITLED,
     GATEWAY_ERROR,
     LICENSE_INVALID,
     QUOTA_EXHAUSTED,
-    KeyForge,
+    KeyFlint,
     LicenseError,
     _parse_keys_env,
 )
@@ -77,7 +77,7 @@ class FakeGateway:
 class TestDecorators(unittest.TestCase):
     def setUp(self) -> None:
         self.gw = FakeGateway(balance=10)
-        self.kf = KeyForge(license_key=TOKEN, public_keys=PK, gateway_url=self.gw.url,
+        self.kf = KeyFlint(license_key=TOKEN, public_keys=PK, gateway_url=self.gw.url,
                            checkout_url="https://shop.example/upgrade")
 
     def tearDown(self) -> None:
@@ -98,8 +98,21 @@ class TestDecorators(unittest.TestCase):
         self.assertEqual(list(inspect.signature(a).parameters), ["x"])
         self.assertTrue(inspect.iscoroutinefunction(b))
 
+    def test_legacy_keyforge_env_vars(self) -> None:
+        import os
+        from unittest import mock
+
+        env = {"KEYFORGE_LICENSE": "legacy-token", "KEYFORGE_URL": "http://legacy/", "KEYFLINT_DOMAIN": "new.example"}
+        with mock.patch.dict(os.environ, env, clear=True):
+            kf = KeyFlint()
+        self.assertEqual(kf.license_key, "legacy-token")
+        self.assertEqual(kf.gateway_url, "http://legacy")
+        self.assertEqual(kf.domain, "new.example")
+        with mock.patch.dict(os.environ, {"KEYFORGE_LICENSE": "old", "KEYFLINT_LICENSE": "new"}, clear=True):
+            self.assertEqual(KeyFlint().license_key, "new")
+
     def test_invalid_license(self) -> None:
-        kf = KeyForge(license_key=TOKEN, public_keys=DATA["keys"]["k2"])
+        kf = KeyFlint(license_key=TOKEN, public_keys=DATA["keys"]["k2"])
 
         @kf.require_license
         def t() -> None: ...
@@ -177,7 +190,7 @@ class TestDecorators(unittest.TestCase):
         self.assertEqual(self.gw.refunds, [])
 
     def test_gateway_unreachable(self) -> None:
-        kf = KeyForge(license_key=TOKEN, public_keys=PK, gateway_url="http://127.0.0.1:9", timeout=0.5)
+        kf = KeyFlint(license_key=TOKEN, public_keys=PK, gateway_url="http://127.0.0.1:9", timeout=0.5)
 
         @kf.metered()
         def tool() -> None: ...
@@ -201,7 +214,7 @@ class TestKeysEnvAndMessages(unittest.TestCase):
         self.assertEqual(_parse_keys_env(f"{k1}, k2={k2}"), {"legacy-0": k1, "k2": k2})
         self.assertEqual(_parse_keys_env(k1), k1)
         self.assertEqual(_parse_keys_env(f"{k1},{k2}"), [k1, k2])
-        kf = KeyForge(license_key=V["ring_kid_token_new_key"]["token"], public_keys=_parse_keys_env(f"{k1},k2={k2}"))
+        kf = KeyFlint(license_key=V["ring_kid_token_new_key"]["token"], public_keys=_parse_keys_env(f"{k1},k2={k2}"))
         self.assertTrue(kf.check().valid)
 
     def test_expired_message_is_actionable(self) -> None:
@@ -211,7 +224,7 @@ class TestKeysEnvAndMessages(unittest.TestCase):
         body = json.dumps({"tier": "pro", "license_id": "x", "expires_at": 1_000_000_000}).encode()
         sig = Ed25519PrivateKey.from_private_bytes(bytes.fromhex("11" * 32)).sign(body)  # vectors key k1
         token = f"LIC-PRO-{b64(body)}.{b64(sig)}"
-        kf = KeyForge(license_key=token, public_keys=PK, checkout_url="https://shop.example/renew")
+        kf = KeyFlint(license_key=token, public_keys=PK, checkout_url="https://shop.example/renew")
         with self.assertRaises(LicenseError) as cm:
             kf.check()
         self.assertEqual(cm.exception.reason, "ERR_LICENSE_EXPIRED")
@@ -223,7 +236,7 @@ class TestMCPServerIntegration(unittest.TestCase):
     def test_tools_over_mcp(self) -> None:
         gw = FakeGateway(balance=5)
         try:
-            kf = KeyForge(license_key=TOKEN, public_keys=PK, gateway_url=gw.url)
+            kf = KeyFlint(license_key=TOKEN, public_keys=PK, gateway_url=gw.url)
             server = MCPServer("demo")
 
             @server.tool()

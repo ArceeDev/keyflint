@@ -11,10 +11,10 @@ Covers:
 from __future__ import annotations
 
 import unittest
-from tests.conftest import BaseKeyForgeTestCase
+from tests.conftest import BaseKeyFlintTestCase
 
 
-class TestQuotaBoundaries(BaseKeyForgeTestCase):
+class TestQuotaBoundaries(BaseKeyFlintTestCase):
     """Boundary verification for quota exhaustion, paywall 402, and rate limits."""
 
     def test_bound3_exact_zero_balance_triggers_paywall_402(self):

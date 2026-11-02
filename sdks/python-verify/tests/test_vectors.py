@@ -7,14 +7,14 @@ import json
 import unittest
 from pathlib import Path
 
-from keyforge_verify import verify_license
+from keyflint_verify import verify_license
 
 HERE = Path(__file__).resolve().parent
 DATA = json.loads((HERE.parents[1] / "vectors" / "vectors.json").read_text(encoding="utf-8"))
 KEYS = DATA["keys"]
 BY_NAME = {v["name"]: v for v in DATA["vectors"]}
 BACKEND_VALIDATOR = HERE.parents[2] / "app" / "infrastructure" / "security" / "offline_validator.py"
-VENDORED = HERE.parent / "src" / "keyforge_verify" / "_validator.py"
+VENDORED = HERE.parent / "src" / "keyflint_verify" / "_validator.py"
 
 
 class TestVectors(unittest.TestCase):

@@ -1,4 +1,4 @@
-"""KeyForge FastAPI Gateway Application Entrypoint.
+"""KeyFlint FastAPI Gateway Application Entrypoint.
 
 File: app/main.py
 """
@@ -37,7 +37,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     configure_logging(log_level=settings.LOG_LEVEL, use_json=is_prod)
     settings.validate_production_secrets()
 
-    logger.info(f"Starting KeyForge Gateway v{__version__} in '{settings.ENVIRONMENT}' mode...")
+    logger.info(f"Starting KeyFlint Gateway v{__version__} in '{settings.ENVIRONMENT}' mode...")
 
     try:
         init_db(settings.DATABASE_PATH)
@@ -48,11 +48,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     yield
 
-    logger.info("KeyForge Gateway shutdown complete.")
+    logger.info("KeyFlint Gateway shutdown complete.")
 
 
 app = FastAPI(
-    title="KeyForge",
+    title="KeyFlint",
     description="Cryptographic Licensing & Token-Bucket Quota-Metering Gateway",
     version=__version__,
     docs_url="/docs",

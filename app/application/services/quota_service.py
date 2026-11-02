@@ -1,4 +1,4 @@
-"""KeyForge Quota Application Service.
+"""KeyFlint Quota Application Service.
 
 File: app/application/services/quota_service.py
 """

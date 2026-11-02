@@ -1,5 +1,5 @@
 /**
- * keyforge-verify — offline verifier for KeyForge license tokens.
+ * keyflint-verify — offline verifier for KeyFlint license tokens.
  *
  * Token format: LIC-<TIER>-<BASE64URL(canonical JSON payload)>.<BASE64URL(Ed25519 signature)>
  * The signature covers the decoded payload bytes. Behaviour and error codes mirror
@@ -46,7 +46,7 @@ export interface LicensePayload {
  * - a single key:            "0043b5..."
  * - historical keys:         ["new...", "old..."]
  * - keys indexed by key id:  { k2026: "new...", legacy: "old..." }
- * Tokens without `kid` (all tokens issued by KeyForge v1.0) are checked against every key.
+ * Tokens without `kid` (all tokens issued by KeyFlint v1.0) are checked against every key.
  * With a `{ kid: hex }` map, a token with a signed `kid` is checked only against that key
  * (`ERR_UNKNOWN_KID` if the map has no such kid). Strings and arrays have no names: every key is tried.
  */
@@ -490,7 +490,7 @@ async function verifyWithRing(
   return result;
 }
 
-/** Verifies a KeyForge license token offline. Never throws for invalid input. */
+/** Verifies a KeyFlint license token offline. Never throws for invalid input. */
 export function verifyLicense(token: string, publicKeys: PublicKeys, options: VerifyOptions = {}): Promise<VerifyResult> {
   return verifyWithRing(token, normalizeKeys(publicKeys), options);
 }

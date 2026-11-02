@@ -1,4 +1,4 @@
-package keyforge_test
+package keyflint_test
 
 import (
 	"crypto/ed25519"
@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	keyforge "github.com/ArceeDev/keyforge/sdks/go-verify"
+	keyflint "github.com/ArceeDev/keyflint/sdks/go-verify"
 )
 
 func keypair(t *testing.T) (ed25519.PrivateKey, string) {
@@ -29,7 +29,7 @@ func sign(t *testing.T, priv ed25519.PrivateKey, tier string, claims map[string]
 	if err != nil {
 		t.Fatal(err)
 	}
-	return keyforge.FormatToken(tier, b, ed25519.Sign(priv, b))
+	return keyflint.FormatToken(tier, b, ed25519.Sign(priv, b))
 }
 
 func TestValidTokenAndClaims(t *testing.T) {
@@ -39,7 +39,7 @@ func TestValidTokenAndClaims(t *testing.T) {
 		"license_id": "lic_1", "tier": "pro", "email": "a@example.com",
 		"features": []string{"core", "audit_logs"}, "expires_at": exp, "machine_id": "Node-1",
 	})
-	p, err := keyforge.VerifyWithOptions(tok, pub, keyforge.Options{MachineID: " node-1 "})
+	p, err := keyflint.VerifyWithOptions(tok, pub, keyflint.Options{MachineID: " node-1 "})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +50,7 @@ func TestValidTokenAndClaims(t *testing.T) {
 		t.Fatal("feature gating broken")
 	}
 	// Machine-locked token without a local machine id is rejected (fail closed).
-	if _, err := keyforge.Verify(tok, pub); !errors.Is(err, keyforge.ErrNodeLockViolation) {
+	if _, err := keyflint.Verify(tok, pub); !errors.Is(err, keyflint.ErrNodeLockViolation) {
 		t.Fatalf("want node lock violation, got %v", err)
 	}
 }
@@ -67,22 +67,22 @@ func TestErrorsMapToSentinels(t *testing.T) {
 		code     string
 		sentinel error
 	}{
-		{expired, pub, keyforge.CodeLicenseExpired, keyforge.ErrExpired},
-		{ok, other, keyforge.CodeSignatureTampered, keyforge.ErrInvalidSignature},
-		{ok, "zz", keyforge.CodeInvalidPublicKey, keyforge.ErrInvalidPublicKey},
-		{"", pub, keyforge.CodeEmptyToken, keyforge.ErrInvalidFormat},
-		{"X-PRO-abc.def", pub, keyforge.CodeInvalidTokenPrefix, keyforge.ErrInvalidFormat},
+		{expired, pub, keyflint.CodeLicenseExpired, keyflint.ErrExpired},
+		{ok, other, keyflint.CodeSignatureTampered, keyflint.ErrInvalidSignature},
+		{ok, "zz", keyflint.CodeInvalidPublicKey, keyflint.ErrInvalidPublicKey},
+		{"", pub, keyflint.CodeEmptyToken, keyflint.ErrInvalidFormat},
+		{"X-PRO-abc.def", pub, keyflint.CodeInvalidTokenPrefix, keyflint.ErrInvalidFormat},
 	}
 	for _, c := range cases {
-		_, err := keyforge.Verify(c.tok, c.key)
-		if keyforge.Code(err) != c.code || !errors.Is(err, c.sentinel) {
+		_, err := keyflint.Verify(c.tok, c.key)
+		if keyflint.Code(err) != c.code || !errors.Is(err, c.sentinel) {
 			t.Errorf("token %.20q: got %v, want %s", c.tok, err, c.code)
 		}
 	}
 }
 
 func TestDomainMatching(t *testing.T) {
-	p := &keyforge.LicensePayload{AllowedDomains: []string{"api.acme.corp", "*.internal.net"}}
+	p := &keyflint.LicensePayload{AllowedDomains: []string{"api.acme.corp", "*.internal.net"}}
 	for d, want := range map[string]bool{
 		"API.acme.corp.": true, "api.acme.corp:8443": true, "svc.internal.net": true,
 		"internal.net": true, "xn--bcher-kva.example": false, "evil-internal.net": false, "a_b.internal.net": false, "": false,
@@ -91,11 +91,11 @@ func TestDomainMatching(t *testing.T) {
 			t.Errorf("MatchesDomain(%q) != %v", d, want)
 		}
 	}
-	idn := &keyforge.LicensePayload{AllowedDomains: []string{"Bücher.example", "*.münchen.de"}}
+	idn := &keyflint.LicensePayload{AllowedDomains: []string{"Bücher.example", "*.münchen.de"}}
 	if !idn.MatchesDomain("xn--bcher-kva.example") || !idn.MatchesDomain("api.xn--mnchen-3ya.de") {
 		t.Error("IDNA patterns must match their punycode form")
 	}
-	if !(&keyforge.LicensePayload{}).MatchesDomain("any.org") {
+	if !(&keyflint.LicensePayload{}).MatchesDomain("any.org") {
 		t.Error("empty allowed_domains must allow any domain")
 	}
 }
@@ -145,14 +145,14 @@ func TestVectors(t *testing.T) {
 	for _, v := range vf.Vectors {
 		v := v
 		t.Run(v.Name, func(t *testing.T) {
-			opts := keyforge.Options{Now: time.Unix(v.Now, 0), MachineID: deref(v.MachineID), Domain: deref(v.Domain)}
+			opts := keyflint.Options{Now: time.Unix(v.Now, 0), MachineID: deref(v.MachineID), Domain: deref(v.Domain)}
 			var err error
 			if len(v.PublicKeys) == 1 {
-				_, err = keyforge.VerifyWithOptions(v.Token, v.PublicKeys[0], opts)
+				_, err = keyflint.VerifyWithOptions(v.Token, v.PublicKeys[0], opts)
 			} else {
-				_, err = keyforge.VerifyWithKeys(v.Token, v.PublicKeys, opts)
+				_, err = keyflint.VerifyWithKeys(v.Token, v.PublicKeys, opts)
 			}
-			if got, want := keyforge.Code(err), deref(v.Expected.Error); got != want || (err == nil) != v.Expected.Valid {
+			if got, want := keyflint.Code(err), deref(v.Expected.Error); got != want || (err == nil) != v.Expected.Valid {
 				t.Fatalf("got %q (err=%v), want %q", got, err, want)
 			}
 		})
@@ -174,44 +174,44 @@ func TestKeyRing(t *testing.T) {
 	k1, k2 := vf.Keys["k1"], vf.Keys["k2"]
 
 	tok, now := vector(t, vf, "ring_kid_token_new_key")
-	opts := keyforge.Options{Now: time.Unix(now, 0)}
-	p, err := keyforge.VerifyWithKeyRing(tok, map[string]string{"legacy": k1, "k2": k2}, opts)
+	opts := keyflint.Options{Now: time.Unix(now, 0)}
+	p, err := keyflint.VerifyWithKeyRing(tok, map[string]string{"legacy": k1, "k2": k2}, opts)
 	if err != nil || p.KeyID != "k2" || p.KID != "k2" {
 		t.Fatalf("kid selection: %v %+v", err, p)
 	}
-	if _, err := keyforge.VerifyWithKeyRing(tok, map[string]string{"legacy": k1}, opts); keyforge.Code(err) != keyforge.CodeUnknownKID {
+	if _, err := keyflint.VerifyWithKeyRing(tok, map[string]string{"legacy": k1}, opts); keyflint.Code(err) != keyflint.CodeUnknownKID {
 		t.Fatalf("want ERR_UNKNOWN_KID, got %v", err)
 	}
 
 	legacy, now := vector(t, vf, "ring_legacy_token_old_key")
-	p, err = keyforge.VerifyWithKeyRing(legacy, map[string]string{"k2": k2, "legacy": k1}, keyforge.Options{Now: time.Unix(now, 0)})
+	p, err = keyflint.VerifyWithKeyRing(legacy, map[string]string{"k2": k2, "legacy": k1}, keyflint.Options{Now: time.Unix(now, 0)})
 	if err != nil || p.KeyID != "legacy" {
 		t.Fatalf("legacy token: %v %+v", err, p)
 	}
 
 	other, now := vector(t, vf, "kid_claim_signed_by_other_key")
-	opts = keyforge.Options{Now: time.Unix(now, 0)}
-	if _, err := keyforge.VerifyWithKeyRing(other, map[string]string{"legacy": k1, "k2": k2}, opts); keyforge.Code(err) != keyforge.CodeSignatureTampered {
+	opts = keyflint.Options{Now: time.Unix(now, 0)}
+	if _, err := keyflint.VerifyWithKeyRing(other, map[string]string{"legacy": k1, "k2": k2}, opts); keyflint.Code(err) != keyflint.CodeSignatureTampered {
 		t.Fatalf("kid must bind to its key, got %v", err)
 	}
-	if _, err := keyforge.VerifyWithKeys(other, []string{k2, k1}, opts); err != nil {
+	if _, err := keyflint.VerifyWithKeys(other, []string{k2, k1}, opts); err != nil {
 		t.Fatalf("lists try every key: %v", err)
 	}
 
 	basic, now := vector(t, vf, "valid_basic")
-	opts = keyforge.Options{Now: time.Unix(now, 0)}
-	if _, err := keyforge.VerifyWithKeys(basic, nil, opts); keyforge.Code(err) != keyforge.CodeInvalidPublicKey {
+	opts = keyflint.Options{Now: time.Unix(now, 0)}
+	if _, err := keyflint.VerifyWithKeys(basic, nil, opts); keyflint.Code(err) != keyflint.CodeInvalidPublicKey {
 		t.Fatalf("empty ring: %v", err)
 	}
-	if _, err := keyforge.VerifyWithKeyRing("", map[string]string{}, opts); keyforge.Code(err) != keyforge.CodeEmptyToken {
+	if _, err := keyflint.VerifyWithKeyRing("", map[string]string{}, opts); keyflint.Code(err) != keyflint.CodeEmptyToken {
 		t.Fatalf("structural error wins: %v", err)
 	}
 	head := tok[:len(tok)-4]
-	if _, err := keyforge.VerifyWithKeyRing(head, map[string]string{"legacy": k1}, opts); keyforge.Code(err) != keyforge.CodeInvalidSignatureLength {
+	if _, err := keyflint.VerifyWithKeyRing(head, map[string]string{"legacy": k1}, opts); keyflint.Code(err) != keyflint.CodeInvalidSignatureLength {
 		t.Fatalf("structural error wins over unknown kid: %v", err)
 	}
 	exp, now := vector(t, vf, "expired")
-	if _, err := keyforge.VerifyWithKeys(exp, []string{k2, k1}, keyforge.Options{Now: time.Unix(now, 0)}); keyforge.Code(err) != keyforge.CodeLicenseExpired {
+	if _, err := keyflint.VerifyWithKeys(exp, []string{k2, k1}, keyflint.Options{Now: time.Unix(now, 0)}); keyflint.Code(err) != keyflint.CodeLicenseExpired {
 		t.Fatalf("expired from matching key: %v", err)
 	}
 }

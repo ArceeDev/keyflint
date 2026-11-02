@@ -13,7 +13,7 @@ import httpx
 from app.config import get_settings
 from app.domain.interfaces.email_sender import IEmailSender, LicenseEmailPayload
 
-logger = logging.getLogger("keyforge.email")
+logger = logging.getLogger("keyflint.email")
 
 
 class TransactionalEmailService(IEmailSender):
@@ -42,7 +42,7 @@ class TransactionalEmailService(IEmailSender):
 
     def send_license_issued(self, payload: LicenseEmailPayload) -> bool:
         """Dispatches license activation email with signed Ed25519 token."""
-        subject = f"Your KeyForge {payload.tier.upper()} License & Cryptographic Key"
+        subject = f"Your KeyFlint {payload.tier.upper()} License & Cryptographic Key"
         text_body = self._render_license_text(payload)
         html_body = self._render_license_html(payload)
 
@@ -61,17 +61,17 @@ class TransactionalEmailService(IEmailSender):
         new_balance: int,
     ) -> bool:
         """Dispatches quota cycle replenishment notification."""
-        subject = f"KeyForge Quota Replenished: +{added_credits:,} Credits"
+        subject = f"KeyFlint Quota Replenished: +{added_credits:,} Credits"
         text_body = (
             f"Hello,\n\n"
-            f"Your KeyForge license ({license_key[:12]}...) has been replenished.\n"
+            f"Your KeyFlint license ({license_key[:12]}...) has been replenished.\n"
             f"- Added credits: +{added_credits:,}\n"
             f"- Current total balance: {new_balance:,} credits\n\n"
-            f"Thank you for using KeyForge.\n"
+            f"Thank you for using KeyFlint.\n"
         )
         html_body = f"""
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #141311; background: #FAF9F6; border: 1px solid #E5E3DC; border-radius: 8px;">
-            <h2 style="color: #A63D12; margin-top: 0;">KeyForge Quota Replenished</h2>
+            <h2 style="color: #A63D12; margin-top: 0;">KeyFlint Quota Replenished</h2>
             <p>Your license <code>{license_key[:12]}...</code> quota has been refilled successfully.</p>
             <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
                 <tr><td style="padding: 8px 0; border-bottom: 1px solid #E5E3DC;">Added Credits:</td><td style="font-weight: bold; text-align: right; border-bottom: 1px solid #E5E3DC;">+{added_credits:,}</td></tr>
@@ -179,7 +179,7 @@ class TransactionalEmailService(IEmailSender):
             return False
 
     def _render_license_text(self, p: LicenseEmailPayload) -> str:
-        return f"""Welcome to KeyForge!
+        return f"""Welcome to KeyFlint!
 
 Your {p.tier.upper()} license has been generated and activated.
 
@@ -204,24 +204,24 @@ Gateway Public Key (Hex):
 QUICKSTART: OFFLINE VERIFICATION IN 30 SECONDS
 ----------------------------------------------------------------------
 In Python:
-  pip install keyforge-verify
-  from keyforge_verify import verify_license
+  pip install keyflint-verify
+  from keyflint_verify import verify_license
   payload = verify_license("{p.token}", "{p.public_key_hex}")
   print(payload.is_valid, payload.tier)
 
 In TypeScript / Node:
-  npm i keyforge-verify
-  import {{ verifyLicense }} from "keyforge-verify";
+  npm i keyflint-verify
+  import {{ verifyLicense }} from "keyflint-verify";
   const result = await verifyLicense("{p.token}", "{p.public_key_hex}");
   console.log(result.isValid, result.tier);
 
 MCP Tool Metering:
-  from keyforge_verify.mcp import metered
+  from keyflint_verify.mcp import metered
   @metered(credits=5)
   async def my_ai_tool(): ...
 
 Commercial Source & Docs:
-  https://github.com/ArceeDev/keyforge
+  https://github.com/ArceeDev/keyflint
 
 Need help or enterprise integration? Reply to this email.
 """
@@ -249,9 +249,9 @@ Need help or enterprise integration? Reply to this email.
 <body>
   <div class="box">
     <div class="header">
-      <span class="badge">KeyForge Cryptographic Gateway</span>
+      <span class="badge">KeyFlint Cryptographic Gateway</span>
       <h1>Your {p.tier.upper()} License is Active</h1>
-      <p>Thank you for purchasing KeyForge. Your asymmetric Ed25519 token is ready.</p>
+      <p>Thank you for purchasing KeyFlint. Your asymmetric Ed25519 token is ready.</p>
     </div>
 
     <table class="specs">
@@ -269,11 +269,11 @@ Need help or enterprise integration? Reply to this email.
     <div class="token-box">{p.public_key_hex}</div>
 
     <h3 style="font-size: 14px; margin: 20px 0 6px;">Zero-Dependency Verification</h3>
-    <pre class="code">pip install keyforge-verify   # Python
-npm i keyforge-verify         # TypeScript</pre>
+    <pre class="code">pip install keyflint-verify   # Python
+npm i keyflint-verify         # TypeScript</pre>
 
     <div class="footer">
-      KeyForge v1.1.0 · Self-Hosted Ed25519 Licensing &amp; Quota-Metering Gateway<br>
+      KeyFlint v1.1.0 · Self-Hosted Ed25519 Licensing &amp; Quota-Metering Gateway<br>
       Need assistance? Reply directly to this confirmation email.
     </div>
   </div>

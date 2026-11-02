@@ -1,4 +1,4 @@
-"""Tier 1: KeyForge Managed provisioning script (scripts/managed/kf_managed.py) with a fake flyctl."""
+"""Tier 1: KeyFlint Managed provisioning script (scripts/managed/kf_managed.py) with a fake flyctl."""
 
 from __future__ import annotations
 
@@ -51,7 +51,7 @@ class TestManagedProvision(unittest.TestCase):
 
     def test_create_runs_expected_flyctl_sequence_and_keeps_secrets_off_argv(self) -> None:
         fake = FakeFly()
-        meta = kf.cmd_create(self._fly(fake), "acme", "cdg", "ghcr.io/arceedev/keyforge:1.2.0",
+        meta = kf.cmd_create(self._fly(fake), "acme", "cdg", "ghcr.io/arceedev/keyflint:1.2.0",
                              "lic.acme.com", None, dict(BACKUP_ENV))
         verbs = [c[0][1:3] for c in fake.calls]
         self.assertEqual(verbs, [["apps", "create"], ["volumes", "create"], ["secrets", "import"],
@@ -113,7 +113,7 @@ class TestManagedProvision(unittest.TestCase):
     def test_upgrade_all_targets_only_managed_apps(self) -> None:
         fake = FakeFly(apps=["kf-acme", "other-app", "kf-beta"])
         fly = self._fly(fake)
-        kf.cmd_upgrade(fly, kf.managed_slugs(fly), "ghcr.io/arceedev/keyforge:1.2.1")
+        kf.cmd_upgrade(fly, kf.managed_slugs(fly), "ghcr.io/arceedev/keyflint:1.2.1")
         deployed = [c[0][3] for c in fake.calls if c[0][1] == "deploy"]
         self.assertEqual(deployed, ["kf-acme", "kf-beta"])
 
