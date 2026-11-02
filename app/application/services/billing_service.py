@@ -10,6 +10,8 @@ from datetime import datetime, timezone
 import hashlib
 import hmac
 import json
+import logging
+import re
 import time
 from typing import Any, Optional
 from urllib.parse import urlencode
@@ -47,6 +49,11 @@ from app.domain.interfaces.email_sender import IEmailSender, LicenseEmailPayload
 from app.domain.interfaces.license_repository import ILicenseRepository
 from app.domain.interfaces.quota_repository import IQuotaRepository
 from app.domain.interfaces.webhook_repository import IWebhookRepository
+
+logger = logging.getLogger("keyflint.billing")
+
+EMAIL_MAX_ATTEMPTS = 10
+_PLACEHOLDER_EMAIL = re.compile(r"^buyer_[0-9a-f]{6}@acme\.ai$")
 
 
 _TIER_UNIT_AMOUNTS_CENTS: dict[str, int] = {
@@ -472,6 +479,84 @@ class BillingService:
             outcome["license_status"] = status.value
         return outcome
 
+    def deliver_license_email(self, license_key: str, recipient: Optional[str] = None) -> bool:
+        """Emails the license and records the outcome in metadata.email_delivery (never raises)."""
+        lic = self._license_repo.get_by_key(license_key)
+        if lic is None:
+            raise LicenseNotFoundError(license_key)
+        to = recipient
+        if not to:
+            customer = self._customer_repo.get_by_id(lic.customer_id)
+            to = customer.email if customer else None
+
+        prev = lic.metadata.get("email_delivery") if isinstance(lic.metadata.get("email_delivery"), dict) else {}
+        attempts = int(prev.get("attempts", 0)) + 1
+        error: Optional[str] = None
+        ok = False
+        if self._email_sender is None:
+            error = "email_sender_not_wired"
+        elif not to or _PLACEHOLDER_EMAIL.match(to):
+            error = "no_customer_email"
+        else:
+            try:
+                ok = bool(
+                    self._email_sender.send_license_issued(
+                        LicenseEmailPayload(
+                            recipient_email=to,
+                            tier=lic.tier.value,
+                            license_key=lic.license_key,
+                            token=lic.license_key,
+                            public_key_hex=self._license_service.get_public_key_hex(),
+                            seats=lic.max_seats,
+                            credits=lic.tier.default_allowance,
+                            expires_at=lic.expires_at.isoformat() if lic.expires_at else None,
+                        )
+                    )
+                )
+                if not ok:
+                    error = getattr(self._email_sender, "last_error", None) or "send_failed"
+            except Exception as exc:  # provider bugs must never break provisioning
+                error = f"exception: {exc}"
+
+        lic.metadata["email_delivery"] = {
+            "status": "sent" if ok else "failed",
+            "attempts": attempts,
+            "last_attempt_at": datetime.now(timezone.utc).isoformat(),
+            "recipient": to,
+            **({"error": error[:300]} if error else {}),
+        }
+        self._license_repo.save(lic)
+        if ok:
+            logger.info("License email delivered to %s (license %s, attempt %d)", to, lic.id, attempts)
+        else:
+            logger.error(
+                "LICENSE EMAIL NOT DELIVERED to %s (license %s, attempt %d): %s",
+                to,
+                lic.id,
+                attempts,
+                error,
+            )
+        return ok
+
+    def retry_failed_license_emails(self, max_attempts: int = EMAIL_MAX_ATTEMPTS) -> dict[str, int]:
+        """Retries every license whose email_delivery.status is 'failed' (below max_attempts)."""
+        finder = getattr(self._license_repo, "list_failed_email_deliveries", None)
+        summary = {"retried": 0, "sent": 0, "failed": 0}
+        if finder is None:
+            return summary
+        for lic in finder():
+            info = lic.metadata.get("email_delivery") or {}
+            if int(info.get("attempts", 0)) >= max_attempts or info.get("error") == "no_customer_email":
+                continue
+            if lic.status not in (LicenseStatus.ACTIVE, LicenseStatus.GRACE_PERIOD):
+                continue
+            summary["retried"] += 1
+            if self.deliver_license_email(lic.license_key, recipient=info.get("recipient")):
+                summary["sent"] += 1
+            else:
+                summary["failed"] += 1
+        return summary
+
     def process_webhook(
         self,
         provider: str,
@@ -512,6 +597,7 @@ class BillingService:
             }
 
         payload_hash = hashlib.sha256(raw_body).hexdigest()
+        email_delivered: Optional[bool] = None
         license_key: Optional[str] = None
         license_status: Optional[str] = None
 
@@ -587,22 +673,16 @@ class BillingService:
             if provider == "stripe":
                 self._attach_payment_refs(license_key, self._extract_payment_refs(data_obj))
 
-            if self._email_sender and license_key:
-                try:
-                    pub_key = self._license_service.get_public_key_hex()
-                    self._email_sender.send_license_issued(
-                        LicenseEmailPayload(
-                            recipient_email=resolved_email,
-                            tier=target_tier.value,
-                            license_key=license_key,
-                            token=license_key,
-                            public_key_hex=pub_key,
-                            seats=target_tier.max_seats,
-                            credits=target_tier.default_allowance,
-                        )
+            email_delivered: Optional[bool] = None
+            if license_key:
+                if customer_email is None:
+                    logger.error(
+                        "Webhook %s (%s) has no customer email; license issued but NOT emailed. "
+                        "Resend with: keyflint resend-license <key> --to <email>",
+                        event_id,
+                        event_type,
                     )
-                except Exception:
-                    pass
+                email_delivered = self.deliver_license_email(license_key, recipient=resolved_email)
 
         elif event_type in renewal_events:
             if customer_email:
@@ -696,6 +776,7 @@ class BillingService:
             "event_type": event_type,
             "license_key": license_key,
             "license_status": license_status,
+            **({"email_delivered": email_delivered} if event_type in provision_events else {}),
             **({"reversal": reversal} if reversal is not None else {}),
         }
 

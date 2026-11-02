@@ -6,6 +6,7 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import logging
 import smtplib
+import time
 from typing import Optional
 
 import httpx
@@ -14,6 +15,13 @@ from app.config import get_settings
 from app.domain.interfaces.email_sender import IEmailSender, LicenseEmailPayload
 
 logger = logging.getLogger("keyflint.email")
+
+_RESEND_RETRY_STATUSES = {429, 500, 502, 503, 504}
+_RESEND_HINTS = {
+    401: "RESEND_API_KEY is invalid or revoked.",
+    403: "Sender domain not verified in Resend (check SPF/DKIM DNS records) or EMAIL_FROM uses another domain.",
+    422: "Resend rejected the payload (check EMAIL_FROM format and recipient).",
+}
 
 
 class TransactionalEmailService(IEmailSender):
@@ -39,6 +47,18 @@ class TransactionalEmailService(IEmailSender):
         self._enabled = enabled if enabled is not None else (
             settings.EMAIL_ENABLED or bool(self._resend_api_key or self._smtp_host)
         )
+        self.last_error: Optional[str] = None
+
+    @property
+    def provider(self) -> str:
+        """Active provider: 'resend', 'smtp' or 'none' (nothing will be delivered)."""
+        if not self._enabled:
+            return "none"
+        if self._resend_api_key:
+            return "resend"
+        if self._smtp_host:
+            return "smtp"
+        return "none"
 
     def send_license_issued(self, payload: LicenseEmailPayload) -> bool:
         """Dispatches license activation email with signed Ed25519 token."""
@@ -93,28 +113,22 @@ class TransactionalEmailService(IEmailSender):
         text_body: str,
         html_body: str,
     ) -> bool:
-        """Transmits email or falls back to structured logging when offline/unconfigured."""
-        if not self._enabled:
-            logger.info(
-                "Transactional email disabled/mocked. "
-                "Recipient: %s, Subject: '%s'",
-                recipient,
-                subject,
-            )
-            return True
-
-        if self._resend_api_key:
+        """Transmits email. Returns False (never fakes success) when unconfigured or failing."""
+        self.last_error = None
+        provider = self.provider
+        if provider == "resend":
             return self._send_via_resend(recipient, subject, text_body, html_body)
-
-        if self._smtp_host:
+        if provider == "smtp":
             return self._send_via_smtp(recipient, subject, text_body, html_body)
 
-        logger.info(
-            "No email provider credentials configured (RESEND_API_KEY or SMTP_HOST). "
-            "Simulating dispatch to: %s",
+        self.last_error = "no_email_provider_configured"
+        logger.warning(
+            "EMAIL NOT SENT: no provider configured (set RESEND_API_KEY or SMTP_HOST). "
+            "Recipient: %s, Subject: '%s'",
             recipient,
+            subject,
         )
-        return True
+        return False
 
     def _send_via_resend(
         self,
@@ -123,30 +137,46 @@ class TransactionalEmailService(IEmailSender):
         text_body: str,
         html_body: str,
     ) -> bool:
-        try:
-            with httpx.Client(timeout=10.0) as client:
-                resp = client.post(
-                    "https://api.resend.com/emails",
-                    headers={
-                        "Authorization": f"Bearer {self._resend_api_key}",
-                        "Content-Type": "application/json",
-                    },
-                    json={
-                        "from": self._from_address,
-                        "to": [recipient],
-                        "subject": subject,
-                        "text": text_body,
-                        "html": html_body,
-                    },
-                )
+        attempts = 3
+        for attempt in range(1, attempts + 1):
+            try:
+                with httpx.Client(timeout=5.0) as client:
+                    resp = client.post(
+                        "https://api.resend.com/emails",
+                        headers={
+                            "Authorization": f"Bearer {self._resend_api_key}",
+                            "Content-Type": "application/json",
+                        },
+                        json={
+                            "from": self._from_address,
+                            "to": [recipient],
+                            "subject": subject,
+                            "text": text_body,
+                            "html": html_body,
+                        },
+                    )
+            except Exception as exc:
+                self.last_error = f"resend_exception: {exc}"
+                logger.error("Resend dispatch exception for %s (attempt %d/%d): %s", recipient, attempt, attempts, exc)
+            else:
                 if resp.status_code in (200, 201):
                     logger.info("Resend dispatch succeeded for %s", recipient)
                     return True
-                logger.error("Resend API error (%s): %s", resp.status_code, resp.text)
-                return False
-        except Exception as exc:
-            logger.error("Resend dispatch exception for %s: %s", recipient, exc)
-            return False
+                self.last_error = f"resend_{resp.status_code}: {resp.text[:300]}"
+                logger.error(
+                    "Resend API error %s for %s (attempt %d/%d): %s%s",
+                    resp.status_code,
+                    recipient,
+                    attempt,
+                    attempts,
+                    resp.text[:300],
+                    f" | hint: {_RESEND_HINTS[resp.status_code]}" if resp.status_code in _RESEND_HINTS else "",
+                )
+                if resp.status_code not in _RESEND_RETRY_STATUSES:
+                    return False
+            if attempt < attempts:
+                time.sleep(0.5 * attempt)
+        return False
 
     def _send_via_smtp(
         self,
@@ -175,6 +205,7 @@ class TransactionalEmailService(IEmailSender):
             logger.info("SMTP dispatch succeeded for %s", recipient)
             return True
         except Exception as exc:
+            self.last_error = f"smtp_exception: {exc}"
             logger.error("SMTP dispatch exception for %s: %s", recipient, exc)
             return False
 

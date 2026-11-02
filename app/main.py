@@ -5,7 +5,8 @@ File: app/main.py
 
 from __future__ import annotations
 
-from contextlib import asynccontextmanager
+import asyncio
+from contextlib import asynccontextmanager, suppress
 from pathlib import Path
 from typing import AsyncIterator
 
@@ -29,6 +30,29 @@ logger = get_logger("gateway")
 STATIC_DIR = Path(__file__).parent / "presentation" / "static"
 
 
+def _retry_failed_emails_once() -> dict[str, int]:
+    from app.infrastructure.database.connection import create_connection
+    from app.infrastructure.email.license_delivery import build_billing_service
+
+    conn = create_connection()
+    try:
+        return build_billing_service(conn).retry_failed_license_emails()
+    finally:
+        conn.close()
+
+
+async def _email_retry_loop(interval_seconds: int) -> None:
+    """Automatically retries failed license emails so a provider outage never loses a buyer."""
+    while True:
+        await asyncio.sleep(interval_seconds)
+        try:
+            summary = await asyncio.to_thread(_retry_failed_emails_once)
+            if summary.get("retried"):
+                logger.info(f"License email retry pass: {summary}")
+        except Exception as exc:  # keep the loop alive
+            logger.error(f"License email retry pass failed: {exc}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Manages application startup validation, logging, and database schema readiness."""
@@ -46,8 +70,27 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         logger.error(f"Database migration failure on startup: {exc}")
         raise
 
+    from app.infrastructure.email.transactional_email_service import TransactionalEmailService
+
+    email_provider = TransactionalEmailService().provider
+    if email_provider == "none":
+        logger.warning(
+            "EMAIL PROVIDER NOT CONFIGURED: paid licenses will be issued but NOT emailed. "
+            "Set RESEND_API_KEY (or SMTP_HOST) as a secret."
+        )
+    else:
+        logger.info(f"License emails via '{email_provider}'.")
+
+    retry_task: asyncio.Task[None] | None = None
+    if settings.EMAIL_RETRY_INTERVAL_SECONDS > 0:
+        retry_task = asyncio.create_task(_email_retry_loop(settings.EMAIL_RETRY_INTERVAL_SECONDS))
+
     yield
 
+    if retry_task is not None:
+        retry_task.cancel()
+        with suppress(asyncio.CancelledError):
+            await retry_task
     logger.info("KeyFlint Gateway shutdown complete.")
 
 

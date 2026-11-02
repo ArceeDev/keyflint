@@ -14,7 +14,13 @@ from app.application.dtos.billing_dtos import (
 )
 from app.application.services.billing_service import BillingService
 from app.config import get_settings
-from app.presentation.dependencies import build_response_metadata, get_billing_service
+from pydantic import BaseModel, Field
+
+from app.presentation.dependencies import (
+    build_response_metadata,
+    get_billing_service,
+    require_admin_access,
+)
 
 router = APIRouter(prefix="/api/v1/billing", tags=["Billing"])
 
@@ -141,5 +147,38 @@ def lookup_customer_portal(
     return {
         "success": True,
         "data": res.model_dump(),
+        "metadata": build_response_metadata(http_request),
+    }
+
+
+class ResendLicenseEmailRequest(BaseModel):
+    license_key: str = Field(..., min_length=8)
+    to: str | None = Field(default=None, description="Override recipient (defaults to the license owner).")
+
+
+@router.post("/resend-license-email", dependencies=[Depends(require_admin_access)])
+def resend_license_email(
+    request: ResendLicenseEmailRequest,
+    http_request: Request,
+    billing_service: BillingService = Depends(get_billing_service),
+) -> dict[str, Any]:
+    """Admin: re-sends the license email and returns the recorded delivery status."""
+    ok = billing_service.deliver_license_email(request.license_key.strip(), recipient=request.to)
+    return {
+        "success": ok,
+        "data": {"email_delivered": ok},
+        "metadata": build_response_metadata(http_request),
+    }
+
+
+@router.post("/retry-failed-license-emails", dependencies=[Depends(require_admin_access)])
+def retry_failed_license_emails(
+    http_request: Request,
+    billing_service: BillingService = Depends(get_billing_service),
+) -> dict[str, Any]:
+    """Admin: retries every license email whose last attempt failed."""
+    return {
+        "success": True,
+        "data": billing_service.retry_failed_license_emails(),
         "metadata": build_response_metadata(http_request),
     }

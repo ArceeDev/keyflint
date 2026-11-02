@@ -63,6 +63,7 @@ class Settings(BaseSettings):
     SMTP_USERNAME: Optional[str] = None
     SMTP_PASSWORD: Optional[str] = None
     SMTP_USE_TLS: bool = True
+    EMAIL_RETRY_INTERVAL_SECONDS: int = 300  # 0 disables the automatic retry loop
 
     BILLING_MODE: str = "mock"
     ENVIRONMENT: str = "development"

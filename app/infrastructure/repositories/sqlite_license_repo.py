@@ -133,6 +133,19 @@ class SqliteLicenseRepo(ILicenseRepository):
 
     get_by_customer_id = list_by_customer_id
 
+    def list_failed_email_deliveries(self) -> list[License]:
+        """Licenses whose last license email attempt failed (metadata.email_delivery.status)."""
+        cur = self._conn.execute(
+            "SELECT * FROM licenses WHERE metadata_json LIKE '%\"email_delivery\"%' ORDER BY created_at ASC"
+        )
+        result: list[License] = []
+        for row in cur.fetchall():
+            entity = self._row_to_entity(row)
+            info = entity.metadata.get("email_delivery")
+            if isinstance(info, dict) and info.get("status") == "failed":
+                result.append(entity)
+        return result
+
     def find_by_payment_ref(self, ref: str) -> list[License]:
         """Finds licenses whose metadata.payment_refs contains the exact provider reference."""
         if not ref:
