@@ -19,8 +19,8 @@ SVC = "app.infrastructure.email.transactional_email_service.TransactionalEmailSe
 
 
 class TestLicenseEmailDelivery(BaseKeyFlintTestCase):
-    def _checkout(self, email: str | None) -> dict:
-        obj: dict = {"metadata": {"tier": "indie"}, "payment_status": "paid"}
+    def _checkout(self, email: str | None, tier: str = "indie") -> dict:
+        obj: dict = {"metadata": {"tier": tier}, "payment_status": "paid"}
         if email:
             obj["customer_details"] = {"email": email}  # Payment Links put the email here
         body = json.dumps(
@@ -105,7 +105,7 @@ class TestLicenseEmailDelivery(BaseKeyFlintTestCase):
     def test_only_subscription_cycle_invoice_sends_quota_email(self):
         self.require_app()
         with mock.patch(f"{SVC}._dispatch", return_value=True):
-            self._checkout("invoice.buyer@example.com")
+            self._checkout("invoice.buyer@example.com", tier="pro")  # renewals only touch recurring tiers
         with mock.patch(f"{SVC}.send_quota_replenished", return_value=True) as quota:
             self._invoice("invoice.buyer@example.com", "manual")  # one-time Payment Link invoice
             self._invoice("invoice.buyer@example.com", "subscription_create")
