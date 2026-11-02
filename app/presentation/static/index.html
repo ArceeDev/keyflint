@@ -12,27 +12,29 @@
     <style>
         /* ---------- Tokens ---------- */
         :root {
-            --bg: #F6F5F1;
-            --surface: #FFFFFF;
-            --surface-2: #FBFAF7;
-            --sunken: #F0EEE8;
-            --line: #E3E0D8;
-            --line-strong: #CFCBC0;
-            --ink: #1A1915;
-            --ink-2: #4A4740;
-            --muted: #77736A;
-            --brand: #A63D12;          /* hierro al rojo: solo marca, foco y plan destacado */
-            --brand-soft: #F6E7DE;
-            --action: #1A1915;
-            --action-hover: #33312B;
-            --action-ink: #FFFFFF;
-            --focus: #A63D12;
-            --ok: #1F6B45;   --ok-bg: #E7F2EC;   --ok-line: #B7D8C5;
-            --warn: #8A5A00; --warn-bg: #FBF1DC; --warn-line: #E9CF95;
-            --err: #A42323;  --err-bg: #FBE9E7;  --err-line: #EDBDB7;
-            --code-bg: #FBFAF7;
-            --hl-kw: #8A2E0A; --hl-fn: #1D4E89; --hl-str: #1F6B45; --hl-cm: #8C887E;
-            --shadow: 0 1px 0 rgba(26,25,21,.04), 0 1px 2px rgba(26,25,21,.06);
+            color-scheme: dark;
+            /* Brand: solid #0B0D17, white text, #CCFF00 only for keywords, CTAs and badges. */
+            --bg: #0B0D17;
+            --surface: #0B0D17;
+            --surface-2: #0B0D17;
+            --sunken: #0B0D17;
+            --line: #1F2438;
+            --line-strong: #2E3550;
+            --ink: #FFFFFF;
+            --ink-2: #FFFFFF;
+            --muted: #9CA3B5;          /* placeholders and disabled controls only */
+            --brand: #CCFF00;
+            --brand-soft: rgba(204, 255, 0, .14);
+            --action: #CCFF00;
+            --action-hover: #E0FF66;
+            --action-ink: #0B0D17;
+            --focus: #CCFF00;
+            --ok: #7CC49B;   --ok-bg: #0B0D17;   --ok-line: #2A4535;
+            --warn: #E2B65C; --warn-bg: #0B0D17; --warn-line: #4D3E1F;
+            --err: #F07A6E;  --err-bg: #0B0D17;  --err-line: #552924;
+            --code-bg: #0B0D17;
+            --hl-kw: #CCFF00; --hl-fn: #FFFFFF; --hl-str: #9CA3B5; --hl-cm: #6B7180;
+            --shadow: none;
             --radius: 6px;
             --radius-lg: 10px;
             --font: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
@@ -40,22 +42,6 @@
             --ease: cubic-bezier(.2, .7, .2, 1);
             --t-fast: 120ms;
             --t: 180ms;
-        }
-        @media (prefers-color-scheme: dark) {
-            :root:not([data-theme="light"]) {
-                --bg: #141311; --surface: #1C1B18; --surface-2: #201F1B; --sunken: #181714;
-                --line: #2E2C27; --line-strong: #403D36;
-                --ink: #EDEAE2; --ink-2: #C3BFB4; --muted: #8F8B81;
-                --brand: #E07B4F; --brand-soft: #2E1F17;
-                --action: #EDEAE2; --action-hover: #FFFFFF; --action-ink: #141311;
-                --focus: #E07B4F;
-                --ok: #7CC49B;   --ok-bg: #16231B;   --ok-line: #2A4535;
-                --warn: #E2B65C; --warn-bg: #2A2213; --warn-line: #4D3E1F;
-                --err-line: #552924;
-                --code-bg: #181714;
-                --hl-kw: #E8946B; --hl-fn: #8DB4E2; --hl-str: #8CC7A1; --hl-cm: #7A766C;
-                --shadow: 0 1px 0 rgba(0,0,0,.3);
-            }
         }
 
         /* ---------- Base ---------- */
@@ -180,8 +166,8 @@
         input.mono, #verifyKey, #quotaKey, #verifyHw { font-family: var(--mono); font-size: 13px; }
         select {
             padding-right: 30px; cursor: pointer;
-            background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
-            background-position: calc(100% - 15px) 52%, calc(100% - 10px) 52%; background-size: 5px 5px; background-repeat: no-repeat;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23FFFFFF' stroke-width='1.5'/%3E%3C/svg%3E");
+            background-position: calc(100% - 12px) 50%; background-size: 10px 6px; background-repeat: no-repeat;
         }
         input::placeholder { color: var(--muted); opacity: .8; }
         input:hover, select:hover { border-color: var(--muted); }
@@ -677,6 +663,7 @@
                             <li>Créditos iniciales <b>10.000</b></li>
                             <li>Verificación <b>Ed25519 offline (&lt;1ms)</b></li>
                             <li>Actualizaciones <b>v1.x de por vida</b></li>
+                            <li>Soporte <b>Respuesta en ≤ 2 días laborables</b></li>
                         </ul>
                     </div>
                     <a href="https://buy.stripe.com/eVq6oz64kbc7g7abF1awo03" target="_blank" rel="noopener noreferrer" class="btn btn-secondary js-checkout-link" data-tier="indie">Comprar Indie ($149)</a>
@@ -692,7 +679,7 @@
                             <li>Nodos / Clientes <b>25</b></li>
                             <li>Créditos iniciales <b>50.000</b></li>
                             <li>Verificación <b>Ed25519 offline (&lt;1ms)</b></li>
-                            <li>Soporte <b>Prioritario directo</b></li>
+                            <li>Soporte <b>Prioritario, ≤ 1 día laborable</b></li>
                         </ul>
                     </div>
                     <a href="https://buy.stripe.com/dRmeV578ogwr8EI24rawo02" target="_blank" rel="noopener noreferrer" class="btn js-checkout-link" data-tier="agency">Comprar Agency ($349)</a>
@@ -709,6 +696,7 @@
                             <li>Verificación <b>offline + API</b></li>
                             <li>Webhooks <b>Stripe integrados</b></li>
                             <li>Facturación <b>Mensual recurrente</b></li>
+                            <li>Soporte <b>Respuesta en ≤ 2 días laborables</b></li>
                         </ul>
                     </div>
                     <a href="https://buy.stripe.com/8x2eV578o7ZV6wAbF1awo01" target="_blank" rel="noopener noreferrer" class="btn btn-secondary js-checkout-link" data-tier="pro">Suscribir Pro ($29/mo)</a>
@@ -724,7 +712,7 @@
                             <li>Nodos activos <b>25</b></li>
                             <li>Telemetría &amp; Auditoría <b>Sí</b></li>
                             <li>Transacciones <b>ACID SQLite</b></li>
-                            <li>Soporte <b>Prioritario 24/7</b></li>
+                            <li>Soporte <b>Prioritario, ≤ 1 día laborable</b></li>
                         </ul>
                     </div>
                     <a href="https://buy.stripe.com/5kQeV52S8gwrbQUdN9awo00" target="_blank" rel="noopener noreferrer" class="btn btn-secondary js-checkout-link" data-tier="studio">Suscribir Studio ($89/mo)</a>
