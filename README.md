@@ -144,7 +144,8 @@ this whole path against a real container.
 prefix). The database is replicated every second; on a fresh volume it is restored before the
 gateway starts, and if the restore fails the container refuses to start. Litestream backs up the
 database only: keep your secrets as environment variables (not only in `secrets.env`) so a lost
-volume comes back with the same signing key. `python scripts/e2e_backup.py` verifies the recovery.
+volume comes back with the same signing key. `python scripts/e2e_backup.py` verifies the recovery;
+[`docs/ops/RESTORE_DRILL.md`](docs/ops/RESTORE_DRILL.md) runs the same check against production.
 Hosting customers yourself: see [`scripts/managed/README.md`](scripts/managed/README.md).
 
 ## Architecture
