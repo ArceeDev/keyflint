@@ -24,6 +24,7 @@ REQUIRED_TABLES = (
     "usage_events",
     "webhook_events",
     "revoked_licenses",
+    "portal_login_tokens",
     "schema_migrations",
 )
 

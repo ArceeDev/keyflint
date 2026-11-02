@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
 
 from app.application.dtos.billing_dtos import (
     CheckoutRequest,
     CustomerPortalLookupRequest,
+    PortalRedeemRequest,
     PortalRequest,
     WebhookSimulationRequest,
 )
@@ -140,10 +141,44 @@ def get_billing_status(
 def lookup_customer_portal(
     request: CustomerPortalLookupRequest,
     http_request: Request,
+    background_tasks: BackgroundTasks,
     billing_service: BillingService = Depends(get_billing_service),
 ) -> dict[str, Any]:
-    """Self-service buyer portal: queries licenses, active balances, and SDK snippets."""
+    """Self-service buyer portal.
+
+    - License key: returns that license (possession of the key is the proof).
+    - Email: never returns data. If the buyer exists, a single-use link is emailed to that inbox.
+      The response is identical whether or not the email exists (no account enumeration).
+    """
+    if "@" in request.query:
+        target = billing_service.request_portal_magic_link(request.query)
+        if target is not None:
+            background_tasks.add_task(billing_service.send_portal_magic_link, *target)
+        return {
+            "success": True,
+            "data": {
+                "magic_link_sent": True,
+                "expires_in_seconds": get_settings().PORTAL_LINK_TTL_SECONDS,
+                "message": "If this email has KeyFlint licenses, a one-time portal link is on its way.",
+            },
+            "metadata": build_response_metadata(http_request),
+        }
     res = billing_service.lookup_customer_licenses(request)
+    return {
+        "success": True,
+        "data": res.model_dump(),
+        "metadata": build_response_metadata(http_request),
+    }
+
+
+@router.post("/portal/redeem")
+def redeem_customer_portal_link(
+    request: PortalRedeemRequest,
+    http_request: Request,
+    billing_service: BillingService = Depends(get_billing_service),
+) -> dict[str, Any]:
+    """Consumes a single-use emailed portal link (POST, so mail scanners prefetching GET cannot burn it)."""
+    res = billing_service.redeem_portal_magic_link(request.token)
     return {
         "success": True,
         "data": res.model_dump(),

@@ -43,3 +43,7 @@ class IEmailSender(ABC):
     def send_ops_alert(self, recipient_email: str, subject: str, text_body: str) -> bool:
         """Plain-text incident alert to the operator. Optional for implementations."""
         return False
+
+    def send_portal_magic_link(self, recipient_email: str, link: str, ttl_minutes: int) -> bool:
+        """Single-use customer portal sign-in link. Optional for implementations."""
+        return False
