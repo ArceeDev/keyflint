@@ -7,8 +7,8 @@ Estado verificado el 2026-11-02. Mientras falte cualquier punto marcado ❌, **u
 | 1 | 4 Payment Links live en `docs/` y consola (`/test_` eliminado) | ✅ (guardado por `tests/tier2_boundaries/test_payment_links.py`) |
 | 2 | Dominio `keyflint.dev` y `licenses.keyflint.dev` apuntando a la gateway | ✅ DNS y TLS Let's Encrypt activo |
 | 3 | Gateway desplegada (Fly `cdg` + R2/Litestream) con `KEYFLINT_ENV=production` | ✅ Activa en `licenses.keyflint.dev` |
-| 4 | Webhook **live** creado → `https://licenses.keyflint.dev/api/v1/webhooks/stripe` con `checkout.session.completed`, `invoice.payment_succeeded`, `customer.subscription.deleted` | ❌ (el actual `we_1UWv5N…` es de test) |
-| 5 | `STRIPE_WEBHOOK_SECRET` = `whsec_` **live** en la gateway (`fly secrets set`) | ❌ |
+| 4 | Webhook **live** creado → `https://licenses.keyflint.dev/api/v1/webhooks/stripe` con `checkout.session.completed`, `invoice.payment_succeeded`, `customer.subscription.deleted` | ✅ Creado y activo en Stripe Live |
+| 5 | `STRIPE_WEBHOOK_SECRET` = `whsec_` **live** en la gateway (`fly secrets set`) | ✅ Inyectado y verificado en Fly.io |
 | 6 | Cada Payment Link live tiene `metadata.tier` = `indie` / `agency` / `pro` / `studio` | ✅ Verificado en `payment_links.csv` |
 | 7 | Email transaccional (Resend/SMTP) con dominio verificado | ❌ depende de 2 |
 
