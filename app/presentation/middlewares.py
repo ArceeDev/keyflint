@@ -392,11 +392,20 @@ class RateLimitMiddleware:
         trust_proxy_headers: bool = False,
     ) -> str:
         if trust_proxy_headers:
+            # The client controls everything it sends, including X-Forwarded-For. Trust only what the
+            # edge proxy sets: Fly-Client-IP, else the right-most X-Forwarded-For hop (appended by it).
+            forwarded_for = ""
             for k, v in scope.get("headers", ()):
-                if k.lower() == b"x-forwarded-for":
-                    forwarded = v.decode("latin-1", errors="ignore").split(",")[0].strip()
-                    if forwarded:
-                        return forwarded[:128]
+                name = k.lower()
+                if name == b"fly-client-ip":
+                    fly_ip = v.decode("latin-1", errors="ignore").strip()
+                    if fly_ip:
+                        return fly_ip[:128]
+                elif name == b"x-forwarded-for":
+                    forwarded_for = v.decode("latin-1", errors="ignore")
+            hops = [hop.strip() for hop in forwarded_for.split(",") if hop.strip()]
+            if hops:
+                return hops[-1][:128]
         client = scope.get("client")
         if client and len(client) >= 1 and client[0]:
             return str(client[0])[:128]
