@@ -89,16 +89,36 @@ class TransactionalEmailService(IEmailSender):
             f"- Current total balance: {new_balance:,} credits\n\n"
             f"Thank you for using KeyFlint.\n"
         )
-        html_body = f"""
-        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; color: #141311; background: #FAF9F6; border: 1px solid #E5E3DC; border-radius: 8px;">
-            <h2 style="color: #A63D12; margin-top: 0;">KeyFlint Quota Replenished</h2>
-            <p>Your license <code>{license_key[:12]}...</code> quota has been refilled successfully.</p>
-            <table style="width: 100%; border-collapse: collapse; margin: 16px 0;">
-                <tr><td style="padding: 8px 0; border-bottom: 1px solid #E5E3DC;">Added Credits:</td><td style="font-weight: bold; text-align: right; border-bottom: 1px solid #E5E3DC;">+{added_credits:,}</td></tr>
-                <tr><td style="padding: 8px 0;">New Balance:</td><td style="font-weight: bold; text-align: right; color: #15803D;">{new_balance:,} credits</td></tr>
-            </table>
-        </div>
-        """
+        html_body = f"""<!DOCTYPE html>
+<html lang="en">
+<body style="margin: 0; padding: 32px 16px; background-color: #0B0D17; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #FFFFFF;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #0B0D17;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" style="max-width: 620px; background-color: #0B0D17; border: 1px solid #1F2438; border-radius: 8px;" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td style="padding: 32px;">
+              <h1 style="margin: 0 0 12px 0; font-size: 22px; font-weight: 600; color: #FFFFFF;">Quota <span style="color: #CCFF00;">replenished</span></h1>
+              <p style="margin: 0 0 20px 0; font-size: 14px; color: #FFFFFF; line-height: 1.5;">Your license <code style="font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;">{license_key[:12]}...</code> has been refilled for the new billing cycle.</p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size: 14px;">
+                <tr>
+                  <td style="padding: 8px 0; color: #FFFFFF; border-bottom: 1px solid #1F2438;">Added credits</td>
+                  <td align="right" style="padding: 8px 0; color: #FFFFFF; font-weight: 600; border-bottom: 1px solid #1F2438;">+{added_credits:,}</td>
+                </tr>
+                <tr>
+                  <td style="padding: 8px 0; color: #FFFFFF;">New balance</td>
+                  <td align="right" style="padding: 8px 0; color: #CCFF00; font-weight: 600;">{new_balance:,} credits</td>
+                </tr>
+              </table>
+              <p style="margin: 24px 0 0 0; font-size: 12px; color: #FFFFFF;">Support: <a href="mailto:support@keyflint.dev" style="color: #FFFFFF;">support@keyflint.dev</a></p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>"""
         return self._dispatch(
             recipient=recipient_email,
             subject=subject,

@@ -90,6 +90,40 @@ class TestLicenseEmailDelivery(BaseKeyFlintTestCase):
         self.assertTrue(res.json()["data"]["email_delivered"])
         self.assertEqual(dispatch.call_args.kwargs["recipient"], "other@example.com")
 
+    def _invoice(self, email: str, billing_reason: str) -> None:
+        obj = {"billing_reason": billing_reason, "customer_email": email}
+        body = json.dumps(
+            {"id": f"evt_{uuid.uuid4().hex}", "type": "invoice.payment_succeeded", "data": {"object": obj}}
+        ).encode()
+        res = self.client.post(
+            "/api/v1/webhooks/stripe",
+            content=body,
+            headers={"Stripe-Signature": generate_stripe_signature(body, TEST_STRIPE_WEBHOOK_SECRET)},
+        )
+        self.assertEqual(res.status_code, 200, res.text)
+
+    def test_only_subscription_cycle_invoice_sends_quota_email(self):
+        self.require_app()
+        with mock.patch(f"{SVC}._dispatch", return_value=True):
+            self._checkout("invoice.buyer@example.com")
+        with mock.patch(f"{SVC}.send_quota_replenished", return_value=True) as quota:
+            self._invoice("invoice.buyer@example.com", "manual")  # one-time Payment Link invoice
+            self._invoice("invoice.buyer@example.com", "subscription_create")
+            quota.assert_not_called()
+            self._invoice("invoice.buyer@example.com", "subscription_cycle")
+            quota.assert_called_once()
+
+    def test_quota_email_uses_dark_template(self):
+        from app.infrastructure.email.transactional_email_service import TransactionalEmailService
+
+        svc = TransactionalEmailService(enabled=False)
+        with mock.patch.object(svc, "_dispatch", return_value=True) as dispatch:
+            svc.send_quota_replenished("a@example.com", "LIC-INDIE-abcdef123", 10_000, 10_000)
+        html = dispatch.call_args.kwargs["html_body"]
+        self.assertIn("#0B0D17", html)
+        self.assertNotIn("#FAF9F6", html)
+        self.assertNotIn("gradient", html)
+
     def test_resend_unknown_license_404(self):
         self.require_app()
         res = self.client.post("/api/v1/billing/resend-license-email", json={"license_key": "LIC-PRO-nope1234"})

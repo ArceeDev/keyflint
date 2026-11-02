@@ -731,6 +731,11 @@ class BillingService:
                     )
                 email_delivered = self.deliver_license_email(license_key, recipient=resolved_email)
 
+        elif event_type in renewal_events and data_obj.get("billing_reason", "subscription_cycle") != "subscription_cycle":
+            # One-time Payment Link invoices ("manual") and first subscription invoices are already
+            # provisioned by checkout.session.completed; only a real cycle renews quota.
+            logger.info("Ignoring %s with billing_reason=%r", event_type, data_obj.get("billing_reason"))
+
         elif event_type in renewal_events:
             if customer_email:
                 customer = self._customer_repo.get_by_email(customer_email)
