@@ -353,13 +353,15 @@ class TestWebhookIngestion(BaseKeyFlintTestCase):
         self.assertIsNone(tok_payload.get("expires_at"))
 
     def test_missing_metadata_infers_tier_from_amount(self):
-        """When metadata.tier is missing, Stripe amount_total ($349) maps to agency, not pro."""
+        """When metadata.tier is missing, the pre-tax USD subtotal ($349) maps to agency, not pro."""
         self.require_app()
         customer_email = f"amount_inferred_{uuid.uuid4().hex[:6]}@acme.ai"
         obj = {
             "customer_details": {"email": customer_email},
             "payment_status": "paid",
-            "amount_total": 34900,
+            "amount_subtotal": 34900,
+            "amount_total": 42229,  # + 21% VAT: total must not drive the tier
+            "currency": "usd",
         }
         body = json.dumps({
             "id": f"evt_{uuid.uuid4().hex}",

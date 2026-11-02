@@ -240,17 +240,18 @@ Gateway Public Key (Hex):
   pip install keyflint-verify
   from keyflint_verify import verify_license
   result = verify_license("{p.token}", "{p.public_key_hex}")
-  print(result.is_valid, result.tier)
+  print(result.valid, result.payload["tier"] if result.valid else result.error)
 
 [TypeScript / Node]
   npm install keyflint-verify
   import {{ verifyLicense }} from "keyflint-verify";
   const result = await verifyLicense("{p.token}", "{p.public_key_hex}");
-  console.log(result.isValid, result.tier);
+  console.log(result.valid, result.valid ? result.payload.tier : result.error);
 
 [Go]
   go get github.com/ArceeDev/keyflint/sdks/go-verify
-  result, err := keyflint.VerifyLicense("{p.token}", "{p.public_key_hex}")
+  import keyflint "github.com/ArceeDev/keyflint/sdks/go-verify"
+  payload, err := keyflint.Verify("{p.token}", "{p.public_key_hex}")
 
 [MCP Tool Quota Guard]
   from keyflint_verify.mcp import metered

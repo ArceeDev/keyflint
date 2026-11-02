@@ -80,34 +80,47 @@ def run_migrations(conn: sqlite3.Connection, schema_path: Optional[Path] = None)
     row = cur.fetchone()
     if row and row[0] and "'indie'" not in row[0]:
         logger.info("Migrating licenses table schema to include 'indie' and 'agency' tiers...")
+        # Table rebuild: FKs off (must be set outside a transaction) so DROP TABLE does not
+        # cascade-delete activations/quotas/usage_events; all DDL in one transaction so a crash
+        # leaves the old table intact.
         conn.execute("PRAGMA foreign_keys = OFF;")
-        conn.execute("""
-            CREATE TABLE IF NOT EXISTS licenses_new (
-                id TEXT PRIMARY KEY,
-                customer_id TEXT NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
-                license_key TEXT UNIQUE NOT NULL,
-                tier TEXT NOT NULL CHECK(tier IN ('community', 'indie', 'agency', 'pro', 'studio', 'lifetime')),
-                status TEXT NOT NULL CHECK(status IN ('active', 'suspended', 'expired', 'revoked', 'grace_period')),
-                max_seats INTEGER NOT NULL DEFAULT 1,
-                current_activations INTEGER NOT NULL DEFAULT 0,
-                expires_at TIMESTAMP NULL,
-                created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                signature TEXT NOT NULL,
-                features TEXT NOT NULL DEFAULT '[]',
-                metadata_json TEXT NOT NULL DEFAULT '{}'
-            );
-        """)
-        conn.execute("""
-            INSERT INTO licenses_new (id, customer_id, license_key, tier, status, max_seats, current_activations, expires_at, created_at, signature, features, metadata_json)
-            SELECT id, customer_id, license_key, tier, status, max_seats, current_activations, expires_at, created_at, signature, features, metadata_json
-            FROM licenses;
-        """)
-        conn.execute("DROP TABLE licenses;")
-        conn.execute("ALTER TABLE licenses_new RENAME TO licenses;")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_licenses_key ON licenses(license_key);")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_licenses_customer ON licenses(customer_id);")
-        conn.execute("CREATE INDEX IF NOT EXISTS idx_licenses_status ON licenses(status);")
-        conn.execute("PRAGMA foreign_keys = ON;")
+        try:
+            conn.execute("BEGIN IMMEDIATE;")
+            conn.execute("DROP TABLE IF EXISTS licenses_new;")
+            conn.execute("""
+                CREATE TABLE licenses_new (
+                    id TEXT PRIMARY KEY,
+                    customer_id TEXT NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+                    license_key TEXT UNIQUE NOT NULL,
+                    tier TEXT NOT NULL CHECK(tier IN ('community', 'indie', 'agency', 'pro', 'studio', 'lifetime')),
+                    status TEXT NOT NULL CHECK(status IN ('active', 'suspended', 'expired', 'revoked', 'grace_period')),
+                    max_seats INTEGER NOT NULL DEFAULT 1,
+                    current_activations INTEGER NOT NULL DEFAULT 0,
+                    expires_at TIMESTAMP NULL,
+                    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    signature TEXT NOT NULL,
+                    features TEXT NOT NULL DEFAULT '[]',
+                    metadata_json TEXT NOT NULL DEFAULT '{}'
+                );
+            """)
+            conn.execute("""
+                INSERT INTO licenses_new (id, customer_id, license_key, tier, status, max_seats, current_activations, expires_at, created_at, signature, features, metadata_json)
+                SELECT id, customer_id, license_key, tier, status, max_seats, current_activations, expires_at, created_at, signature, features, metadata_json
+                FROM licenses;
+            """)
+            conn.execute("DROP TABLE licenses;")
+            conn.execute("ALTER TABLE licenses_new RENAME TO licenses;")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_licenses_key ON licenses(license_key);")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_licenses_customer ON licenses(customer_id);")
+            conn.execute("CREATE INDEX IF NOT EXISTS idx_licenses_status ON licenses(status);")
+            if conn.execute("PRAGMA foreign_key_check;").fetchall():
+                raise RuntimeError("foreign_key_check failed after licenses rebuild")
+            conn.execute("COMMIT;")
+        except Exception:
+            conn.execute("ROLLBACK;")
+            raise
+        finally:
+            conn.execute("PRAGMA foreign_keys = ON;")
         logger.info("Licenses table successfully migrated to expanded tier constraint.")
 
     conn.execute(
