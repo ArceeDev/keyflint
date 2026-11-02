@@ -42,7 +42,7 @@ import (
 	keyflint "github.com/ArceeDev/keyflint/sdks/go-verify"
 )
 
-// Your public key from KeyFlint Dashboard (Settings -> Public Keys)
+// Your gateway public key: GET /api/v1/licenses/public-key (also in every license email)
 const PublicKeyHex = "d04ab232742bb4ab3a1368bd4615e4e6d0224ab71a016baf8520a332c9778737"
 
 func main() {

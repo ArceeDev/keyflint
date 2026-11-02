@@ -9,7 +9,7 @@ public key and debits credits with one HTTP call per metered tool.
 [![Node.js >=18.4](https://img.shields.io/badge/node-%3E%3D18.4-brightgreen.svg)](https://nodejs.org/)
 [![Server License: BSL 1.1](https://img.shields.io/badge/gateway%20license-BSL--1.1-orange.svg)](LICENSE)
 [![SDK License: MIT](https://img.shields.io/badge/sdk%20license-MIT-green.svg)](sdks/js-verify/LICENSE)
-[![Tests: 167/167 Pass](https://img.shields.io/badge/tests-167%2F167%20pass-brightgreen.svg)](run_tests.py)
+[![CI](https://github.com/ArceeDev/keyflint/actions/workflows/ci.yml/badge.svg)](https://github.com/ArceeDev/keyflint/actions/workflows/ci.yml)
 [![Docker: GHCR](https://img.shields.io/badge/docker-ghcr.io%2Farceedev%2Fkeyflint%3A1.1.0-blue.svg)](https://github.com/ArceeDev/keyflint/pkgs/container/keyflint)
 
 ---
@@ -176,7 +176,9 @@ Hosting customers yourself: see [`scripts/managed/README.md`](scripts/managed/RE
 
 ## Client SDKs
 
-Both SDKs have no runtime dependencies (Python uses `cryptography` when installed, for speed).
+All three SDKs (TypeScript, Python, Go) have no runtime dependencies (Python uses `cryptography` when
+installed, for speed). Get the gateway public key from `GET /api/v1/licenses/public-key` (or the keyring
+with `kid`s for rotation); it is also in every license email.
 
 ### TypeScript / JavaScript SDK (`keyflint-verify`)
 
@@ -242,11 +244,48 @@ async def analyze_document(url: str) -> str:
 
 ---
 
+### Go SDK (`go-verify`)
+
+```bash
+go get github.com/ArceeDev/keyflint/sdks/go-verify   # Go 1.20+
+```
+
+```go
+import keyflint "github.com/ArceeDev/keyflint/sdks/go-verify"
+
+payload, err := keyflint.Verify(os.Getenv("KEYFLINT_LICENSE"), publicKeyHex)
+if err != nil {
+    log.Fatalf("license rejected: %s", keyflint.Code(err))
+}
+fmt.Println("tier:", payload.Tier)
+```
+
+Use `VerifyWithKeyRing` during key rotation and `VerifyWithOptions` for node-locked or domain-locked
+licenses. Full reference: [`sdks/go-verify/README.md`](sdks/go-verify/README.md).
+
+---
+
+## Pricing
+
+Prices in USD, VAT added at checkout. Buy at [keyflint.dev](https://keyflint.dev/#pricing-section).
+
+| Plan | Price | Credits | Seats | License |
+| :--- | :--- | :--- | :--- | :--- |
+| Community | Free | 25 | 1 | Evaluation and non-commercial use |
+| Indie | $149 one-time | 10,000 | 3 | Perpetual |
+| Agency | $349 one-time | 50,000 | 25 | Perpetual |
+| Pro Cloud | $29 / month | 500 per cycle | 3 | Renews monthly |
+| Studio Cloud | $89 / month | 5,000 per cycle | 25 | Renews monthly |
+
+Refunds within 14 days revoke the license automatically. Support: see [SUPPORT.md](SUPPORT.md).
+
+---
+
 ## Comparison: KeyFlint vs. Hosted Licensing SaaS
 
 | Feature | KeyFlint (Self-Hosted) | Keygen.sh / Cryptolens | Stripe Metered Billing |
 | :--- | :--- | :--- | :--- |
-| **Pricing Model** | **One-time payment ($149 / $349)** | Monthly subscription | Per-usage fee |
+| **Pricing Model** | **One-time ($149 / $349) or monthly ($29 / $89)** | Monthly subscription | Per-usage fee |
 | **Verification** | **Local Ed25519, ~0.13 ms (OpenSSL)** | HTTP API call (offline mode varies by plan) | N/A (billing only) |
 | **Offline Mode** | **Native (RFC 8032, standard library)** | Cached / leased validation | No |
 | **MCP Integration** | **Native `@metered` & auto-refund** | Manual custom code | Manual custom webhook polling |
@@ -264,17 +303,20 @@ Every release runs `verify_production.py` (7 gates) and the three test suites be
 # 1. Run the Gatekeeper Verification Suite (7 Gates)
 python verify_production.py
 
-# 2. Run the Full Backend E2E Suite (83 Tests)
+# 2. Run the Full Backend E2E Suite
 python -W error::ResourceWarning run_tests.py
 
-# 3. Run the TypeScript SDK Conformance Suite (64 Tests, 47 vectors)
+# 3. Run the TypeScript SDK Conformance Suite (shared vectors in sdks/vectors)
 cd sdks/js-verify && npm test
 
-# 4. Run the Python SDK Conformance Suite (20 Tests)
+# 4. Run the Python SDK Conformance Suite
 cd sdks/python-verify && PYTHONPATH=src python -m unittest discover -s tests
+
+# 5. Run the Go SDK Conformance Suite
+cd sdks/go-verify && go test ./...
 ```
 
-**Status: 167/167 tests pass; 7/7 release gates pass.**
+**Status:** see the CI badge; a release requires every suite and all 7 gates green.
 
 ---
 
@@ -282,10 +324,10 @@ cd sdks/python-verify && PYTHONPATH=src python -m unittest discover -s tests
 
 KeyFlint uses two licenses:
 
-1. **Client SDKs (`sdks/js-verify`, `sdks/python-verify`)**: Licensed under the permissive **[MIT License](sdks/js-verify/LICENSE)**. You can freely vendor, bundle, and distribute them with any commercial product.
+1. **Client SDKs (`sdks/js-verify`, `sdks/python-verify`, `sdks/go-verify`)**: Licensed under the permissive **[MIT License](sdks/js-verify/LICENSE)**. You can freely vendor, bundle, and distribute them with any commercial product.
 2. **Server Gateway (`app/`)**: Licensed under the **[Business Source License 1.1 (BSL 1.1)](LICENSE)**.
    - **Free Use**: You may freely deploy and use the gateway for internal testing, development, education, and non-commercial evaluation.
-   - **Commercial Production Use**: Commercial deployment in production requires an **Indie Developer License ($149 one-time)** or an **Agency/Studio License ($349 one-time)**.
+   - **Commercial Production Use**: Commercial deployment in production requires a paid plan: **Indie ($149 one-time)**, **Agency ($349 one-time)**, **Pro Cloud ($29/month)** or **Studio Cloud ($89/month)**. See [Pricing](#pricing).
    - **Open Source Transition**: Under the BSL 1.1 change date terms, the gateway code automatically converts to the open-source **Apache 2.0 License** on October 31, 2030.
 
 ---
