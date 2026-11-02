@@ -144,18 +144,26 @@ class TestLicenseEmailDelivery(BaseKeyFlintTestCase):
         self.assertIn("SPF/DKIM", "".join(logs.output))
         self.assertTrue(svc.last_error.startswith("resend_403"))
 
-    def test_quickstart_snippets_match_sdk_apis(self):
+    def test_license_email_is_plain_enough_for_icloud(self):
+        """iCloud silently drops mail with repeated tokens or code blocks, so keep the key once and link docs."""
         from app.domain.interfaces.email_sender import LicenseEmailPayload
         from app.infrastructure.email.transactional_email_service import TransactionalEmailService
 
-        p = LicenseEmailPayload("a@example.com", "indie", "LIC-INDIE-x.y", "LIC-INDIE-x.y", "ab" * 32, 3, 10_000)
-        text = TransactionalEmailService(enabled=False)._render_license_text(p)
-        self.assertNotIn("is_valid", text)
-        self.assertNotIn("isValid", text)
-        self.assertNotIn("VerifyLicense", text)
-        self.assertIn("result.valid", text)
-        self.assertIn("keyflint.Verify(", text)
-        self.assertNotIn("\n\n\n", text)  # no double-spacing from CR line endings
+        key = "LIC-INDIE-" + "x" * 300 + ".sig"
+        p = LicenseEmailPayload("a@example.com", "indie", key, key, "ab" * 32, 3, 10_000)
+        svc = TransactionalEmailService(enabled=False)
+        with mock.patch.object(svc, "_dispatch", return_value=True) as dispatch:
+            svc.send_license_issued(p)
+        kw = dispatch.call_args.kwargs
+        self.assertEqual(kw["subject"], "Your KeyFlint Indie license")
+        for body in (kw["text_body"], kw["html_body"]):
+            self.assertEqual(body.count(key), 1)
+            self.assertNotIn("pip install", body)
+            self.assertNotIn("import ", body)
+            self.assertIn("github.com/ArceeDev/keyflint#client-sdks", body)
+        self.assertIn("#0B0D17", kw["html_body"])
+        self.assertNotIn("gradient", kw["html_body"])
+        self.assertNotIn("\n\n\n", kw["text_body"])  # no double-spacing from CR line endings
 
 
 if __name__ == "__main__":

@@ -16,6 +16,7 @@ from app.domain.interfaces.email_sender import IEmailSender, LicenseEmailPayload
 
 logger = logging.getLogger("keyflint.email")
 
+_DOCS_URL = "https://github.com/ArceeDev/keyflint#client-sdks"
 _RESEND_RETRY_STATUSES = {429, 500, 502, 503, 504}
 _RESEND_HINTS = {
     401: "RESEND_API_KEY is invalid or revoked.",
@@ -62,7 +63,7 @@ class TransactionalEmailService(IEmailSender):
 
     def send_license_issued(self, payload: LicenseEmailPayload) -> bool:
         """Dispatches license activation email with signed Ed25519 token."""
-        subject = f"Your KeyFlint {payload.tier.upper()} License & Cryptographic Key"
+        subject = f"Your KeyFlint {payload.tier.capitalize()} license"
         text_body = self._render_license_text(payload)
         html_body = self._render_license_html(payload)
 
@@ -229,185 +230,55 @@ class TransactionalEmailService(IEmailSender):
             logger.error("SMTP dispatch exception for %s: %s", recipient, exc)
             return False
 
+    # Plain and short on purpose: iCloud Mail silently drops mail that looks like credential
+    # phishing (repeated opaque tokens, code blocks), even when Resend reports "delivered".
     def _render_license_text(self, p: LicenseEmailPayload) -> str:
-        return f"""======================================================================
-KEYFLINT // CRYPTOGRAPHIC GATEWAY
-======================================================================
+        return f"""Your KeyFlint {p.tier.capitalize()} license is active.
 
-Your {p.tier.upper()} license has been generated and provisioned.
+License key:
+{p.license_key}
 
-----------------------------------------------------------------------
-1. LICENSE METRICS & CREDENTIALS
-----------------------------------------------------------------------
-License Key:      {p.license_key}
-Tier:             {p.tier.upper()}
-Hardware Nodes:   {p.seats}
-Initial Credits:  {p.credits:,}
-Expiration:       {p.expires_at or 'Perpetual (No Expiration)'}
+Tier: {p.tier.capitalize()}
+Seats: {p.seats}
+Included credits: {p.credits:,}
+Expires: {p.expires_at or 'Never (perpetual)'}
+Gateway public key: {p.public_key_hex}
 
-----------------------------------------------------------------------
-2. SIGNED ED25519 OFFLINE TOKEN (RFC 8032)
-----------------------------------------------------------------------
-{p.token}
+Setup guide (Python, JS, Go): {_DOCS_URL}
 
-Gateway Public Key (Hex):
-{p.public_key_hex}
-
-----------------------------------------------------------------------
-3. ZERO-LATENCY OFFLINE VERIFICATION (<1ms)
-----------------------------------------------------------------------
-[Python]
-  pip install keyflint-verify
-  from keyflint_verify import verify_license
-  result = verify_license("{p.token}", "{p.public_key_hex}")
-  print(result.valid, result.payload["tier"] if result.valid else result.error)
-
-[TypeScript / Node]
-  npm install keyflint-verify
-  import {{ verifyLicense }} from "keyflint-verify";
-  const result = await verifyLicense("{p.token}", "{p.public_key_hex}");
-  console.log(result.valid, result.valid ? result.payload.tier : result.error);
-
-[Go]
-  go get github.com/ArceeDev/keyflint/sdks/go-verify
-  import keyflint "github.com/ArceeDev/keyflint/sdks/go-verify"
-  payload, err := keyflint.Verify("{p.token}", "{p.public_key_hex}")
-
-[MCP Tool Quota Guard]
-  from keyflint_verify.mcp import metered
-  @metered(credits=5)
-  async def run_ai_tool(): ...
-
-----------------------------------------------------------------------
-Documentation: https://keyflint.dev
-Repository:    https://github.com/ArceeDev/keyflint
-Support:       support@keyflint.dev (or reply directly to this email)
-======================================================================
+Questions? Reply to this email or write to support@keyflint.dev.
 """
 
     def _render_license_html(self, p: LicenseEmailPayload) -> str:
+        cell = "padding: 8px 0; color: #FFFFFF; border-bottom: 1px solid #1F2438;"
+        rows = "".join(
+            f'<tr><td style="{cell}">{label}</td><td align="right" style="{cell} font-weight: 600;">{value}</td></tr>'
+            for label, value in (
+                ("Tier", p.tier.capitalize()),
+                ("Seats", p.seats),
+                ("Included credits", f"{p.credits:,}"),
+                ("Expires", p.expires_at or "Never (perpetual)"),
+            )
+        )
         return f"""<!DOCTYPE html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Your KeyFlint License</title>
-</head>
-<body style="margin: 0; padding: 32px 16px; background-color: #0B0D17; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', Helvetica, Arial, sans-serif; color: #E5E7EB; -webkit-font-smoothing: antialiased;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Your KeyFlint license</title></head>
+<body style="margin: 0; padding: 32px 16px; background-color: #0B0D17; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #FFFFFF;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #0B0D17;">
     <tr>
       <td align="center">
-        <!-- Main Card Container -->
-        <table role="presentation" width="100%" style="max-width: 620px; background-color: #121420; border: 1px solid #1F2438; border-radius: 8px; overflow: hidden; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);" cellpadding="0" cellspacing="0" border="0">
-          
-          <!-- Top Accent Bar -->
+        <table role="presentation" width="100%" style="max-width: 620px; background-color: #0B0D17; border: 1px solid #1F2438; border-radius: 8px;" cellpadding="0" cellspacing="0" border="0">
           <tr>
-            <td height="3" style="background-color: #CCFF00; line-height: 3px; font-size: 3px;">&nbsp;</td>
-          </tr>
-
-          <!-- Header -->
-          <tr>
-            <td style="padding: 32px 32px 24px 32px; border-bottom: 1px solid #1F2438;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
-                <tr>
-                  <td>
-                    <span style="display: inline-block; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #CCFF00; background-color: rgba(204, 255, 0, 0.08); border: 1px solid rgba(204, 255, 0, 0.25); padding: 4px 10px; border-radius: 4px;">
-                      KEYFLINT // CRYPTOGRAPHIC GATEWAY
-                    </span>
-                    <h1 style="margin: 16px 0 8px 0; font-size: 24px; font-weight: 600; color: #FFFFFF; letter-spacing: -0.02em; line-height: 1.2;">
-                      Your <span style="color: #CCFF00;">{p.tier.upper()}</span> License is Active
-                    </h1>
-                    <p style="margin: 0; font-size: 14px; color: #9CA3AF; line-height: 1.5;">
-                      Asymmetric RFC 8032 Ed25519 cryptographic token signed and ready for sub-millisecond offline verification.
-                    </p>
-                  </td>
-                </tr>
-              </table>
+            <td style="padding: 32px;">
+              <h1 style="margin: 0 0 12px 0; font-size: 22px; font-weight: 600; color: #FFFFFF;">Your <span style="color: #CCFF00;">{p.tier.capitalize()}</span> license is active</h1>
+              <p style="margin: 0 0 8px 0; font-size: 14px; color: #FFFFFF;">License key:</p>
+              <p style="margin: 0 0 24px 0; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; color: #FFFFFF; word-break: break-all; line-height: 1.5;">{p.license_key}</p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size: 14px;">{rows}</table>
+              <p style="margin: 24px 0 0 0; font-size: 14px; color: #FFFFFF; line-height: 1.5;">Set it up with the Python, JS or Go SDK: <a href="{_DOCS_URL}" style="color: #CCFF00;">setup guide</a>.</p>
+              <p style="margin: 8px 0 0 0; font-size: 12px; color: #FFFFFF; word-break: break-all;">Gateway public key: {p.public_key_hex}</p>
+              <p style="margin: 24px 0 0 0; font-size: 12px; color: #FFFFFF;">Questions? Reply to this email or write to <a href="mailto:support@keyflint.dev" style="color: #FFFFFF;">support@keyflint.dev</a>.</p>
             </td>
           </tr>
-
-          <!-- License Specs Table -->
-          <tr>
-            <td style="padding: 24px 32px; border-bottom: 1px solid #1F2438;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size: 13.5px;">
-                <tr>
-                  <td style="padding: 8px 0; color: #9CA3AF; border-bottom: 1px dashed #1F2438;">License Key</td>
-                  <td align="right" style="padding: 8px 0; color: #FFFFFF; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-weight: 600; border-bottom: 1px dashed #1F2438;">{p.license_key}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; color: #9CA3AF; border-bottom: 1px dashed #1F2438;">Tier</td>
-                  <td align="right" style="padding: 8px 0; color: #CCFF00; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-weight: 600; text-transform: uppercase; border-bottom: 1px dashed #1F2438;">{p.tier.upper()}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; color: #9CA3AF; border-bottom: 1px dashed #1F2438;">Authorized Nodes / Seats</td>
-                  <td align="right" style="padding: 8px 0; color: #FFFFFF; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-weight: 600; border-bottom: 1px dashed #1F2438;">{p.seats}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; color: #9CA3AF; border-bottom: 1px dashed #1F2438;">Included Metered Credits</td>
-                  <td align="right" style="padding: 8px 0; color: #FFFFFF; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-weight: 600; border-bottom: 1px dashed #1F2438;">{p.credits:,}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; color: #9CA3AF;">Expiration</td>
-                  <td align="right" style="padding: 8px 0; color: #FFFFFF; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-weight: 600;">{p.expires_at or 'Perpetual (No Expiration)'}</td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-
-          <!-- Signed Token Section -->
-          <tr>
-            <td style="padding: 24px 32px 12px 32px;">
-              <div style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #9CA3AF; margin-bottom: 8px;">
-                SIGNED ED25519 TOKEN (RFC 8032)
-              </div>
-              <div style="background-color: #090A12; border: 1px solid #1F2438; border-radius: 6px; padding: 14px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 11.5px; color: #F3F4F6; word-break: break-all; line-height: 1.5; user-select: all;">
-                {p.token}
-              </div>
-            </td>
-          </tr>
-
-          <!-- Gateway Public Key Section -->
-          <tr>
-            <td style="padding: 12px 32px;">
-              <div style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #9CA3AF; margin-bottom: 8px;">
-                GATEWAY PUBLIC KEY (HEX)
-              </div>
-              <div style="background-color: #090A12; border: 1px solid #1F2438; border-radius: 6px; padding: 14px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 11.5px; color: #9CA3AF; word-break: break-all; line-height: 1.5; user-select: all;">
-                {p.public_key_hex}
-              </div>
-            </td>
-          </tr>
-
-          <!-- Quickstart Verification Section -->
-          <tr>
-            <td style="padding: 16px 32px 28px 32px;">
-              <div style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #9CA3AF; margin-bottom: 8px;">
-                QUICKSTART VERIFICATION (&lt;1ms)
-              </div>
-              <div style="background-color: #090A12; border: 1px solid #1F2438; border-radius: 6px; padding: 14px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; color: #E5E7EB; line-height: 1.6; overflow-x: auto;">
-                <span style="color: #6B7280;"># Python</span><br>
-                pip install keyflint-verify<br>
-                <span style="color: #CCFF00;">from</span> keyflint_verify <span style="color: #CCFF00;">import</span> verify_license<br>
-                res = verify_license(<span style="color: #9CA3AF;">"{p.token[:20]}..."</span>, <span style="color: #9CA3AF;">"{p.public_key_hex}"</span>)<br>
-                <br>
-                <span style="color: #6B7280;"># TypeScript / Node</span><br>
-                npm install keyflint-verify<br>
-                <span style="color: #CCFF00;">import</span> {{ verifyLicense }} <span style="color: #CCFF00;">from</span> <span style="color: #9CA3AF;">"keyflint-verify"</span>;<br>
-                <span style="color: #CCFF00;">const</span> res = <span style="color: #CCFF00;">await</span> verifyLicense(<span style="color: #9CA3AF;">"{p.token[:20]}..."</span>, <span style="color: #9CA3AF;">"{p.public_key_hex}"</span>);
-              </div>
-            </td>
-          </tr>
-
-          <!-- Footer -->
-          <tr>
-            <td style="padding: 24px 32px; background-color: #0E101A; border-top: 1px solid #1F2438; text-align: center; font-size: 12px; color: #6B7280; line-height: 1.6;">
-              KeyFlint v1.1.0 · Self-Hosted Ed25519 Cryptographic Licensing &amp; Quota Gateway<br>
-              <a href="https://keyflint.dev" style="color: #9CA3AF; text-decoration: none; margin: 0 8px;">Documentation</a> ·
-              <a href="https://github.com/ArceeDev/keyflint" style="color: #9CA3AF; text-decoration: none; margin: 0 8px;">GitHub</a> ·
-              <a href="mailto:support@keyflint.dev" style="color: #9CA3AF; text-decoration: none; margin: 0 8px;">Support</a>
-            </td>
-          </tr>
-
         </table>
       </td>
     </tr>
