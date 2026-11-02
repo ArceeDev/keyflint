@@ -528,6 +528,49 @@ def init_cmd(environment: str, output: Path, template: Optional[Path], force: bo
         _exit_cli_error(exc)
 
 
+@cli.command("resend-license")
+@click.argument("license_key", required=False)
+@click.option("--key", "key_opt", default=None, help="License token (alternative to positional argument).")
+@click.option("--email", "-e", default=None, help="Resend every license owned by this customer email.")
+@click.option("--to", default=None, help="Override recipient address.")
+@click.option("--failed", "failed_only", is_flag=True, help="Retry every license whose last email failed.")
+def resend_license_cmd(
+    license_key: Optional[str],
+    key_opt: Optional[str],
+    email: Optional[str],
+    to: Optional[str],
+    failed_only: bool,
+) -> None:
+    """Re-sends license emails (by key, by customer email, or all failed deliveries)."""
+    from app.infrastructure.email.license_delivery import build_billing_service
+
+    conn = _open_migrated_db()
+    try:
+        billing = build_billing_service(conn)
+        if failed_only:
+            click.echo(json.dumps({"success": True, "data": billing.retry_failed_license_emails()}, indent=2))
+            return
+        keys: list[str]
+        if email:
+            customer = SqliteCustomerRepo(conn).get_by_email(email.strip())
+            if customer is None:
+                _exit_cli_error(ValueError(f"No customer with email {email!r}."))
+            keys = [lic.license_key for lic in SqliteLicenseRepo(conn).list_by_customer_id(customer.id)]
+            if not keys:
+                _exit_cli_error(ValueError(f"Customer {email!r} has no licenses."))
+        else:
+            keys = [_resolve_key(license_key, key_opt)]
+        results = {k[:24] + "...": billing.deliver_license_email(k, recipient=to or email) for k in keys}
+        ok = all(results.values())
+        click.echo(json.dumps({"success": ok, "data": {"email_delivered": results}}, indent=2))
+        if not ok:
+            sys.exit(1)
+    except (DomainError, ValueError) as exc:
+        _exit_cli_error(exc)
+    finally:
+        conn.close()
+
+
 @cli.command("serve")
 @click.option("--host", default="0.0.0.0", help="Binding host.")
 @click.option("--port", default=8000, type=int, help="HTTP listening port.")

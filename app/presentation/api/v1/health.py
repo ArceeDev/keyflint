@@ -42,8 +42,11 @@ def readyz(
 
 @router.get("/api/v1/health")
 def api_health(http_request: Request) -> dict[str, Any]:
+    from app.infrastructure.email.transactional_email_service import TransactionalEmailService
+
     return {
         "status": "ok",
         "healthy": True,
+        "email_provider": TransactionalEmailService().provider,
         "metadata": build_response_metadata(http_request),
     }
