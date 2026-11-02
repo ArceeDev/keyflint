@@ -112,6 +112,22 @@ class TestQuotaBoundaries(BaseKeyFlintTestCase):
         )
         self.assertEqual(spoof_res.status_code, 429, "Spoofed X-Forwarded-For must not bypass rate limit")
 
+    def test_trusted_proxy_ip_cannot_be_spoofed_by_client(self):
+        """Behind Fly, only Fly-Client-IP or the proxy-appended right-most X-Forwarded-For hop count."""
+        from app.presentation.middlewares import RateLimitMiddleware
+
+        extract = RateLimitMiddleware._extract_client_ip
+        scope = {"client": ("10.0.0.1", 1234), "headers": [
+            (b"x-forwarded-for", b"203.0.113.99, 198.51.100.7"),
+            (b"fly-client-ip", b"198.51.100.7"),
+        ]}
+        self.assertEqual(extract(scope, trust_proxy_headers=True), "198.51.100.7")
+        scope["headers"] = [(b"x-forwarded-for", b"203.0.113.99, 198.51.100.7")]
+        self.assertEqual(extract(scope, trust_proxy_headers=True), "198.51.100.7")
+        scope["headers"] = [(b"X-Forwarded-For", b"  ")]
+        self.assertEqual(extract(scope, trust_proxy_headers=True), "10.0.0.1")
+        scope["headers"] = [(b"fly-client-ip", b"198.51.100.7")]
+        self.assertEqual(extract(scope, trust_proxy_headers=False), "10.0.0.1")
 
 
 if __name__ == "__main__":
