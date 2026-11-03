@@ -13,7 +13,7 @@ from datetime import datetime, timezone
 from typing import Any, Optional
 
 from app.domain.entities.license import Activation, License, LicenseStatus, Tier
-from app.domain.exceptions import LicenseNotFoundError, SeatLimitExceededError
+from app.domain.exceptions import DomainError, LicenseNotFoundError, SeatLimitExceededError
 from app.domain.interfaces.license_repository import ILicenseRepository
 from app.infrastructure.database.connection import transaction
 
@@ -253,6 +253,55 @@ class SqliteLicenseRepo(ILicenseRepository):
                 (license_id,),
             )
             return True
+
+    def release_activation(self, license_id: str, hardware_id: str, max_per_24h: int) -> int:
+        """Frees one seat; at most ``max_per_24h`` releases per license in any rolling 24 h.
+
+        Returns the remaining activation count. The cooldown is per license (not per node) so
+        rotating between nodes cannot be used to share one seat between machines.
+        """
+        hw_norm = (hardware_id or "").strip().lower()
+        if not hw_norm:
+            raise ValueError("hardware_id must not be empty or whitespace.")
+        with transaction(self._conn):
+            act = self._conn.execute(
+                "SELECT id FROM activations WHERE license_id = ? AND hardware_id = ?",
+                (license_id, hw_norm),
+            ).fetchone()
+            if act is None:
+                raise DomainError("This machine is not activated on the license.",
+                                  details={"hardware_id": hw_norm}, status_code=404, code="NODE_NOT_FOUND")
+            recent = self._conn.execute(
+                """
+                SELECT COUNT(*) AS n,
+                       MIN((julianday('now') - julianday(created_at)) * 86400.0) AS newest_age,
+                       MAX((julianday('now') - julianday(created_at)) * 86400.0) AS oldest_age
+                FROM license_events
+                WHERE license_id = ? AND event_type = 'node_released'
+                  AND (julianday('now') - julianday(created_at)) * 86400.0 < 86400
+                """,
+                (license_id,),
+            ).fetchone()
+            if max_per_24h <= 0 or int(recent["n"]) >= max_per_24h:
+                retry = int(86400 - (recent["oldest_age"] or 0)) + 1 if recent["n"] else 86400
+                raise DomainError(
+                    f"Node releases are limited to {max_per_24h} per 24 h for this license.",
+                    details={"retry_after_seconds": retry, "limit_per_24h": max_per_24h},
+                    status_code=429, code="NODE_RELEASE_COOLDOWN",
+                )
+            self._conn.execute("DELETE FROM activations WHERE id = ?", (act["id"],))
+            self._conn.execute(
+                "UPDATE licenses SET current_activations = MAX(current_activations - 1, 0) WHERE id = ?",
+                (license_id,),
+            )
+            self._conn.execute(
+                "INSERT INTO license_events (id, license_id, event_type, details_json) VALUES (?, ?, 'node_released', ?)",
+                (str(uuid.uuid4()), license_id, json.dumps({"hardware_id": hw_norm})),
+            )
+            row = self._conn.execute(
+                "SELECT current_activations FROM licenses WHERE id = ?", (license_id,)
+            ).fetchone()
+            return int(row["current_activations"]) if row else 0
 
     def get_activations(self, license_id: str) -> list[Activation]:
         cur = self._conn.execute(

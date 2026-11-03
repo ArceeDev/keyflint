@@ -454,6 +454,46 @@ class LicenseService:
             activated_at=now,
         )
 
+    def list_nodes(self, license_key: str) -> dict[str, Any]:
+        """Activated machines for a license, newest first."""
+        license_entity = self._license_repo.get_by_key(license_key)
+        if license_entity is None:
+            raise LicenseNotFoundError("License key not found.")
+        nodes = [
+            {
+                "hardware_id": a.hardware_id,
+                "machine_name": a.machine_name,
+                "activated_at": a.activated_at.isoformat() if a.activated_at else None,
+            }
+            for a in self._license_repo.get_activations(license_entity.id)
+        ]
+        return {
+            "license_id": license_entity.id,
+            "max_seats": license_entity.max_seats,
+            "current_activations": len(nodes),
+            "nodes": nodes,
+        }
+
+    def release_node(self, license_key: str, hardware_id: str) -> dict[str, Any]:
+        """Self-service seat release, rate limited per license (NODE_RELEASES_PER_24H)."""
+        from app.config import get_settings
+
+        license_entity = self._license_repo.get_by_key(license_key)
+        if license_entity is None:
+            raise LicenseNotFoundError("License key not found.")
+        if license_entity.status == LicenseStatus.REVOKED or self.is_revoked_id(license_entity.id):
+            raise LicenseRevokedError("Cannot manage nodes of a revoked license.")
+        remaining = self._license_repo.release_activation(
+            license_entity.id, hardware_id, get_settings().NODE_RELEASES_PER_24H
+        )
+        return {
+            "released": True,
+            "license_id": license_entity.id,
+            "hardware_id": hardware_id.strip().lower(),
+            "current_activations": remaining,
+            "max_seats": license_entity.max_seats,
+        }
+
     def revoke(self, request: LicenseRevokeRequest) -> LicenseRevokeResponse:
         """Immediately revokes a license and records it in the permanent revocation ledger."""
         license_entity = self._license_repo.get_by_key(request.license_key)

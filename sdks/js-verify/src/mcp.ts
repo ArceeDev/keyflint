@@ -13,6 +13,9 @@
  */
 
 import { decodeLicense, verifyLicense, type PublicKeys, type VerifyResult } from "./index.js";
+import { createClockGuard, stableMachineId, type ClockGuard } from "./node.js";
+
+export { createClockGuard, stableMachineId, type ClockGuard };
 
 // JSON-RPC server error range, same values as the Python package. -32042 is avoided because
 // MCP itself uses it for URLElicitationRequired.
@@ -29,8 +32,10 @@ const LICENSE_MESSAGES: Record<string, string> = {
   ERR_NODE_LOCK_VIOLATION: "This license is locked to another machine.",
   ERR_DOMAIN_LOCK_VIOLATION: "This license is not valid for this domain.",
   ERR_CLOCK_BEFORE_ISSUANCE: "The system clock is earlier than the license issue date. Correct the clock and retry.",
+  ERR_CLOCK_ROLLBACK_DETECTED:
+    "The system clock is behind the last time this license was checked on this machine. Correct the clock and retry.",
 };
-const NO_CHECKOUT_HINT = new Set(["ERR_CLOCK_BEFORE_ISSUANCE", "ERR_UNKNOWN_KID", "ERR_SIGNATURE_TAMPERED"]);
+const NO_CHECKOUT_HINT = new Set(["ERR_CLOCK_BEFORE_ISSUANCE", "ERR_CLOCK_ROLLBACK_DETECTED", "ERR_UNKNOWN_KID", "ERR_SIGNATURE_TAMPERED"]);
 
 /** Plain-language reason plus the next step; this text is what MCP clients show. */
 function licenseMessage(error: string | null, payload: VerifyResult["payload"], checkoutUrl?: string): string {
@@ -90,6 +95,11 @@ export interface KeyFlintOptions {
   eventType?: string;
   /** Custom fetch (tests, proxies). Default: global fetch. */
   fetch?: typeof fetch;
+  /**
+   * v1.2: reject clocks set back below the latest time seen (expiring licenses only).
+   * Default true (file `~/.keyflint/clock_state`, `KEYFLINT_CLOCK_STATE=off` for memory only).
+   */
+  clockGuard?: boolean | ClockGuard;
 }
 
 export interface DeductOptions {
@@ -173,6 +183,18 @@ export function createKeyFlint(options: KeyFlintOptions = {}): KeyFlint {
   const defaultEvent = options.eventType ?? "mcp_tool_call";
   const doFetch = options.fetch ?? (globalThis.fetch as typeof fetch | undefined);
 
+  const guard: ClockGuard | undefined =
+    options.clockGuard === false ? undefined : options.clockGuard === true || options.clockGuard === undefined
+      ? createClockGuard() : options.clockGuard;
+  const decoded = decodeLicense(licenseKey)?.payload as { expires_at?: unknown; machine_id?: unknown } | null | undefined;
+  const expiring = decoded?.expires_at !== undefined && decoded?.expires_at !== null;
+  const strategy = (env("KEYFLINT_MACHINE_ID_STRATEGY") ?? "").toLowerCase();
+  let resolvedMachineId: Promise<string | undefined> | undefined;
+  const machineIdFor = (): Promise<string | undefined> =>
+    (resolvedMachineId ??= machineId !== undefined || strategy !== "stable" || !decoded?.machine_id
+      ? Promise.resolve(machineId)
+      : stableMachineId());
+
   let cached: VerifyResult | undefined;
   let cachedUntil = 0;
 
@@ -183,10 +205,15 @@ export function createKeyFlint(options: KeyFlintOptions = {}): KeyFlint {
   async function check(gate: GateOptions = {}): Promise<VerifyResult> {
     const now = Date.now() / 1000;
     if (!cached || now >= cachedUntil) {
-      const opts: { machineId?: string; domain?: string } = {};
-      if (machineId !== undefined) opts.machineId = machineId;
+      const opts: { machineId?: string; domain?: string; lastSeen?: number } = {};
+      const mid = await machineIdFor();
+      if (mid !== undefined) opts.machineId = mid;
       if (domain !== undefined) opts.domain = domain;
+      const useGuard = guard !== undefined && expiring;
+      const last = useGuard ? await guard.lastSeen() : undefined;
+      if (last !== undefined) opts.lastSeen = last;
       const r = await verifyLicense(licenseKey, publicKeys, opts);
+      if (r.valid && useGuard) await guard.record(now);
       if (!r.valid) {
         fail(LICENSE_INVALID, licenseMessage(r.error, r.payload, checkoutUrl), { reason: r.error ?? "ERR_LICENSE_INVALID", checkoutUrl });
       }

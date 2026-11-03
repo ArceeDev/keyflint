@@ -14,7 +14,7 @@ services:
       - PORT=8000
       - DATABASE_URL=sqlite:////app/data/keyforge.db
       - LOG_LEVEL=INFO
-      - TRUST_PROXY_HEADERS=true
+      - TRUSTED_PROXY_MODE=${TRUSTED_PROXY_MODE:-direct}  # fly|cloudflare|standard|direct
       - SECRET_KEY=${SECRET_KEY}
       - ED25519_PRIVATE_KEY_HEX=${ED25519_PRIVATE_KEY_HEX}
       - ED25519_PUBLIC_KEY_HEX=${ED25519_PUBLIC_KEY_HEX:-}  # empty = derived from the private key

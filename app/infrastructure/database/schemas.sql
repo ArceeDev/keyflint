@@ -73,6 +73,16 @@ CREATE TABLE IF NOT EXISTS usage_events (
 CREATE INDEX IF NOT EXISTS idx_usage_license ON usage_events(license_id);
 CREATE INDEX IF NOT EXISTS idx_usage_idempotency ON usage_events(license_id, idempotency_key);
 
+-- License Security Events (refund circuit breaker trips, node releases; manual review)
+CREATE TABLE IF NOT EXISTS license_events (
+    id TEXT PRIMARY KEY,
+    license_id TEXT NOT NULL REFERENCES licenses(id) ON DELETE CASCADE,
+    event_type TEXT NOT NULL,
+    details_json TEXT NOT NULL DEFAULT '{}',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX IF NOT EXISTS idx_license_events_license ON license_events(license_id, event_type, created_at);
+
 -- Webhook Events Table (Replay Protection & Idempotency)
 CREATE TABLE IF NOT EXISTS webhook_events (
     id TEXT PRIMARY KEY,

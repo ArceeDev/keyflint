@@ -78,6 +78,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     is_prod = settings.ENVIRONMENT.strip().lower() == "production"
     configure_logging(log_level=settings.LOG_LEVEL, use_json=is_prod)
     settings.validate_production_secrets()
+    proxy_mode = settings.proxy_mode  # raises on an unknown TRUSTED_PROXY_MODE
+    if proxy_mode == "direct":
+        logger.warning(
+            "TRUSTED_PROXY_MODE=direct: client IPs come from the TCP peer. Behind a reverse proxy "
+            "(Cloudflare, Traefik, nginx, Render, Railway) set TRUSTED_PROXY_MODE or every client "
+            "shares the proxy's rate-limit bucket."
+        )
+    else:
+        logger.info(f"TRUSTED_PROXY_MODE={proxy_mode}")
 
     logger.info(f"Starting KeyFlint Gateway v{__version__} in '{settings.ENVIRONMENT}' mode...")
 

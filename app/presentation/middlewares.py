@@ -4,17 +4,22 @@ from __future__ import annotations
 
 from collections import OrderedDict, deque
 from datetime import datetime, timezone
+import functools
+import ipaddress
 import json
+import logging
 import math
 import threading
 import time
-from typing import Any, Callable, Deque, MutableMapping
+from typing import Any, Callable, Deque, MutableMapping, Optional
 import uuid
 
 from starlette.requests import Request
 
 from app.application.dtos.common import ErrorDetails, ErrorResponse, ResponseMetadata
 from app.config import get_settings
+
+logger = logging.getLogger("keyflint.ratelimit")
 
 ASGIApp = Callable[
     [
@@ -375,6 +380,29 @@ _EXEMPT_PREFIXES = (
 )
 
 
+_PROXY_HEADERS = (b"x-forwarded-for", b"x-real-ip", b"fly-client-ip", b"cf-connecting-ip")
+_proxy_warning_logged = [False]
+_DEFAULT_TRUSTED = "127.0.0.0/8,::1/128,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,fc00::/7"
+
+
+@functools.lru_cache(maxsize=8)
+def _trusted_networks(raw: str) -> tuple[Any, ...]:
+    nets = []
+    for item in (raw.strip() or _DEFAULT_TRUSTED).split(","):
+        item = item.strip()
+        if item:
+            nets.append(ipaddress.ip_network(item, strict=False))
+    return tuple(nets)
+
+
+def _ip_in(value: str, nets: tuple[Any, ...]) -> bool:
+    try:
+        ip = ipaddress.ip_address(value.strip().strip("[]"))
+    except ValueError:
+        return False
+    return any(ip.version == n.version and ip in n for n in nets)
+
+
 class RateLimitMiddleware:
     """Applies sliding-window HTTP rate limits prior to route execution or quota deduction."""
 
@@ -390,26 +418,50 @@ class RateLimitMiddleware:
     def _extract_client_ip(
         scope: MutableMapping[str, Any],
         trust_proxy_headers: bool = False,
+        mode: Optional[str] = None,
+        trusted_proxies: str = "",
     ) -> str:
-        if trust_proxy_headers:
-            # The client controls everything it sends, including X-Forwarded-For. Trust only what the
-            # edge proxy sets: Fly-Client-IP, else the right-most X-Forwarded-For hop (appended by it).
-            forwarded_for = ""
-            for k, v in scope.get("headers", ()):
-                name = k.lower()
-                if name == b"fly-client-ip":
-                    fly_ip = v.decode("latin-1", errors="ignore").strip()
-                    if fly_ip:
-                        return fly_ip[:128]
-                elif name == b"x-forwarded-for":
-                    forwarded_for = v.decode("latin-1", errors="ignore")
-            hops = [hop.strip() for hop in forwarded_for.split(",") if hop.strip()]
-            if hops:
-                return hops[-1][:128]
+        """Client IP for rate limiting, per TRUSTED_PROXY_MODE (see app/config.py).
+
+        The client controls every header it sends, so a header is only believed when the
+        configured proxy is the one that sets it (and, where possible, the TCP peer is that proxy).
+        """
+        mode = mode or ("fly" if trust_proxy_headers else "direct")
         client = scope.get("client")
-        if client and len(client) >= 1 and client[0]:
-            return str(client[0])[:128]
-        return "local"
+        peer = str(client[0])[:128] if client and len(client) >= 1 and client[0] else "local"
+        headers: dict[bytes, str] = {}
+        for k, v in scope.get("headers", ()):
+            headers.setdefault(k.lower(), v.decode("latin-1", errors="ignore").strip())
+
+        if mode == "direct":
+            if not _proxy_warning_logged[0] and any(h in headers for h in _PROXY_HEADERS):
+                _proxy_warning_logged[0] = True
+                logger.warning(
+                    "Proxy headers seen but TRUSTED_PROXY_MODE=direct: rate limits use the proxy's IP, "
+                    "so all clients share one bucket. Set TRUSTED_PROXY_MODE (fly|cloudflare|standard)."
+                )
+            return peer
+
+        if mode == "fly":
+            # Fly's edge sets Fly-Client-IP, else the right-most X-Forwarded-For hop (appended by it).
+            if headers.get(b"fly-client-ip"):
+                return headers[b"fly-client-ip"][:128]
+            hops = [h.strip() for h in headers.get(b"x-forwarded-for", "").split(",") if h.strip()]
+            return hops[-1][:128] if hops else peer
+
+        nets = _trusted_networks(trusted_proxies)
+        if not _ip_in(peer, nets):
+            return peer  # request did not come through our proxy: ignore its headers
+        if mode == "cloudflare":
+            return (headers.get(b"cf-connecting-ip") or peer)[:128]
+        # standard: walk X-Forwarded-For from the right, skipping our own proxies.
+        hops = [h.strip() for h in headers.get(b"x-forwarded-for", "").split(",") if h.strip()]
+        for hop in reversed(hops):
+            if not _ip_in(hop, nets):
+                return hop[:128]
+        if hops:
+            return hops[0][:128]
+        return (headers.get(b"x-real-ip") or peer)[:128]
 
     async def __call__(
         self,
@@ -441,7 +493,8 @@ class RateLimitMiddleware:
         bucket_ns = "webhook" if is_webhook else "api"
         client_ip = self._extract_client_ip(
             scope,
-            trust_proxy_headers=settings.TRUST_PROXY_HEADERS,
+            mode=settings.proxy_mode,
+            trusted_proxies=settings.TRUSTED_PROXY_IPS,
         )
         allowed, remaining, retry_after = self._limiter.check(
             f"{bucket_ns}:{client_ip}",

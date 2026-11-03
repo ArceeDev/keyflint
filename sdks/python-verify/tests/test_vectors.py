@@ -24,6 +24,7 @@ class TestVectors(unittest.TestCase):
             for pure in (False, True):
                 with self.subTest(vector=v["name"], pure_python=pure):
                     r = verify_license(v["token"], keys, now=v["now"], machine_id=v["machine_id"],
+                                       last_seen=v.get("last_seen"),
                                        domain=v["domain"], force_pure_python=pure)
                     self.assertEqual((r.valid, r.error), (v["expected"]["valid"], v["expected"]["error"]))
 
