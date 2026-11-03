@@ -12,7 +12,7 @@ Enlaces: `https://keyflint.dev` · `https://github.com/ArceeDev/keyflint` · `su
 | 3 | `@keyflint/wrap`: crear la org npm `keyflint` y `npm publish` en `sdks/js-wrap` (OTP). Si no se publica antes de D, **borra las líneas marcadas [WRAP]** de los posts. | Arcee | Abierto |
 | 4 | Botón "Deploy on Railway": quitado de landing y README para evitar despliegues sin volumen persistente. | Antigravity | ✓ Hecho |
 | 5 | Clave Ed25519 en `.txt` plano → gestor/USB cifrado. | Arcee | Abierto |
-| 6 | Search Console + sitemap enviado. | Arcee | Abierto |
+| 6 | Search Console + sitemap enviado. | Arcee | ✓ Hecho |
 | 7 | Deploy de la imagen 1.2.2 en Fly. | Antigravity | ✓ Hecho |
 | 8 | Landing en inglés, Founder $199 (100 uds., Payment Link con límite), SEO/guía, monitor. | — | ✓ Hecho (PR #32-#38) |
 | 9 | `[BENCH]` 0.116 ms con `cryptography`, 3.0 ms Python puro. `[PRICE]` LS 5%+50¢, Gumroad 10%+50¢; Keygen sin cifra verificable (no citar $49). | — | ✓ Hecho |
