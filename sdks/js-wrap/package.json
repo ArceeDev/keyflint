@@ -1,0 +1,52 @@
+{
+  "name": "@keyflint/wrap",
+  "version": "0.1.0",
+  "description": "Put KeyFlint license checks and credit metering in front of any stdio MCP server, with no code changes.",
+  "license": "MIT",
+  "author": "ArceeDev",
+  "homepage": "https://keyflint.dev/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ArceeDev/keyflint.git",
+    "directory": "sdks/js-wrap"
+  },
+  "bugs": {
+    "url": "https://github.com/ArceeDev/keyflint/issues"
+  },
+  "type": "module",
+  "main": "./src/wrap.js",
+  "exports": {
+    ".": "./src/wrap.js",
+    "./package.json": "./package.json"
+  },
+  "bin": {
+    "keyflint-wrap": "bin/keyflint-wrap.js"
+  },
+  "files": [
+    "bin",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18.4"
+  },
+  "keywords": [
+    "keyflint",
+    "license",
+    "licensing",
+    "mcp",
+    "model-context-protocol",
+    "metering",
+    "proxy"
+  ],
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "dependencies": {
+    "keyflint-verify": "^1.2.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "my-paid-mcp-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@keyflint/wrap": "^0.1.0"
+  }
+}

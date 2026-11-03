@@ -1,0 +1,67 @@
+{
+  "manifest_version": "0.3",
+  "name": "my-paid-mcp-server",
+  "display_name": "My Paid MCP Server",
+  "version": "1.0.0",
+  "description": "Replace with what your server does. Requires a KeyFlint license.",
+  "long_description": "Paste your license key once when you install the extension. Claude Desktop keeps it masked and passes it to the server as KEYFLINT_LICENSE. Every tool call is checked against the license and, for metered tools, against your remaining credits.",
+  "author": {
+    "name": "Your Name",
+    "url": "https://example.com"
+  },
+  "homepage": "https://example.com",
+  "support": "mailto:support@example.com",
+  "server": {
+    "type": "node",
+    "entry_point": "server/index.js",
+    "mcp_config": {
+      "command": "node",
+      "args": [
+        "${__dirname}/node_modules/@keyflint/wrap/bin/keyflint-wrap.js",
+        "--credits",
+        "0",
+        "--tool",
+        "summarize=5",
+        "--",
+        "node",
+        "${__dirname}/server/index.js"
+      ],
+      "env": {
+        "KEYFLINT_LICENSE": "${user_config.license_key}",
+        "KEYFLINT_PUBLIC_KEYS": "REPLACE_WITH_YOUR_PUBLIC_KEYS",
+        "KEYFLINT_URL": "https://licenses.example.com",
+        "KEYFLINT_CHECKOUT_URL": "https://example.com/buy"
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "hello",
+      "description": "Free example tool (license check only)."
+    },
+    {
+      "name": "summarize",
+      "description": "Metered example tool (5 credits per call)."
+    }
+  ],
+  "user_config": {
+    "license_key": {
+      "type": "string",
+      "title": "License key",
+      "description": "The LIC-... key from your purchase email.",
+      "sensitive": true,
+      "required": true
+    }
+  },
+  "compatibility": {
+    "platforms": [
+      "darwin",
+      "win32",
+      "linux"
+    ],
+    "runtimes": {
+      "node": ">=18.4"
+    }
+  },
+  "license": "MIT"
+}
