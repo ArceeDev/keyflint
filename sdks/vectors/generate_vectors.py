@@ -14,7 +14,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-from app.infrastructure.security.ed25519_signer import Ed25519Signer, b64url_encode  # noqa: E402
+from app.infrastructure.security.ed25519_signer import Ed25519Signer, b64url_decode, b64url_encode  # noqa: E402
 from app.infrastructure.security.offline_validator import validate_offline  # noqa: E402
 
 P = 2**255 - 19
@@ -67,11 +67,23 @@ def py_expected(token, keys, now, machine_id=None, domain=None):
 V = []
 
 
-def add(name, token, keys, now=NOW, machine_id=None, domain=None):
+ROLLBACK_LEEWAY_SECONDS = 300
+
+
+def add(name, token, keys, now=NOW, machine_id=None, domain=None, last_seen=None):
     valid, err = py_expected(token, keys, now, machine_id, domain)
-    V.append({"name": name, "token": token, "public_keys": keys, "now": now,
-              "machine_id": machine_id, "domain": domain,
-              "expected": {"valid": valid, "error": err}})
+    if last_seen is not None and valid:
+        # v1.2 clock-rollback rule (SDK-side, needs local state, so not in the gateway validator):
+        # a token that expires is rejected when the clock is behind the last time seen on this machine.
+        payload = json.loads(b64url_decode(token.split(".")[0].split("-", 2)[2]))
+        if payload.get("expires_at") is not None and now < last_seen - ROLLBACK_LEEWAY_SECONDS:
+            valid, err = False, "ERR_CLOCK_ROLLBACK_DETECTED"
+    vec = {"name": name, "token": token, "public_keys": keys, "now": now,
+           "machine_id": machine_id, "domain": domain,
+           "expected": {"valid": valid, "error": err}}
+    if last_seen is not None:
+        vec["last_seen"] = last_seen
+    V.append(vec)
 
 
 good = tok(K1, base())
@@ -147,6 +159,12 @@ nc = enc_point(P + 1)  # non-canonical encoding of the identity (y=1)
 add("noncanonical_identity_key_and_R", head + "." + b64url_encode(nc + bytes(32)),
     [nc.hex()])
 add("x0_sign_bit_R", head + "." + b64url_encode(enc_point(1, 1) + sig_b[32:]), [PK1])
+
+# clock rollback (v1.2): "last_seen" = latest time this machine has seen (SDK local state)
+add("clock_rollback_detected", good, [PK1], last_seen=NOW + ROLLBACK_LEEWAY_SECONDS + 1)
+add("clock_rollback_within_leeway", good, [PK1], last_seen=NOW + ROLLBACK_LEEWAY_SECONDS)
+add("clock_rollback_ignored_for_perpetual", tok(K1, base(expires_at=None)), [PK1],
+    last_seen=NOW + 10 * 86400)
 
 out = Path(__file__).with_name("vectors.json")
 out.write_text(json.dumps({"version": 1, "keys": {"k1": PK1, "k2": PK2}, "vectors": V},

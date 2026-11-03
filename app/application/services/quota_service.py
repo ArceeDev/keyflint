@@ -6,6 +6,7 @@ File: app/application/services/quota_service.py
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import logging
 
 from app.application.dtos.quota_dtos import (
     QuotaBalanceRequest,
@@ -19,6 +20,7 @@ from app.application.dtos.quota_dtos import (
 )
 from app.domain.entities.license import LicenseStatus
 from app.domain.exceptions import (
+    DomainError,
     LicenseExpiredError,
     LicenseNotFoundError,
     LicenseRevokedError,
@@ -26,6 +28,8 @@ from app.domain.exceptions import (
 )
 from app.domain.interfaces.license_repository import ILicenseRepository
 from app.domain.interfaces.quota_repository import IQuotaRepository
+
+logger = logging.getLogger("keyflint.quota")
 
 
 class QuotaService:
@@ -90,13 +94,32 @@ class QuotaService:
         if license_entity is None:
             raise LicenseNotFoundError("License key not found.")
         from app.config import get_settings
+        from app.infrastructure.repositories.sqlite_quota_repo import RefundBreaker
 
-        result = self._quota_repo.atomic_refund(
-            license_id=license_entity.id,
-            idempotency_key=request.idempotency_key,
-            window_seconds=get_settings().QUOTA_REFUND_WINDOW_SECONDS,
-            reason=request.reason,
+        cfg = get_settings()
+        breaker = (
+            RefundBreaker(
+                max_consecutive=cfg.REFUND_BREAKER_MAX_CONSECUTIVE,
+                window_seconds=cfg.REFUND_BREAKER_WINDOW_SECONDS,
+                max_ratio=cfg.REFUND_BREAKER_MAX_RATIO,
+                sample=cfg.REFUND_BREAKER_SAMPLE,
+                min_sample=cfg.REFUND_BREAKER_MIN_SAMPLE,
+            )
+            if cfg.REFUND_BREAKER_ENABLED
+            else None
         )
+        try:
+            result = self._quota_repo.atomic_refund(
+                license_id=license_entity.id,
+                idempotency_key=request.idempotency_key,
+                window_seconds=cfg.QUOTA_REFUND_WINDOW_SECONDS,
+                reason=request.reason,
+                breaker=breaker,
+            )
+        except DomainError as exc:
+            if exc.code == "REFUND_VELOCITY_EXCEEDED":
+                logger.warning(f"Refund circuit breaker tripped for license {license_entity.id}: {exc.details}")
+            raise
         return QuotaRefundResponse(
             success=True,
             license_id=license_entity.id,

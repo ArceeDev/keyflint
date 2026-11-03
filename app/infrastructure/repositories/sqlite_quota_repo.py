@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import sqlite3
 import uuid
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Optional
 
@@ -21,6 +22,69 @@ from app.domain.exceptions import (
 )
 from app.domain.interfaces.quota_repository import IQuotaRepository
 from app.infrastructure.database.connection import transaction
+
+
+@dataclass(frozen=True)
+class RefundBreaker:
+    """Per-license circuit breaker for automatic refunds.
+
+    The SDK runs on the end user's machine, so a modified client can deduct, run the tool
+    successfully and then ask for a refund. Refunds stay available for genuine tool failures,
+    but a license that refunds too often is cut off and logged for manual review.
+    """
+
+    max_consecutive: int = 5
+    window_seconds: int = 600
+    max_ratio: float = 0.25
+    sample: int = 50
+    min_sample: int = 10
+
+    def evaluate(
+        self, conn: sqlite3.Connection, license_id: str, idempotency_key: str
+    ) -> Optional[dict[str, Any]]:
+        """Returns the trip reason, or None when this refund may proceed."""
+        # Consecutive: newest deducts inside the window (excluding the one being refunded),
+        # counted while each of them was refunded; the first charged deduct ends the run.
+        recent = conn.execute(
+            """
+            SELECT EXISTS (SELECT 1 FROM usage_events r
+                           WHERE r.license_id = d.license_id
+                             AND r.idempotency_key = 'refund:' || d.idempotency_key) AS refunded
+            FROM usage_events d
+            WHERE d.license_id = ? AND d.event_type != 'refund' AND d.credits_consumed > 0
+              AND d.idempotency_key != ?
+              AND (julianday('now') - julianday(d.timestamp)) * 86400.0 <= ?
+            ORDER BY d.rowid DESC LIMIT ?
+            """,
+            (license_id, idempotency_key, self.window_seconds, self.max_consecutive),
+        ).fetchall()
+        refunds_in_row = 0
+        for r in recent:
+            if not r["refunded"]:
+                break
+            refunds_in_row += 1
+        if refunds_in_row >= self.max_consecutive:
+            return {"rule": "consecutive", "refunds_in_row": refunds_in_row,
+                    "limit": self.max_consecutive, "window_seconds": self.window_seconds}
+
+        # Ratio over the last N deducts (+1 for the refund being requested now).
+        row = conn.execute(
+            """
+            SELECT COUNT(*) AS deducts,
+                   SUM(EXISTS (SELECT 1 FROM usage_events r
+                               WHERE r.license_id = d.license_id
+                                 AND r.idempotency_key = 'refund:' || d.idempotency_key)) AS refunded
+            FROM (SELECT license_id, idempotency_key FROM usage_events
+                  WHERE license_id = ? AND event_type != 'refund' AND credits_consumed > 0
+                  ORDER BY rowid DESC LIMIT ?) d
+            """,
+            (license_id, self.sample),
+        ).fetchone()
+        deducts, refunded = int(row["deducts"] or 0), int(row["refunded"] or 0)
+        if deducts >= self.min_sample and (refunded + 1) / deducts > self.max_ratio:
+            return {"rule": "ratio", "refunded": refunded, "deducts": deducts,
+                    "max_ratio": self.max_ratio, "sample": self.sample}
+        return None
 
 
 class SqliteQuotaRepo(IQuotaRepository):
@@ -226,6 +290,7 @@ class SqliteQuotaRepo(IQuotaRepository):
         idempotency_key: str,
         window_seconds: int,
         reason: Optional[str] = None,
+        breaker: Optional[RefundBreaker] = None,
     ) -> CreditDeductResult:
         """Compensates a previous deduct (same idempotency key) exactly once, within a time window.
 
@@ -235,6 +300,7 @@ class SqliteQuotaRepo(IQuotaRepository):
         if not idempotency_key or not idempotency_key.strip() or idempotency_key.startswith("refund:"):
             raise ValueError("idempotency_key must reference an original deduct")
         refund_key = f"refund:{idempotency_key}"
+        tripped: Optional[dict[str, Any]] = None
         with transaction(self._conn):
             done = self._conn.execute(
                 "SELECT id, credits_consumed FROM usage_events WHERE license_id = ? AND idempotency_key = ?",
@@ -267,34 +333,73 @@ class SqliteQuotaRepo(IQuotaRepository):
                                   details={"idempotency_key": idempotency_key, "window_seconds": window_seconds},
                                   status_code=409, code="REFUND_WINDOW_EXPIRED")
 
-            credits = int(orig["credits_consumed"])
-            row = self._conn.execute(
-                """
-                UPDATE quotas
-                SET balance = MIN(balance + ?, total_allowance),
-                    consumed = MAX(consumed - ?, 0),
-                    updated_at = CURRENT_TIMESTAMP
-                WHERE license_id = ?
-                RETURNING balance, consumed
-                """,
-                (credits, credits, license_id),
-            ).fetchone()
-            if row is None:
-                raise LicenseNotFoundError(f"Quota record for license '{license_id}' not found.")
+            tripped = breaker.evaluate(self._conn, license_id, idempotency_key) if breaker is not None else None
+            if tripped is not None:
+                # Committed with this transaction even though the refund is denied (manual review).
+                tripped = {**tripped, "idempotency_key": idempotency_key, "credits": orig["credits_consumed"]}
+                self.record_license_event(license_id, "refund_velocity_exceeded", tripped)
+            else:
+                result = self._apply_refund(license_id, orig, refund_key, reason)
+        if tripped is not None:
+            raise DomainError(
+                "Automatic refunds are paused for this license (refund velocity exceeded). "
+                "The credits stay charged; contact support if this is a mistake.",
+                details=tripped, status_code=429, code="REFUND_VELOCITY_EXCEEDED",
+            )
+        return result
 
-            event_id = str(uuid.uuid4())
-            meta = {"refund_of": orig["id"], "reason": reason} if reason else {"refund_of": orig["id"]}
-            self._conn.execute(
-                """
-                INSERT INTO usage_events (id, license_id, event_type, credits_consumed, idempotency_key, metadata_json)
-                VALUES (?, ?, 'refund', ?, ?, ?)
-                """,
-                (event_id, license_id, credits, refund_key, json.dumps(meta)),
-            )
-            return CreditDeductResult(
-                success=True, remaining_balance=row["balance"], consumed_credits=credits,
-                consumed_total=row["consumed"], is_cached=False, event_id=event_id, reason="refund",
-            )
+    def _apply_refund(
+        self, license_id: str, orig: sqlite3.Row, refund_key: str, reason: Optional[str]
+    ) -> CreditDeductResult:
+        credits = int(orig["credits_consumed"])
+        row = self._conn.execute(
+            """
+            UPDATE quotas
+            SET balance = MIN(balance + ?, total_allowance),
+                consumed = MAX(consumed - ?, 0),
+                updated_at = CURRENT_TIMESTAMP
+            WHERE license_id = ?
+            RETURNING balance, consumed
+            """,
+            (credits, credits, license_id),
+        ).fetchone()
+        if row is None:
+            raise LicenseNotFoundError(f"Quota record for license '{license_id}' not found.")
+
+        event_id = str(uuid.uuid4())
+        meta = {"refund_of": orig["id"], "reason": reason} if reason else {"refund_of": orig["id"]}
+        self._conn.execute(
+            """
+            INSERT INTO usage_events (id, license_id, event_type, credits_consumed, idempotency_key, metadata_json)
+            VALUES (?, ?, 'refund', ?, ?, ?)
+            """,
+            (event_id, license_id, credits, refund_key, json.dumps(meta)),
+        )
+        return CreditDeductResult(
+            success=True, remaining_balance=row["balance"], consumed_credits=credits,
+            consumed_total=row["consumed"], is_cached=False, event_id=event_id, reason="refund",
+        )
+
+    def record_license_event(self, license_id: str, event_type: str, details: dict[str, Any]) -> str:
+        """Appends a security/audit event for a license (joins the caller's transaction if any)."""
+        event_id = str(uuid.uuid4())
+        self._conn.execute(
+            "INSERT INTO license_events (id, license_id, event_type, details_json) VALUES (?, ?, ?, ?)",
+            (event_id, license_id, event_type, json.dumps(details, default=str)),
+        )
+        return event_id
+
+    def list_license_events(self, license_id: str, limit: int = 50) -> list[dict[str, Any]]:
+        rows = self._conn.execute(
+            "SELECT id, event_type, details_json, created_at FROM license_events "
+            "WHERE license_id = ? ORDER BY rowid DESC LIMIT ?",
+            (license_id, limit),
+        ).fetchall()
+        return [
+            {"id": r["id"], "event_type": r["event_type"], "details": json.loads(r["details_json"] or "{}"),
+             "created_at": r["created_at"]}
+            for r in rows
+        ]
 
     def replenish(
         self, license_id: str, credits: int, reset_cycle: bool = False

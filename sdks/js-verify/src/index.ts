@@ -26,6 +26,8 @@ export type ErrorCode =
   | "ERR_DOMAIN_LOCK_VIOLATION"
   /** The local clock is earlier than the signed `issued_at` minus the tolerated skew (300 s). */
   | "ERR_CLOCK_BEFORE_ISSUANCE"
+  /** v1.2: the clock is more than 300 s behind `lastSeen` (expiring tokens only). */
+  | "ERR_CLOCK_ROLLBACK_DETECTED"
   /** The token has a `kid` that is not in the `{ kid: hex }` key map. */
   | "ERR_UNKNOWN_KID"
   /** SDK-only: the runtime has no Web Crypto Ed25519 support. */
@@ -59,6 +61,12 @@ export interface VerifyOptions {
   machineId?: string;
   /** Caller hostname, enforced when the token has `allowed_domains`. */
   domain?: string;
+  /**
+   * v1.2: latest Unix time this machine has seen (see `createClockGuard` in `keyflint-verify/mcp`).
+   * A token with `expires_at` fails with `ERR_CLOCK_ROLLBACK_DETECTED` when `now` is more than
+   * 300 s behind it. A deterrent against setting the clock back, not a guarantee.
+   */
+  lastSeen?: number;
   /** Custom SubtleCrypto implementation (tests, exotic runtimes). */
   subtle?: SubtleCrypto;
 }
@@ -483,6 +491,11 @@ async function verifyWithRing(
     if (allowed.length > 0 && !matchesAllowedDomains(allowed, options.domain)) {
       return fail("ERR_DOMAIN_LOCK_VIOLATION", payload);
     }
+  }
+
+  // 10. Clock rollback (v1.2, needs local state, so it runs only when lastSeen is given)
+  if (typeof options.lastSeen === "number" && exp !== undefined && exp !== null) {
+    if (now < options.lastSeen - CLOCK_SKEW_LEEWAY_SECONDS) return fail("ERR_CLOCK_ROLLBACK_DETECTED", payload);
   }
 
   const result: VerifyResult = { valid: true, payload, error: null };

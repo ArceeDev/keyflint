@@ -11,6 +11,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from app.application.dtos.license_dtos import (
     LicenseActivateRequest,
     LicenseIssueRequest,
+    LicenseNodeReleaseRequest,
+    LicenseNodesRequest,
     LicenseRevokeRequest,
     LicenseVerifyRequest,
 )
@@ -391,6 +393,34 @@ def activate_license(
     return {
         "success": True,
         "data": res.model_dump(),
+        "metadata": build_response_metadata(http_request),
+    }
+
+
+@router.post("/nodes")
+def list_license_nodes(
+    request: LicenseNodesRequest,
+    http_request: Request,
+    license_service: LicenseService = Depends(get_license_service),
+) -> dict[str, Any]:
+    """Lists the machines holding seats on a license (POST keeps the key out of URLs and logs)."""
+    return {
+        "success": True,
+        "data": license_service.list_nodes(request.license_key),
+        "metadata": build_response_metadata(http_request),
+    }
+
+
+@router.post("/nodes/release")
+def release_license_node(
+    request: LicenseNodeReleaseRequest,
+    http_request: Request,
+    license_service: LicenseService = Depends(get_license_service),
+) -> dict[str, Any]:
+    """Frees a seat (rebuilt container, new laptop). Limited to NODE_RELEASES_PER_24H per license."""
+    return {
+        "success": True,
+        "data": license_service.release_node(request.license_key, request.hardware_id),
         "metadata": build_response_metadata(http_request),
     }
 

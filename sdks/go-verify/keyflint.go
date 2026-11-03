@@ -44,6 +44,7 @@ const (
 	CodeNodeLockViolation        = "ERR_NODE_LOCK_VIOLATION"
 	CodeDomainLockViolation      = "ERR_DOMAIN_LOCK_VIOLATION"
 	CodeUnknownKID               = "ERR_UNKNOWN_KID"
+	CodeClockRollbackDetected    = "ERR_CLOCK_ROLLBACK_DETECTED"
 )
 
 // Sentinel errors for errors.Is. Every *VerifyError matches exactly one of them.
@@ -56,6 +57,7 @@ var (
 	ErrNodeLockViolation   = errors.New("keyflint: machine lock violation")
 	ErrDomainLockViolation = errors.New("keyflint: domain lock violation")
 	ErrUnknownKID          = errors.New("keyflint: token kid is not in the trusted key ring")
+	ErrClockRollback       = errors.New("keyflint: local clock is behind the last time seen")
 )
 
 // VerifyError carries the cross-SDK error code. Use errors.Is with the sentinels above, or
@@ -83,6 +85,8 @@ func sentinelFor(code string) error {
 		return ErrDomainLockViolation
 	case CodeUnknownKID:
 		return ErrUnknownKID
+	case CodeClockRollbackDetected:
+		return ErrClockRollback
 	default:
 		return ErrInvalidFormat
 	}
@@ -148,6 +152,10 @@ type Options struct {
 	Now       time.Time // zero = time.Now()
 	MachineID string    // local machine id; required when the token is machine-locked
 	Domain    string    // caller host; required when the token has allowed_domains
+	// LastSeen (v1.2) is the latest time this machine has observed (see ClockGuard). A token
+	// with expires_at fails with ERR_CLOCK_ROLLBACK_DETECTED when Now is more than 300 s behind
+	// it. Zero = no check. A deterrent against setting the clock back, not a guarantee.
+	LastSeen time.Time
 }
 
 // Verify checks token against one hex Ed25519 public key at the current time.
@@ -397,6 +405,10 @@ func validateOffline(token, publicKeyHex string, opts Options) (*LicensePayload,
 		if len(p.AllowedDomains) > 0 && !matchesAllowedDomains(p.AllowedDomains, opts.Domain) {
 			return nil, fail(CodeDomainLockViolation)
 		}
+	}
+
+	if !opts.LastSeen.IsZero() && p.ExpiresAt != nil && nowF < float64(opts.LastSeen.Unix())-ClockSkewLeewaySeconds {
+		return nil, fail(CodeClockRollbackDetected)
 	}
 
 	p.LicenseID, _ = raw["license_id"].(string)

@@ -109,6 +109,7 @@ type vectorFile struct {
 		Now        int64    `json:"now"`
 		MachineID  *string  `json:"machine_id"`
 		Domain     *string  `json:"domain"`
+		LastSeen   *int64   `json:"last_seen"`
 		Expected   struct {
 			Valid bool    `json:"valid"`
 			Error *string `json:"error"`
@@ -146,6 +147,9 @@ func TestVectors(t *testing.T) {
 		v := v
 		t.Run(v.Name, func(t *testing.T) {
 			opts := keyflint.Options{Now: time.Unix(v.Now, 0), MachineID: deref(v.MachineID), Domain: deref(v.Domain)}
+			if v.LastSeen != nil {
+				opts.LastSeen = time.Unix(*v.LastSeen, 0)
+			}
 			var err error
 			if len(v.PublicKeys) == 1 {
 				_, err = keyflint.VerifyWithOptions(v.Token, v.PublicKeys[0], opts)
@@ -213,5 +217,24 @@ func TestKeyRing(t *testing.T) {
 	exp, now := vector(t, vf, "expired")
 	if _, err := keyflint.VerifyWithKeys(exp, []string{k2, k1}, keyflint.Options{Now: time.Unix(now, 0)}); keyflint.Code(err) != keyflint.CodeLicenseExpired {
 		t.Fatalf("expired from matching key: %v", err)
+	}
+}
+
+func TestClockGuard(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "x", "clock_state")
+	g := keyflint.NewClockGuard(path)
+	if !g.LastSeen().IsZero() {
+		t.Fatal("expected empty state")
+	}
+	g.Record(time.Unix(2000, 0))
+	g.Record(time.Unix(1000, 0))
+	if got := keyflint.NewClockGuard(path).LastSeen().Unix(); got != 2000 {
+		t.Fatalf("persisted last_seen = %d", got)
+	}
+	vf := loadVectors(t)
+	tok, now := vector(t, vf, "valid_basic")
+	_, err := keyflint.VerifyWithOptions(tok, vf.Keys["k1"], keyflint.Options{Now: time.Unix(now, 0), LastSeen: time.Unix(now+301, 0)})
+	if !errors.Is(err, keyflint.ErrClockRollback) {
+		t.Fatalf("want ErrClockRollback, got %v", err)
 	}
 }

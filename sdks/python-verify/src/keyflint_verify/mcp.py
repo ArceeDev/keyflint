@@ -28,6 +28,8 @@ Environment variables:
     KEYFLINT_MACHINE_ID     machine id for node-locked licenses (default: auto)
     KEYFLINT_DOMAIN         caller domain for domain-locked licenses
     KEYFLINT_CHECKOUT_URL   upgrade link shown when credits run out
+    KEYFLINT_CLOCK_STATE    clock-rollback state file (default ~/.keyflint/clock_state; "off" = memory only)
+    KEYFLINT_MACHINE_ID_STRATEGY  "stable" = host-level id that survives container rebuilds
 """
 
 from __future__ import annotations
@@ -43,7 +45,7 @@ import urllib.request
 import uuid
 from typing import Any, Callable, Mapping, Optional, Sequence, TypeVar, Union, cast
 
-from . import PublicKeys, VerifyResult, decode_payload, verify_license
+from . import ClockGuard, PublicKeys, VerifyResult, decode_payload, verify_license
 from .fingerprint import compute_machine_id
 
 __all__ = [
@@ -72,6 +74,8 @@ _LICENSE_MESSAGES = {
     "ERR_DOMAIN_LOCK_VIOLATION": "This license is not valid for this domain.",
     "ERR_CLOCK_BEFORE_ISSUANCE": "The system clock is earlier than the license issue date. "
     "Correct the clock and retry.",
+    "ERR_CLOCK_ROLLBACK_DETECTED": "The system clock is behind the last time this license was checked "
+    "on this machine. Correct the clock and retry.",
 }
 
 
@@ -84,7 +88,7 @@ def _license_message(error: Optional[str], payload: Optional[Mapping[str, Any]],
         text = f"Your license expired on {when}." if when else "Your license has expired."
     else:
         text = _LICENSE_MESSAGES.get(code, f"The KeyFlint license is invalid ({code}).")
-    if checkout_url and code not in ("ERR_CLOCK_BEFORE_ISSUANCE", "ERR_UNKNOWN_KID", "ERR_SIGNATURE_TAMPERED"):
+    if checkout_url and code not in ("ERR_CLOCK_BEFORE_ISSUANCE", "ERR_CLOCK_ROLLBACK_DETECTED", "ERR_UNKNOWN_KID", "ERR_SIGNATURE_TAMPERED"):
         text += f" Get or renew a license: {checkout_url}"
     return text
 
@@ -162,6 +166,7 @@ class KeyFlint:
         checkout_url: Optional[str] = None,
         timeout: float = 5.0,
         event_type: str = "mcp_tool_call",
+        clock_guard: Union[bool, ClockGuard] = True,
     ) -> None:
         # KEYFORGE_* (pre-rename) is accepted as a fallback for every KEYFLINT_* variable.
         env = {**{"KEYFLINT_" + k[9:]: v for k, v in os.environ.items() if k.startswith("KEYFORGE_")}, **os.environ}
@@ -174,6 +179,10 @@ class KeyFlint:
         self.checkout_url = checkout_url or env.get("KEYFLINT_CHECKOUT_URL") or None
         self.timeout = timeout
         self.event_type = event_type
+        # Rejects a clock set back below the latest time seen (expiring licenses only).
+        self.clock_guard: Optional[ClockGuard] = (
+            clock_guard if isinstance(clock_guard, ClockGuard) else (ClockGuard() if clock_guard else None)
+        )
         self._cached: Optional[VerifyResult] = None
         self._cached_until: float = 0.0
 
@@ -184,18 +193,26 @@ class KeyFlint:
             return self.machine_id
         payload = decode_payload(self.license_key)
         locked = payload.get("machine_id") if isinstance(payload, dict) else None
-        return compute_machine_id() if locked else None
+        if not locked:
+            return None
+        strategy = os.environ.get("KEYFLINT_MACHINE_ID_STRATEGY", "legacy").strip().lower()
+        return compute_machine_id(strategy=strategy)
 
     def check(self, features: Optional[Sequence[str]] = None) -> VerifyResult:
         """Verifies the configured license offline (cached until expiry, re-checked every 60 s)."""
         now = time.time()
         if self._cached is None or now >= self._cached_until:
+            expiring = (decode_payload(self.license_key) or {}).get("expires_at") is not None
+            guard = self.clock_guard if expiring else None
             result = verify_license(
                 self.license_key,
                 self.public_keys,
                 machine_id=self._resolved_machine_id(),
                 domain=self.domain,
+                last_seen=guard.last_seen() if guard is not None else None,
             )
+            if result.valid and guard is not None:
+                guard.record(int(now))
             if not result.valid:
                 raise _error(
                     LICENSE_INVALID,

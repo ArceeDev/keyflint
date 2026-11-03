@@ -30,6 +30,9 @@ _INSECURE_ADMIN_KEYS = frozenset({
 })
 
 
+_PROXY_MODES = frozenset({"fly", "cloudflare", "standard", "direct"})
+
+
 class Settings(BaseSettings):
     """Central configuration for KeyFlint."""
 
@@ -44,6 +47,18 @@ class Settings(BaseSettings):
     ED25519_RETIRED_PUBLIC_KEYS: Optional[str] = None
     # Seconds after a deduct during which /quota/refund may compensate it (0 disables refunds).
     QUOTA_REFUND_WINDOW_SECONDS: int = 900
+    # Refund circuit breaker (per license): deny automatic refunds when more than
+    # REFUND_BREAKER_MAX_CONSECUTIVE refunds in a row happen within REFUND_BREAKER_WINDOW_SECONDS,
+    # or when refunds exceed REFUND_BREAKER_MAX_RATIO of the last REFUND_BREAKER_SAMPLE deducts
+    # (only once REFUND_BREAKER_MIN_SAMPLE deducts exist). REFUND_BREAKER_ENABLED=false turns it off.
+    REFUND_BREAKER_ENABLED: bool = True
+    REFUND_BREAKER_MAX_CONSECUTIVE: int = 5
+    REFUND_BREAKER_WINDOW_SECONDS: int = 600
+    REFUND_BREAKER_MAX_RATIO: float = 0.25
+    REFUND_BREAKER_SAMPLE: int = 50
+    REFUND_BREAKER_MIN_SAMPLE: int = 10
+    # Self-service node release: max releases per license in any 24 h window (0 disables the endpoint).
+    NODE_RELEASES_PER_24H: int = 1
 
     STRIPE_WEBHOOK_SECRET: str = "whsec_test_stripe_secret_12345"
     LEMONSQUEEZY_WEBHOOK_SECRET: str = "whsec_test_lemonsqueezy_secret_12345"
@@ -81,13 +96,30 @@ class Settings(BaseSettings):
     RATE_LIMIT_REQUESTS: int = 25
     RATE_LIMIT_WEBHOOK_REQUESTS: int = 300
     RATE_LIMIT_WINDOW_SECONDS: int = 10
-    TRUST_PROXY_HEADERS: bool = False
+    TRUST_PROXY_HEADERS: bool = False  # legacy alias: true = TRUSTED_PROXY_MODE "fly"
+    # Where the client IP comes from (rate limiting): fly | cloudflare | standard | direct.
+    # Unset = "fly" if TRUST_PROXY_HEADERS else "direct".
+    TRUSTED_PROXY_MODE: Optional[str] = None
+    # Comma-separated IPs/CIDRs of your own proxies ("standard" and "cloudflare" modes).
+    # Empty = loopback and private ranges (a proxy in the same Docker/VPC network).
+    TRUSTED_PROXY_IPS: str = ""
 
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
+    @property
+    def proxy_mode(self) -> str:
+        mode = (self.TRUSTED_PROXY_MODE or "").strip().lower()
+        if not mode:
+            return "fly" if self.TRUST_PROXY_HEADERS else "direct"
+        if mode not in _PROXY_MODES:
+            raise ValueError(
+                f"TRUSTED_PROXY_MODE must be one of {', '.join(sorted(_PROXY_MODES))}; got {mode!r}"
+            )
+        return mode
 
     @property
     def DATABASE_PATH(self) -> str | Path:

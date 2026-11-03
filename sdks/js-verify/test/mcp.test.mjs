@@ -7,6 +7,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { z } from "zod";
+process.env.KEYFLINT_CLOCK_STATE = "off"; // tests must not write to ~/.keyflint
 
 const { keys, vectors } = JSON.parse(readFileSync(new URL("../../vectors/vectors.json", import.meta.url), "utf8"));
 const TOKEN = vectors.find((v) => v.name === "valid_perpetual").token;

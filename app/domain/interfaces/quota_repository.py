@@ -39,7 +39,8 @@ class IQuotaRepository(Protocol):
         ...
 
     def atomic_refund(
-        self, license_id: str, idempotency_key: str, window_seconds: int, reason: Optional[str] = None
+        self, license_id: str, idempotency_key: str, window_seconds: int, reason: Optional[str] = None,
+        breaker: Optional[Any] = None,
     ) -> CreditDeductResult:
         """Compensates a previous deduct exactly once within ``window_seconds``."""
         ...

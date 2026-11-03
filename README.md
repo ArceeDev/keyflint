@@ -113,6 +113,40 @@ remote MCP server). If the MCP server runs on the customer's machine, the custom
 deduct (`QUOTA_REFUND_WINDOW_SECONDS`, `0` disables them). A refunded idempotency key cannot be
 deducted again (HTTP 409, `KEY_REFUNDED`).
 
+**Refund circuit breaker (v1.2).** Refunds are requested by the SDK, which runs on the customer's
+machine, so a modified client could refund successful calls. Per license, the gateway answers
+`429 REFUND_VELOCITY_EXCEEDED` (credits stay charged) when more than 5 refunds in a row happen within
+10 minutes, or refunds exceed 25 % of the last 50 deducts (once 10 exist). Each trip is stored in
+`license_events` for manual review. Tune with `REFUND_BREAKER_*` or set `REFUND_BREAKER_ENABLED=false`.
+
+**Client IP behind proxies (v1.2).** Rate limits key on the client IP. Set `TRUSTED_PROXY_MODE`:
+
+| Mode | Client IP from | Use it for |
+| :--- | :--- | :--- |
+| `direct` (default) | TCP peer | Exposed directly; logs a warning when proxy headers show up |
+| `fly` | `Fly-Client-IP` | Fly.io (`TRUST_PROXY_HEADERS=true` still means this) |
+| `cloudflare` | `CF-Connecting-IP`, only from `TRUSTED_PROXY_IPS` | Cloudflare in front of your origin |
+| `standard` | `X-Forwarded-For` (right-most untrusted hop) / `X-Real-IP`, only from `TRUSTED_PROXY_IPS` | nginx, Traefik, Caddy, Render, Railway |
+
+`TRUSTED_PROXY_IPS` takes IPs/CIDRs of your own proxies; empty means loopback and private ranges.
+Headers from any other peer are ignored, so they cannot be spoofed. For `cloudflare`, list
+[Cloudflare's ranges](https://www.cloudflare.com/ips/) when the origin is reachable from the internet.
+
+**Seats in containers (v1.2).** `POST /api/v1/licenses/nodes` lists the machines on a license and
+`POST /api/v1/licenses/nodes/release` (`license_key`, `hardware_id`) frees one, at most once per 24 h
+per license (`NODE_RELEASES_PER_24H`, `0` disables it), so a rebuilt container or devcontainer does
+not need a support ticket. In the Python SDK, `KEYFLINT_MACHINE_ID_STRATEGY=stable` derives the id
+from the host (Windows MachineGuid, macOS IOPlatformUUID, Linux/WSL `/etc/machine-id`,
+`CODESPACE_NAME`, or `KEYFLINT_HOST_ID`), so rebuilds keep the same id; in Docker mount
+`-v /etc/machine-id:/etc/machine-id:ro`. The default stays the v1.0 formula because node-locked
+licenses embed it. Node.js: `stableMachineId()` from `keyflint-verify/mcp`.
+
+**Clock rollback (v1.2, SDKs).** For licenses with `expires_at`, the MCP wrappers remember the latest
+time seen in `~/.keyflint/clock_state` (memory only if read-only; `KEYFLINT_CLOCK_STATE=off` keeps it
+in memory) and reject a clock more than 300 s behind it with `ERR_CLOCK_ROLLBACK_DETECTED`. This is a
+deterrent, not a guarantee: whoever controls the machine can delete the file, and a new container
+starts without state. The low-level APIs take it as `last_seen` / `lastSeen` / `Options.LastSeen`.
+
 ---
 
 ## Deploy in one click

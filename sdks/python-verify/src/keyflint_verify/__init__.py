@@ -13,9 +13,12 @@ import json
 from dataclasses import dataclass
 from typing import Any, Mapping, Optional, Sequence, Union
 
+import time
+
+from ._clock import ROLLBACK_LEEWAY_SECONDS, ClockGuard
 from ._validator import validate_offline
 
-__all__ = ["validate_offline", "verify_license", "decode_payload", "VerifyResult", "PublicKeys"]
+__all__ = ["validate_offline", "verify_license", "decode_payload", "VerifyResult", "PublicKeys", "ClockGuard"]
 __version__ = "1.1.0"
 
 PublicKeys = Union[str, Sequence[str], Mapping[str, str]]
@@ -84,6 +87,7 @@ def verify_license(
     machine_id: Optional[str] = None,
     domain: Optional[str] = None,
     force_pure_python: bool = False,
+    last_seen: Optional[int] = None,
 ) -> VerifyResult:
     """Verifies a token against one or more trusted public keys.
 
@@ -91,7 +95,29 @@ def verify_license(
     With a ``{kid: hex}`` mapping, a token with a signed ``kid`` is checked only against
     that key (``ERR_UNKNOWN_KID`` when the mapping has no such kid). A single key or a
     list has no names, so every key is tried.
+
+    ``last_seen`` (v1.2) is the latest Unix time this machine has observed (see
+    :class:`ClockGuard`). A token with ``expires_at`` is rejected with
+    ``ERR_CLOCK_ROLLBACK_DETECTED`` when the clock is more than 300 s behind it.
     """
+    result = _verify_ring(token, public_keys, now=now, machine_id=machine_id, domain=domain,
+                          force_pure_python=force_pure_python)
+    if result.valid and last_seen is not None and (result.payload or {}).get("expires_at") is not None:
+        current = now if now is not None else int(time.time())
+        if current < last_seen - ROLLBACK_LEEWAY_SECONDS:
+            return VerifyResult(False, result.payload, "ERR_CLOCK_ROLLBACK_DETECTED")
+    return result
+
+
+def _verify_ring(
+    token: str,
+    public_keys: PublicKeys,
+    *,
+    now: Optional[int],
+    machine_id: Optional[str],
+    domain: Optional[str],
+    force_pure_python: bool,
+) -> VerifyResult:
     ring = _normalize_keys(public_keys)
     if ring is None:
         # Structural token errors take precedence, exactly like validate_offline.

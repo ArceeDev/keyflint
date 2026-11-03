@@ -12,6 +12,7 @@ const opts = (v) => {
   const o = { now: v.now };
   if (v.machine_id !== null) o.machineId = v.machine_id;
   if (v.domain !== null) o.domain = v.domain;
+  if (v.last_seen !== undefined) o.lastSeen = v.last_seen;
   return o;
 };
 

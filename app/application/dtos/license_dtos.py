@@ -163,3 +163,16 @@ class LicenseRevokeResponse(BaseModel):
     revoked_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc)
     )
+
+
+class LicenseNodesRequest(BaseModel):
+    """Lists the machines activated on a license (the license key authenticates the caller)."""
+
+    license_key: str = Field(min_length=1)
+
+
+class LicenseNodeReleaseRequest(BaseModel):
+    """Frees the seat held by ``hardware_id`` (e.g. a rebuilt container or devcontainer)."""
+
+    license_key: str = Field(min_length=1)
+    hardware_id: str = Field(min_length=1, max_length=256)

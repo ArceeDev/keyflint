@@ -32,6 +32,8 @@ COPY --from=builder /root/.local /home/keyflint/.local
 ENV PYTHONUSERBASE=/home/keyflint/.local
 ENV PATH=/home/keyflint/.local/bin:$PATH
 ENV PYTHONUNBUFFERED=1
+# TRUSTED_PROXY_MODE defaults to "direct" (client IP = TCP peer). Behind a proxy set
+# fly|cloudflare|standard at run time (not baked here, so TRUST_PROXY_HEADERS=true keeps working).
 ENV PYTHONDONTWRITEBYTECODE=1
 
 COPY --from=litestream /usr/local/bin/litestream /usr/local/bin/litestream

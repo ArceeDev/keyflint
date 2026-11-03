@@ -6,6 +6,7 @@ import asyncio
 import inspect
 import json
 import threading
+import os
 import unittest
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -23,6 +24,7 @@ from keyflint_verify.mcp import (
 DATA = json.loads((Path(__file__).resolve().parents[1].parent / "vectors" / "vectors.json").read_text("utf-8"))
 V = {v["name"]: v for v in DATA["vectors"]}
 TOKEN = V["valid_perpetual"]["token"]  # never expires, so the tests do not age
+os.environ.setdefault("KEYFLINT_CLOCK_STATE", "off")  # tests must not write to ~/.keyflint
 PK = DATA["keys"]["k1"]
 
 
