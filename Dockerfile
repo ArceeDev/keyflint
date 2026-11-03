@@ -3,8 +3,9 @@ FROM python:3.12-slim AS builder
 
 WORKDIR /build
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir --user -r requirements.txt
+# Hash-locked install: a tampered or re-published wheel fails the build instead of shipping.
+COPY requirements.lock .
+RUN pip install --no-cache-dir --user --require-hashes -r requirements.lock
 
 # Litestream (continuous SQLite backup to S3/R2). Only runs when LITESTREAM_* is configured.
 FROM python:3.12-slim AS litestream
