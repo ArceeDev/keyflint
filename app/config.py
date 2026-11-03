@@ -50,13 +50,16 @@ class Settings(BaseSettings):
     # Refund circuit breaker (per license): deny automatic refunds when more than
     # REFUND_BREAKER_MAX_CONSECUTIVE refunds in a row happen within REFUND_BREAKER_WINDOW_SECONDS,
     # or when refunds exceed REFUND_BREAKER_MAX_RATIO of the last REFUND_BREAKER_SAMPLE deducts
-    # (only once REFUND_BREAKER_MIN_SAMPLE deducts exist). REFUND_BREAKER_ENABLED=false turns it off.
+    # (only once REFUND_BREAKER_MIN_SAMPLE deducts exist), or refunded credits exceed
+    # REFUND_BREAKER_MAX_CREDIT_RATIO of the credits in that sample (v1.2.2; 1 disables that rule).
+    # REFUND_BREAKER_ENABLED=false turns it off.
     REFUND_BREAKER_ENABLED: bool = True
     REFUND_BREAKER_MAX_CONSECUTIVE: int = 5
     REFUND_BREAKER_WINDOW_SECONDS: int = 600
     REFUND_BREAKER_MAX_RATIO: float = 0.25
     REFUND_BREAKER_SAMPLE: int = 50
     REFUND_BREAKER_MIN_SAMPLE: int = 10
+    REFUND_BREAKER_MAX_CREDIT_RATIO: float = 0.25
     # Self-service node release: max releases per license in any 24 h window (0 disables the endpoint).
     NODE_RELEASES_PER_24H: int = 1
 

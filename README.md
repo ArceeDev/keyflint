@@ -116,7 +116,8 @@ deducted again (HTTP 409, `KEY_REFUNDED`).
 **Refund circuit breaker (v1.2).** Refunds are requested by the SDK, which runs on the customer's
 machine, so a modified client could refund successful calls. Per license, the gateway answers
 `429 REFUND_VELOCITY_EXCEEDED` (credits stay charged) when more than 5 refunds in a row happen within
-10 minutes, or refunds exceed 25 % of the last 50 deducts (once 10 exist). Each trip is stored in
+10 minutes, or refunds exceed 25 % of the last 50 deducts (once 10 exist), counted by calls or by
+credits (v1.2.2: cheap successful calls cannot hide refunds of expensive ones). Each trip is stored in
 `license_events` for manual review. Tune with `REFUND_BREAKER_*` or set `REFUND_BREAKER_ENABLED=false`.
 
 **Client IP behind proxies (v1.2).** Rate limits key on the client IP. Set `TRUSTED_PROXY_MODE`:
