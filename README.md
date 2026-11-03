@@ -141,6 +141,10 @@ from the host (Windows MachineGuid, macOS IOPlatformUUID, Linux/WSL `/etc/machin
 `-v /etc/machine-id:/etc/machine-id:ro`. The default stays the v1.0 formula because node-locked
 licenses embed it. Node.js: `stableMachineId()` from `keyflint-verify/mcp`.
 
+**One-command activation for your customers (v1.2).** `npx keyflint-verify activate LIC-...` or
+`uvx keyflint-verify activate LIC-...` writes the license into Claude Desktop, Cursor or Windsurf
+(`--client`, `--server NAME`), with a `.bak` copy and a JSON validity check.
+
 **Gateway blips (v1.2, opt-in).** `@kf.metered(credits=2, offline_grace_calls=3, timeout_ms=1500)`
 (TS: `kf.metered(2, handler, { offlineGraceCalls: 3, timeoutMs: 1500 })`) lets up to N calls run
 while the gateway is unreachable or answers 502/503/504, as long as the license verifies offline.
@@ -165,7 +169,7 @@ starts without state. The low-level APIs take it as `last_seen` / `lastSeen` / `
 ## Deploy in one click
 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/ArceeDev/keyflint)
-[![Deploy on Railway](https://railway.com/button.svg)](RAILWAY_TEMPLATE_URL)
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2FArceeDev%2Fkeyflint)
 
 No secrets to prepare: on first boot the image generates the Ed25519 signing key, `SECRET_KEY`,
 `ADMIN_API_KEY` and placeholder webhook secrets into `/app/data/secrets.env` (mode 600) and prints

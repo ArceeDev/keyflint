@@ -97,6 +97,10 @@
         .hero-actions { display: flex; gap: 10px; margin-top: 24px; flex-wrap: wrap; }
         .hero-install { margin-top: 20px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font: 400 13px/1.4 var(--mono); color: var(--muted); }
         .hero-install code { white-space: nowrap; }
+        .hero-install code.wrap { white-space: normal; overflow-wrap: anywhere; min-width: 0; }
+        .gen-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+        .deploy-row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+        .deploy-row code { font: 400 12px/1.4 var(--mono); overflow-wrap: anywhere; }
         .hero-install code { color: var(--ink-2); background: var(--sunken); border: 1px solid var(--line); padding: 4px 6px; border-radius: 4px; }
         @media (max-width: 900px) { .hero { grid-template-columns: 1fr; gap: 32px; padding-top: 40px; } }
 
@@ -394,7 +398,7 @@
                     <a href="#pricing-section" class="btn btn-secondary">Comprar licencia ($149)</a>
                     <a href="https://github.com/ArceeDev/keyflint" target="_blank" rel="noopener noreferrer" class="btn btn-secondary"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a>
                 </div>
-                <p class="hero-install"><code>pip install keyflint-verify</code><code>npm i keyflint-verify</code></p>
+                <p class="hero-install"><code>pip install keyflint-verify</code><code>npm i keyflint-verify</code><code class="wrap">go get github.com/ArceeDev/keyflint/sdks/go-verify@v1.1.0</code></p>
             </div>
             <aside class="inspector" aria-label="Anatomía de un token">
                 <div class="inspector-head">
@@ -415,12 +419,12 @@
                         <dd>Ed25519, 64 bytes, kid opcional</dd>
                     </div>
                     <div class="inspector-row">
-                        <dt>escritura</dt>
-                        <dd>BEGIN IMMEDIATE</dd>
+                        <dt>cobro</dt>
+                        <dd>atómico, sin saldo negativo</dd>
                     </div>
                     <div class="inspector-row">
-                        <dt>idempotencia</dt>
-                        <dd>UNIQUE(license_id, key)</dd>
+                        <dt>reintentos</dt>
+                        <dd>sin doble cobro</dd>
                     </div>
                 </dl>
             </aside>
@@ -479,25 +483,64 @@
                 <div class="code-tabs-header">
                     <div>
                         <h2 class="card-title">Integración</h2>
-                        <p class="card-sub">Paquete <code>keyflint-verify</code> en PyPI y npm. Licencia MIT.</p>
+                        <p class="card-sub"><code>keyflint-verify</code> en PyPI y npm, <code>go-verify</code> para Go. Licencia MIT.</p>
                     </div>
                     <div class="tab-btn-group" role="tablist" aria-label="Ejemplos de código">
                         <button type="button" class="tab-btn active" role="tab" aria-selected="true" data-tab="python-mcp">Python · MCP</button>
                         <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="ts-mcp">TypeScript · MCP</button>
                         <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="python-offline">Python · offline</button>
                         <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="js-webcrypto">Node / navegador</button>
+                        <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="go-offline">Go</button>
                     </div>
                 </div>
                 <div class="code-snippet-wrap">
                     <button type="button" class="btn-copy-code" id="btnCopySnippet">Copiar</button>
-                    <pre id="codeSnippet" role="tabpanel"><span class="hl-kw">from</span> keyflint_verify.mcp <span class="hl-kw">import</span> metered
+                    <pre id="codeSnippet" role="tabpanel"><span class="hl-kw">from</span> keyflint_verify.mcp <span class="hl-kw">import</span> KeyFlint
+
+kf = KeyFlint()  <span class="hl-cm"># lee KEYFLINT_LICENSE, KEYFLINT_PUBLIC_KEYS y KEYFLINT_URL</span>
 
 <span class="hl-cm"># 2 créditos por llamada; reembolso automático si la tool lanza o devuelve isError</span>
 <span class="hl-fn">@mcp.tool</span>()
-<span class="hl-fn">@metered</span>(credits=2)
+<span class="hl-fn">@kf.metered</span>(credits=2)
 <span class="hl-kw">async def</span> <span class="hl-fn">analizar_codigo</span>(repo_url: str) -&gt; str:
     <span class="hl-kw">return await</span> run_ai_audit(repo_url)</pre>
                 </div>
+            </div>
+
+            <div id="generator-section" class="card" style="margin-top: 16px;">
+                <div class="card-header">
+                    <div>
+                        <h2 class="card-title">Generador en 3 pasos</h2>
+                        <p class="card-sub">Elige el lenguaje, el coste por llamada y pega tu clave pública. Copia el resultado tal cual.</p>
+                    </div>
+                </div>
+                <div class="gen-grid">
+                    <div class="form-group">
+                        <label for="genLang">1. Lenguaje</label>
+                        <select id="genLang">
+                            <option value="python">Python (servidor MCP)</option>
+                            <option value="ts">TypeScript (servidor MCP)</option>
+                            <option value="go">Go (verificación offline)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="genCredits">2. Créditos por llamada</label>
+                        <input type="number" id="genCredits" min="0" max="100000" value="2">
+                    </div>
+                    <div class="form-group">
+                        <label for="genPubKey">3. Clave pública (64 hex)</label>
+                        <input type="text" id="genPubKey" placeholder="GET /api/v1/licenses/public-key" autocomplete="off" spellcheck="false">
+                    </div>
+                    <div class="form-group">
+                        <label for="genGateway">URL del gateway (opcional)</label>
+                        <input type="url" id="genGateway" placeholder="https://licencias.tu-dominio.com" autocomplete="off">
+                    </div>
+                </div>
+                <div class="code-snippet-wrap" style="margin-top: 12px;">
+                    <button type="button" class="btn-copy-code" id="btnCopyGenerated">Copiar</button>
+                    <pre id="genOutput" aria-live="polite"></pre>
+                </div>
+                <p class="card-sub" id="genHint" style="margin-top: 8px;">Tus clientes activan su licencia con <code>npx keyflint-verify activate LIC-...</code> o <code>uvx keyflint-verify activate LIC-...</code> (Claude Desktop, Cursor, Windsurf).</p>
             </div>
         </section>
 
@@ -662,6 +705,18 @@
                     <pre class="code-box state-ok is-idle" id="telemetryResult" aria-live="polite">Sin token. Emite una licencia o pega una en el panel 02.</pre>
                 </div>
             </div>
+            <div class="grid" style="margin-top: 16px;">
+                <div class="card col-12" id="billingActionCard">
+                    <div class="card-header" style="flex-wrap: wrap; gap: 8px;">
+                        <div>
+                            <h3 class="card-title">API de facturación</h3>
+                            <p class="card-sub"><code>POST /api/v1/billing/checkout</code> · portal: <code>/api/v1/billing/portal</code></p>
+                        </div>
+                        <button type="button" class="btn btn-secondary btn-inline" id="btnBillingPortal">Abrir portal del cliente</button>
+                    </div>
+                    <pre class="code-box state-ok" id="billingResult" aria-live="polite"></pre>
+                </div>
+            </div>
         </section>
 
         <section id="comparison-section" class="block">
@@ -706,7 +761,7 @@
                         </tr>
                         <tr>
                             <td>Cliente de verificación</td>
-                            <td class="kf-col">SDK MIT. Web Crypto en JS. 43 vectores de conformidad.</td>
+                            <td class="kf-col">SDKs MIT para Python, TypeScript y Go. 50 vectores de conformidad compartidos.</td>
                             <td>SDK del proveedor.</td>
                             <td>Sin vectores de prueba compartidos.</td>
                         </tr>
@@ -799,16 +854,6 @@
                     </div>
                 </div>
 
-                <div class="card col-12 is-hidden" id="billingActionCard">
-                    <div class="card-header">
-                        <div>
-                            <h3 class="card-title">Sesión de checkout API</h3>
-                            <p class="card-sub"><code>POST /api/v1/billing/checkout</code> · portal: <code>/api/v1/billing/portal</code></p>
-                        </div>
-                        <button type="button" class="btn btn-secondary btn-inline" id="btnBillingPortal">Abrir portal del cliente</button>
-                    </div>
-                    <pre class="code-box state-ok" id="billingResult" aria-live="polite"></pre>
-                </div>
             </div>
 
             <div class="guarantee-bar">
@@ -855,6 +900,41 @@
                     </div>
                 </div>
                 <pre class="code-box is-hidden state-err" id="portalError"></pre>
+            </div>
+
+            <div class="card col-12" id="portalWelcome" style="margin-top: 16px;">
+                <div class="card-header">
+                    <div>
+                        <h3 class="card-title">Tras la compra: despliega tu gateway sin terminal</h3>
+                        <p class="card-sub">Indie y Agency incluyen el gateway autoalojado (Docker + SQLite). Las claves se generan solas en el primer arranque.</p>
+                    </div>
+                </div>
+                <div class="deploy-row">
+                    <a class="btn btn-inline" href="https://render.com/deploy?repo=https://github.com/ArceeDev/keyflint" target="_blank" rel="noopener noreferrer">Deploy on Render</a>
+                    <a class="btn btn-secondary btn-inline" href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2FArceeDev%2Fkeyflint" target="_blank" rel="noopener noreferrer">Deploy on Railway</a>
+                    <code>fly launch --from https://github.com/ArceeDev/keyflint</code>
+                </div>
+                <p class="card-sub" style="margin-top: 8px;">Después, usa el <a href="#generator-section">generador</a> con la clave pública que aparece en los logs.</p>
+            </div>
+
+            <div class="card col-12" id="portalNodes" style="margin-top: 16px;">
+                <div class="card-header">
+                    <div>
+                        <h3 class="card-title">Liberar un nodo</h3>
+                        <p class="card-sub">¿Reconstruiste un contenedor o cambiaste de equipo? Libera su asiento (1 vez cada 24 h por licencia).</p>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group" style="flex: 3;">
+                        <label for="nodesKey">Token de licencia</label>
+                        <input type="text" id="nodesKey" placeholder="LIC-PRO-..." autocomplete="off" spellcheck="false">
+                    </div>
+                    <div class="form-group" style="flex: 1; align-self: flex-end;">
+                        <button type="button" class="btn btn-secondary" id="btnNodesList" style="width: 100%;">Ver nodos</button>
+                    </div>
+                </div>
+                <div id="nodesList" style="margin-top: 12px;"></div>
+                <pre class="code-box is-hidden" id="nodesResult" aria-live="polite"></pre>
             </div>
         </section>
 

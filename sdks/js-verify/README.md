@@ -27,6 +27,19 @@ server.registerTool("summarize", { inputSchema: { url: z.string() } },
 - Failures throw `KeyFlintMcpError` (`code`, `message`, `data`, the same shape as the SDK's `McpError`). Codes: `-32060` invalid license, `-32061` feature not in plan, `-32062` credits exhausted (HTTP 402, with `data.checkoutUrl`), `-32063` gateway error (`-32042` is reserved by MCP for URL elicitation). `McpServer` returns the error to the model as an `isError` tool result containing only `message`, so every message states the cause, whether credits were charged, and the next step (with `checkoutUrl` when set).
 - The wrappers keep the handler's arguments and types, so they work with `registerTool`, `tool()` or low-level handlers. No runtime dependency on the SDK.
 
+## Activate a license for end users (v1.2)
+
+Your customers do not need to edit `claude_desktop_config.json` by hand:
+
+```bash
+npx keyflint-verify activate LIC-PRO-... [--client claude|cursor|windsurf] [--server NAME] [--dry-run]
+```
+
+It finds the config of Claude Desktop, Cursor and/or Windsurf for the OS, keeps a `.bak` copy,
+sets `env.KEYFLINT_LICENSE` on the server that already uses KeyFlint (or the only server, or
+`--server NAME`), and checks the result is valid JSON. Invalid JSON is never modified.
+`uvx keyflint-verify activate` (PyPI) does the same.
+
 ## Key rotation
 
 `publicKeys` accepts three forms:
@@ -43,7 +56,7 @@ When verifying many tokens, use `createVerifier(keys, defaults)`, which imports 
 
 ## Guarantees
 
-- Error codes and acceptance rules match `offline_validator.py`. This is checked against `sdks/vectors/vectors.json` (43 vectors generated from the backend).
+- Error codes and acceptance rules match `offline_validator.py`. This is checked against `sdks/vectors/vectors.json` (50 vectors generated from the backend).
 - RFC 8032 §5.1.3 strictness before calling Web Crypto: rejects `s ≥ L`, non-canonical `y ≥ p` and `x = 0` with sign bit 1.
 - `verifyLicense` never throws on invalid input. `ERR_CRYPTO_UNAVAILABLE` means the runtime lacks Web Crypto Ed25519 (Chrome < 137, Safari < 17, Firefox < 129).
 - `decodeLicense(token)` reads the token **without verifying it**. Use it for display only.

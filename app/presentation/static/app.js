@@ -1,4 +1,4 @@
-// KeyFlint v1.1.0 — Consola operativa
+// KeyFlint v1.2.0 — Consola operativa
 
 document.addEventListener("DOMContentLoaded", () => {
     const issueEmail = document.getElementById("issueEmail");
@@ -721,17 +721,19 @@ document.addEventListener("DOMContentLoaded", () => {
     const codeSnippet = document.getElementById("codeSnippet");
     const btnCopySnippet = document.getElementById("btnCopySnippet");
     const codeSnippets = {
-        "python-mcp": `<span class="hl-kw">from</span> keyflint_verify.mcp <span class="hl-kw">import</span> metered
+        "python-mcp": `<span class="hl-kw">from</span> keyflint_verify.mcp <span class="hl-kw">import</span> KeyFlint
+
+kf = KeyFlint()  <span class="hl-cm"># lee KEYFLINT_LICENSE, KEYFLINT_PUBLIC_KEYS y KEYFLINT_URL</span>
 
 <span class="hl-cm"># 2 créditos por llamada; reembolso automático si la tool lanza o devuelve isError</span>
 <span class="hl-fn">@mcp.tool</span>()
-<span class="hl-fn">@metered</span>(credits=2)
+<span class="hl-fn">@kf.metered</span>(credits=2)
 <span class="hl-kw">async def</span> <span class="hl-fn">analizar_codigo</span>(repo_url: str) -> str:
     <span class="hl-kw">return await</span> run_ai_audit(repo_url)`,
 
-        "ts-mcp": `<span class="hl-kw">import</span> { createMcpWrapper } <span class="hl-kw">from</span> <span class="hl-str">"keyflint-verify/mcp"</span>;
+        "ts-mcp": `<span class="hl-kw">import</span> { createKeyFlint } <span class="hl-kw">from</span> <span class="hl-str">"keyflint-verify/mcp"</span>;
 
-<span class="hl-kw">const</span> kf = createMcpWrapper({ gatewayUrl: <span class="hl-str">"https://licenses.tu-dominio.com"</span> });
+<span class="hl-kw">const</span> kf = createKeyFlint({ gatewayUrl: <span class="hl-str">"https://licenses.tu-dominio.com"</span> });
 
 <span class="hl-cm">// Descuento atómico por llamada en @modelcontextprotocol/sdk</span>
 server.tool(<span class="hl-str">"analizar_codigo"</span>, schema, kf.metered(2, <span class="hl-kw">async</span> (args) => {
@@ -752,10 +754,19 @@ is_valid, payload, err = validate_offline(
         "js-webcrypto": `<span class="hl-kw">import</span> { verifyLicense } <span class="hl-kw">from</span> <span class="hl-str">"keyflint-verify"</span>;
 
 <span class="hl-cm">// Web Crypto: mismo código en Node y navegador</span>
-<span class="hl-kw">const</span> { valid, payload, errorCode } = <span class="hl-kw">await</span> verifyLicense(token, publicKeyHex);
+<span class="hl-kw">const</span> { valid, payload, error } = <span class="hl-kw">await</span> verifyLicense(token, publicKeyHex);
 <span class="hl-kw">if</span> (!valid) {
-    <span class="hl-kw">throw new</span> Error(<span class="hl-str">\`Acceso denegado: \${errorCode}\`</span>);
-}`
+    <span class="hl-kw">throw new</span> Error(<span class="hl-str">\`Acceso denegado: \${error}\`</span>);
+}`,
+
+        "go-offline": `<span class="hl-kw">import</span> keyflint <span class="hl-str">"github.com/ArceeDev/keyflint/sdks/go-verify"</span>
+
+<span class="hl-cm">// go get github.com/ArceeDev/keyflint/sdks/go-verify@v1.1.0 · sin red, sin dependencias</span>
+payload, err := keyflint.Verify(os.Getenv(<span class="hl-str">"KEYFLINT_LICENSE"</span>), publicKeyHex)
+<span class="hl-kw">if</span> err != <span class="hl-kw">nil</span> {
+    log.Fatalf(<span class="hl-str">"licencia inválida: %s"</span>, keyflint.Code(err))
+}
+fmt.Println(payload.Tier, payload.Features)`
     };
 
     document.querySelectorAll(".tab-btn").forEach((btn) => {
@@ -785,6 +796,175 @@ is_valid, payload, err = validate_offline(
                 showToast("Selecciona el código para copiar");
             }
         });
+    }
+
+    // 8b. Copy & paste generator (language, credits, public key)
+    const genLang = document.getElementById("genLang");
+    const genCredits = document.getElementById("genCredits");
+    const genPubKey = document.getElementById("genPubKey");
+    const genGateway = document.getElementById("genGateway");
+    const genOutput = document.getElementById("genOutput");
+    const btnCopyGenerated = document.getElementById("btnCopyGenerated");
+
+    function buildSnippet(lang, credits, pub, gateway) {
+        const key = /^[0-9a-fA-F]{64}$/.test(pub) ? pub.toLowerCase() : "PEGA_AQUI_TU_CLAVE_PUBLICA_HEX";
+        const gw = gateway || "https://licencias.tu-dominio.com";
+        const n = Number.isInteger(credits) && credits > 0 ? credits : 0;
+        if (lang === "ts") {
+            const wrap = n ? `kf.metered(${n}, async ({ query }: { query: string }) => {` : "kf.requireLicense(async ({ query }: { query: string }) => {";
+            return [
+                "// npm i keyflint-verify @modelcontextprotocol/sdk zod",
+                'import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";',
+                'import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";',
+                'import { z } from "zod";',
+                'import { createKeyFlint } from "keyflint-verify/mcp";',
+                "",
+                `const kf = createKeyFlint({ publicKeys: ${JSON.stringify(key)}${n ? `, gatewayUrl: ${JSON.stringify(gw)}` : ""} });`,
+                'const server = new McpServer({ name: "mi-herramienta", version: "1.0.0" });',
+                "",
+                n ? `// ${n} crédito(s) por llamada; se devuelven si la tool falla` : "// Solo licencia (offline, sin red)",
+                'server.registerTool("buscar", { inputSchema: { query: z.string() } }, ' + wrap,
+                '  return { content: [{ type: "text" as const, text: `Resultado para ${query}` }] };',
+                "}));",
+                "",
+                "await server.connect(new StdioServerTransport());",
+            ].join("\n");
+        }
+        if (lang === "go") {
+            return [
+                "// go get github.com/ArceeDev/keyflint/sdks/go-verify@v1.1.0",
+                "package main",
+                "",
+                "import (",
+                '\t"fmt"',
+                '\t"log"',
+                '\t"os"',
+                "",
+                '\tkeyflint "github.com/ArceeDev/keyflint/sdks/go-verify"',
+                ")",
+                "",
+                `const publicKeyHex = ${JSON.stringify(key)}`,
+                "",
+                "func main() {",
+                '\tpayload, err := keyflint.Verify(os.Getenv("KEYFLINT_LICENSE"), publicKeyHex)',
+                "\tif err != nil {",
+                '\t\tlog.Fatalf("licencia inválida: %s", keyflint.Code(err))',
+                "\t}",
+                '\tfmt.Println("licencia OK:", payload.Tier)',
+                n ? `\t// Para cobrar ${n} crédito(s) por llamada: POST ${gw}/api/v1/quota/deduct` : null,
+                "}",
+            ].filter((l) => l !== null).join("\n");
+        }
+        return [
+            "# pip install keyflint-verify mcp",
+            "from mcp.server.fastmcp import FastMCP",
+            "from keyflint_verify.mcp import KeyFlint",
+            "",
+            `kf = KeyFlint(public_keys=${JSON.stringify(key)}${n ? `, gateway_url=${JSON.stringify(gw)}` : ""})`,
+            'mcp = FastMCP("mi-herramienta")',
+            "",
+            n ? `# ${n} crédito(s) por llamada; se devuelven si la tool falla` : "# Solo licencia (offline, sin red)",
+            "@mcp.tool()",
+            n ? `@kf.metered(credits=${n})` : "@kf.require_license",
+            "def buscar(query: str) -> str:",
+            '    return f"Resultado para {query}"',
+            "",
+            'if __name__ == "__main__":',
+            "    mcp.run()",
+        ].join("\n");
+    }
+
+    function renderGenerated() {
+        if (!genOutput) return;
+        genOutput.textContent = buildSnippet(
+            genLang.value,
+            parseInt(genCredits.value, 10),
+            genPubKey.value.trim(),
+            genGateway.value.trim()
+        );
+    }
+
+    if (genOutput) {
+        [genLang, genCredits, genPubKey, genGateway].forEach((el) => el.addEventListener("input", renderGenerated));
+        genLang.addEventListener("change", renderGenerated);
+        renderGenerated();
+        btnCopyGenerated.addEventListener("click", async () => {
+            try {
+                await navigator.clipboard.writeText(genOutput.textContent);
+                showToast("Código copiado");
+            } catch (err) {
+                showToast("Selecciona el código para copiar");
+            }
+        });
+    }
+
+    // 8c. Self-service node release
+    const nodesKey = document.getElementById("nodesKey");
+    const btnNodesList = document.getElementById("btnNodesList");
+    const nodesList = document.getElementById("nodesList");
+    const nodesResult = document.getElementById("nodesResult");
+
+    async function postJson(url, body) {
+        const res = await fetch(url, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+        });
+        const data = await res.json().catch(() => ({}));
+        return { res, data };
+    }
+
+    function showNodesError(res, data) {
+        nodesResult.classList.remove("is-hidden");
+        renderBox(nodesResult, data, classifyResponse(res, data));
+    }
+
+    async function loadNodes() {
+        const key = nodesKey.value.trim();
+        if (!key) return;
+        nodesList.textContent = "";
+        nodesResult.classList.add("is-hidden");
+        try {
+            const { res, data } = await postJson("/api/v1/licenses/nodes", { license_key: key });
+            if (!res.ok) return showNodesError(res, data);
+            const info = data.data || {};
+            const head = document.createElement("p");
+            head.className = "card-sub";
+            head.textContent = `${info.current_activations || 0} de ${info.max_seats || 0} asientos en uso`;
+            nodesList.appendChild(head);
+            (info.nodes || []).forEach((node) => {
+                const row = document.createElement("div");
+                row.className = "form-row";
+                const label = document.createElement("code");
+                label.textContent = `${node.machine_name || "equipo"} · ${node.hardware_id}`;
+                label.style.flex = "3";
+                label.style.overflowWrap = "anywhere";
+                const btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = "btn btn-secondary btn-inline";
+                btn.textContent = "Liberar";
+                btn.addEventListener("click", () =>
+                    withButtonLock(btn, "Liberando...", async () => {
+                        const r = await postJson("/api/v1/licenses/nodes/release", {
+                            license_key: key,
+                            hardware_id: node.hardware_id,
+                        });
+                        if (!r.res.ok) return showNodesError(r.res, r.data);
+                        showToast("Nodo liberado");
+                        await loadNodes();
+                    })
+                );
+                row.append(label, btn);
+                nodesList.appendChild(row);
+            });
+        } catch (err) {
+            nodesResult.classList.remove("is-hidden");
+            renderBox(nodesResult, { error: `Requiere un gateway KeyFlint activo: ${err.message}` }, "err");
+        }
+    }
+
+    if (btnNodesList) {
+        btnNodesList.addEventListener("click", () => withButtonLock(btnNodesList, "Cargando...", loadNodes));
     }
 
     // 9. Hero Token Copy Interaction
