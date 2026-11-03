@@ -56,5 +56,13 @@ class TestLandingV12(unittest.TestCase):
             for marker in ("IVA", "Comprar", "Suscribir", "créditos", "¿", "Licencias"):
                 self.assertNotIn(marker, body, f"{page}: {marker}")
 
+    def test_legal_pages_are_english_drafts(self):
+        # Landing is English; the legal pages linked from its footer must be too.
+        for name in ("privacy.html", "dpa.html"):
+            html = (ROOT / "docs" / name).read_text(encoding="utf-8")
+            self.assertIn('<html lang="en">', html, name)
+            for marker in ("Volver", "Responsable", "Datos", "Última"):
+                self.assertNotIn(marker, html, f"{name}: {marker}")
+
 if __name__ == "__main__":
     unittest.main()
