@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="dark">
-    <title>Acuerdo de Encargo del Tratamiento (DPA) · KeyFlint</title>
-    <meta name="description" content="Data Processing Agreement (DPA) de KeyFlint Managed conforme al artículo 28 del RGPD.">
+    <title>Data Processing Addendum (DPA) · KeyFlint</title>
+    <meta name="description" content="KeyFlint Managed Data Processing Addendum (DPA) pursuant to Article 28 of the General Data Protection Regulation (GDPR).">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -120,101 +120,112 @@
 <body>
     <div class="container">
         <header>
-            <a href="./" class="back-link">← Volver a KeyFlint</a>
-            <h1>Acuerdo de Encargo del Tratamiento (DPA)</h1>
-            <div class="meta">KeyFlint Managed · Versión 1.1 · Conforme al Art. 28 RGPD</div>
+            <a href="./" class="back-link">← Back to KeyFlint</a>
+            <h1>Data Processing Addendum (DPA)</h1>
+            <div class="meta">KeyFlint Managed · Version 1.2 · Pursuant to Article 28 GDPR</div>
         </header>
 
         <div class="notice">
-            Este acuerdo regula el tratamiento de datos personales por cuenta de los clientes que contratan <strong>KeyFlint Managed</strong> para la emisión, validación de licencias y medición de cuotas de sus usuarios finales.
+            This Data Processing Addendum ("DPA") governs the processing of personal data on behalf of customers who subscribe to <strong>KeyFlint Managed</strong> (Cloud editions) to issue cryptographic licenses and meter usage for their end users.
+            <br><br>
+            <em>Note for Self-Hosted Customers:</em> If you run the open-source or self-hosted edition of KeyFlint on your own infrastructure (Founder, Indie, or Agency licenses), KeyFlint processes zero end-user data and this DPA does not apply to your operations.
         </div>
 
-        <h2>1. Partes y Objeto</h2>
+        <h2>1. Parties and Scope</h2>
         <p>
-            <strong>Responsable del Tratamiento («el Cliente»):</strong> La persona física o jurídica que suscribe una cuenta en KeyFlint Managed.<br>
-            <strong>Encargado del Tratamiento («KeyFlint»):</strong> KeyFlint (ArceeDev). Contacto: <a href="mailto:support@keyflint.dev">support@keyflint.dev</a>.
+            <strong>Data Controller ("Customer"):</strong> The legal entity or individual subscribed to KeyFlint Managed.<br>
+            <strong>Data Processor ("KeyFlint"):</strong> KeyFlint (ArceeDev). Contact: <a href="mailto:support@keyflint.dev">support@keyflint.dev</a>.
         </p>
         <p>
-            KeyFlint presta al Cliente un servicio alojado y gestionado de validación criptográfica (Ed25519) de licencias y pasarela de cuotas con deducción atómica. Para ello, trata determinados datos personales por cuenta y bajo las instrucciones documentadas del Cliente conforme al artículo 28 del Reglamento (UE) 2016/679 (RGPD).
+            KeyFlint provides a managed licensing gateway, Ed25519 digital signature service, and atomic quota-metering backend. In delivering this service, KeyFlint processes personal data strictly on behalf of and under documented instructions from the Customer pursuant to Article 28 of Regulation (EU) 2016/679 (GDPR).
         </p>
 
-        <h2>2. Descripción del Tratamiento (Art. 28.3 RGPD)</h2>
+        <h2>2. Details of Processing (GDPR Article 28.3)</h2>
         <div class="table-wrap">
             <table>
                 <thead>
                     <tr>
-                        <th>Elemento</th>
-                        <th>Detalle</th>
+                        <th>Parameter</th>
+                        <th>Specification</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
-                        <td><strong>Naturaleza</strong></td>
-                        <td>Alojamiento, almacenamiento, firma digital criptográfica, verificación y supresión automatizada.</td>
+                        <td><strong>Subject Matter &amp; Nature</strong></td>
+                        <td>Hosting, encrypted storage, Ed25519 digital signing, cryptographic verification, quota metering, and automated deletion.</td>
                     </tr>
                     <tr>
-                        <td><strong>Finalidad</strong></td>
-                        <td>Emisión y renovación de licencias, comprobación de derechos de uso, deducción y reembolso atómico de cuotas, y copias de seguridad de desastre.</td>
+                        <td><strong>Purpose</strong></td>
+                        <td>Issuance and renewal of license tokens, off-chain and online verification, atomic credit debits and refunds, and disaster recovery backup replication.</td>
                     </tr>
                     <tr>
-                        <td><strong>Colectivos de interesados</strong></td>
-                        <td>Usuarios y clientes finales del software o servicios MCP comercializados por el Cliente.</td>
+                        <td><strong>Categories of Data Subjects</strong></td>
+                        <td>End users and buyers of the Customer's software applications, CLI utilities, and Model Context Protocol (MCP) servers.</td>
                     </tr>
                     <tr>
-                        <td><strong>Datos tratados</strong></td>
-                        <td>Direcciones de correo de compradores, identificadores de licencia, huella hash de nodo (si aplica bloqueo por máquina), contadores de saldo de créditos y registros de peticiones de cuota. <em>Nunca se tratan números de tarjeta bancaria ni datos de categoría especial (art. 9 RGPD).</em></td>
+                        <td><strong>Categories of Personal Data</strong></td>
+                        <td>Buyer email addresses, license IDs, node-locking cryptographic hardware hashes (if enabled), quota balances, and API request audit metadata. <em>Special categories of data (GDPR Article 9) and payment card numbers are strictly prohibited and never processed.</em></td>
                     </tr>
                 </tbody>
             </table>
         </div>
 
-        <h2>3. Obligaciones de KeyFlint como Encargado</h2>
+        <h2>3. Processor Obligations</h2>
         <ul>
-            <li><strong>Instrucciones documentadas:</strong> Tratar los datos personales únicamente con arreglo a las instrucciones documentadas del Cliente y para la prestación del servicio contratado.</li>
-            <li><strong>Confidencialidad:</strong> Garantizar que las personas y sistemas autorizados para operar la infraestructura mantienen el deber de secreto profesional.</li>
-            <li><strong>Medidas de seguridad (Art. 32 RGPD):</strong> Aplicar cifrado estricto de comunicaciones en tránsito (TLS 1.3), bases de datos aisladas en contenedores independientes (Fly.io) y copias de seguridad continuas cifradas en reposo (Cloudflare R2 UE).</li>
-            <li><strong>Asistencia al Responsable:</strong> Cooperar razonablemente con el Cliente en la atención de solicitudes de ejercicio de derechos ARSULIPO presentadas por sus usuarios finales.</li>
-            <li><strong>Notificación de brechas:</strong> Notificar al Cliente sin dilación indebida en caso de confirmarse una violación de la seguridad que afecte a sus datos personales.</li>
+            <li><strong>Documented Instructions:</strong> Process personal data only on documented instructions from the Customer, including regarding transfers of personal data outside the EEA, unless required to do so by Union or Member State law.</li>
+            <li><strong>Confidentiality:</strong> Ensure that all personnel and automated processes authorized to administer the infrastructure are bound by strict obligations of confidentiality.</li>
+            <li><strong>Security of Processing (Art. 32):</strong> Implement state-of-the-art technical and organizational measures, including TLS 1.3 transport encryption, isolated per-tenant containers (Fly.io), encrypted continuous WAL backups (Litestream on Cloudflare R2), and cryptographic Ed25519 validation.</li>
+            <li><strong>Assistance to Controller:</strong> Provide reasonable assistance to the Customer in responding to requests by data subjects exercising their rights under Chapter III of the GDPR.</li>
+            <li><strong>Security Breach Notification:</strong> Notify the Customer without undue delay, and in any event within <strong>48 hours</strong>, upon confirming any personal data breach affecting Customer data.</li>
         </ul>
 
-        <h2>4. Subencargados Autorizados</h2>
-        <p>El Cliente autoriza la contratación de los siguientes subencargados esenciales para la infraestructura:</p>
+        <h2>4. Authorized Sub-processors</h2>
+        <p>The Customer grants general authorization for the following essential infrastructure sub-processors:</p>
         <div class="table-wrap">
             <table>
                 <thead>
                     <tr>
-                        <th>Subencargado</th>
-                        <th>Función</th>
-                        <th>Ubicación</th>
+                        <th>Sub-processor</th>
+                        <th>Role &amp; Function</th>
+                        <th>Data Location</th>
+                        <th>Transfer Safeguards</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr>
                         <td><strong>Fly.io, Inc.</strong></td>
-                        <td>Computación en contenedores de aplicación</td>
-                        <td>Región UE (cdg Parí­s / fra Fráncfort)</td>
+                        <td>Application container runtime and NVMe volume execution</td>
+                        <td>European Union (Paris / Frankfurt)</td>
+                        <td>Data Privacy Framework (DPF) / Standard Contractual Clauses (SCCs)</td>
                     </tr>
                     <tr>
                         <td><strong>Cloudflare, Inc.</strong></td>
-                        <td>Copias de seguridad continuas en R2</td>
-                        <td>Jurisdicción Unión Europea</td>
+                        <td>Continuous Litestream backup object storage (Cloudflare R2)</td>
+                        <td>European Union jurisdiction</td>
+                        <td>Data Privacy Framework (DPF) / Standard Contractual Clauses (SCCs)</td>
                     </tr>
                     <tr>
                         <td><strong>Resend</strong></td>
-                        <td>Envío de correos transaccionales de licencias</td>
-                        <td>Tránsito seguro TLS con DPF / SCC</td>
+                        <td>Transactional email delivery for customer license delivery</td>
+                        <td>Global TLS transit</td>
+                        <td>Data Privacy Framework (DPF) / Standard Contractual Clauses (SCCs)</td>
                     </tr>
                 </tbody>
             </table>
         </div>
 
-        <h2>5. Destino de los Datos al Término del Servicio</h2>
+        <h2>5. Data Deletion and Service Termination</h2>
         <p>
-            Al cancelarse el servicio Managed, el Cliente dispone de un periodo de gracia de 7 días para descargar sus datos o claves públicas. Transcurrido dicho plazo, la instancia y los volúmenes de datos se destruyen de forma segura e irreversible conforme a las políticas de retención.
+            Upon cancellation or expiration of KeyFlint Managed services, the Customer is granted a <strong>7-day grace period</strong> to export database snapshots and active public keys. Following this grace period, KeyFlint permanently deletes the customer's Fly.io machine, persistent volume, and Litestream backup replicas within 30 days in accordance with secure automated decommissioning protocols.
+        </p>
+
+        <h2>6. Governing Law</h2>
+        <p>
+            This DPA shall be governed by and construed in accordance with the laws of Spain and the European Union.
         </p>
 
         <footer>
-            <div>KeyFlint · <a href="./">Inicio</a> · <a href="./privacy.html">Política de Privacidad</a> · <a href="mailto:support@keyflint.dev">support@keyflint.dev</a></div>
+            <div>KeyFlint · <a href="./">Home</a> · <a href="./privacy.html">Privacy Policy</a> · <a href="mailto:support@keyflint.dev">support@keyflint.dev</a></div>
         </footer>
     </div>
     <!-- Cloudflare Web Analytics --><script type='module' src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "3f969046e620462787c3a0fa2515d7e8"}'></script><!-- End Cloudflare Web Analytics -->
