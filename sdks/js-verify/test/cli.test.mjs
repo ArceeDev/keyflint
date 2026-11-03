@@ -4,6 +4,7 @@ import { readFileSync, writeFileSync, mkdtempSync, rmSync, existsSync } from "no
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import { activate, ActivateError, configPath, main } from "../dist/esm/cli.js";
 
 const { vectors } = JSON.parse(readFileSync(new URL("../../vectors/vectors.json", import.meta.url), "utf8"));
@@ -44,7 +45,7 @@ test("main: dry run, bad token, and the bin entry", () =>
     assert.equal(await main(["activate", TOKEN, "--config", f, "--dry-run"]), 0);
     assert.equal(JSON.parse(readFileSync(f, "utf8")).mcpServers.a.env, undefined);
     assert.equal(await main(["activate", "nope", "--config", f]), 2);
-    const bin = new URL("../dist/esm/cli.js", import.meta.url).pathname;
+    const bin = fileURLToPath(new URL("../dist/esm/cli.js", import.meta.url));
     const out = execFileSync(process.execPath, [bin, "activate", TOKEN, "--config", f], { encoding: "utf8" });
     assert.match(out, /Updated custom/);
     assert.equal(JSON.parse(readFileSync(f, "utf8")).mcpServers.a.env.KEYFLINT_LICENSE, TOKEN);

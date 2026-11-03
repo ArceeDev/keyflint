@@ -49,6 +49,18 @@ def _color(text: str, code: str) -> str:
     return f"\033[{code}m{text}\033[0m" if sys.stdout.isatty() and not os.environ.get("NO_COLOR") else text
 
 
+def _safe_print(text: str, file: Any = sys.stdout) -> None:
+    try:
+        print(text, file=file)
+    except UnicodeEncodeError:
+        repl = text.replace("✓", "+").replace("✗", "x")
+        try:
+            print(repl, file=file)
+        except UnicodeEncodeError:
+            encoding = getattr(file, "encoding", "ascii") or "ascii"
+            print(repl.encode(encoding, errors="replace").decode(encoding), file=file)
+
+
 def pick_servers(servers: dict[str, Any], wanted: Optional[str]) -> list[str]:
     if wanted:
         return [wanted] if wanted in servers else []
@@ -130,7 +142,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
 
     token = args.token.strip()
     if not TOKEN_RE.match(token):
-        print(_color("✗ That does not look like a KeyFlint license (expected LIC-<TIER>-...).", "31"), file=sys.stderr)
+        _safe_print(_color("✗ That does not look like a KeyFlint license (expected LIC-<TIER>-...).", "31"), file=sys.stderr)
         return 2
 
     if args.config:
@@ -141,8 +153,8 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         if args.client == "all":
             paths = [(c, p) for c, p in paths if p.is_file()]
             if not paths:
-                print(_color("✗ No Claude Desktop, Cursor or Windsurf MCP config found. "
-                             "Use --client or --config.", "31"), file=sys.stderr)
+                _safe_print(_color("✗ No Claude Desktop, Cursor or Windsurf MCP config found. "
+                                   "Use --client or --config.", "31"), file=sys.stderr)
                 return 1
 
     updated = 0
@@ -157,13 +169,13 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
         cfg = json.loads(path.read_text(encoding="utf-8")).get("mcpServers", {})
         warn = _check_token(token, [cfg.get(n, {}).get("env") or {} for n in names])
         verb = "Would update" if args.dry_run else "Updated"
-        print(_color(f"✓ {verb} {client} ({path}): {', '.join(names)}", "32"))
+        _safe_print(_color(f"✓ {verb} {client} ({path}): {', '.join(names)}", "32"))
         if warn:
-            print(_color(f"! Warning: {warn}", "33"))
+            _safe_print(_color(f"! Warning: {warn}", "33"))
     for e in errors:
-        print(_color(f"✗ {e}", "31"), file=sys.stderr)
+        _safe_print(_color(f"✗ {e}", "31"), file=sys.stderr)
     if updated and not args.dry_run:
-        print(_color("Done. Restart the app so it picks up the license. A .bak copy of each file was kept.", "32"))
+        _safe_print(_color("Done. Restart the app so it picks up the license. A .bak copy of each file was kept.", "32"))
     return 0 if updated else 1
 
 
