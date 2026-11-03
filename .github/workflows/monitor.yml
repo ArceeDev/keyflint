@@ -1,0 +1,49 @@
+name: Production monitor
+
+# Black-box uptime check every 15 min (GitHub cron is best effort: expect 15-30 min).
+# On failure it opens (or comments on) one issue labelled "outage"; on recovery it closes it.
+# Complements healthchecks.io (backup heartbeat) and Fly's own /readyz check.
+on:
+  schedule:
+    - cron: "7,22,37,52 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: production-monitor
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Smoke production (3 attempts, 20 s apart, to ignore blips)
+        id: smoke
+        continue-on-error: true
+        run: python scripts/smoke_prod.py --retries 3 --delay 20 | tee smoke.txt
+      - name: Open or update outage issue
+        if: steps.smoke.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh label create outage --color B60205 --description "Production monitor" 2>/dev/null || true
+          body="$(printf 'Run: %s/%s/actions/runs/%s\n\n```\n%s\n```' "$GITHUB_SERVER_URL" "$GITHUB_REPOSITORY" "$GITHUB_RUN_ID" "$(cat smoke.txt)")"
+          n="$(gh issue list --label outage --state open --json number --jq '.[0].number')"
+          if [ -n "$n" ]; then gh issue comment "$n" --body "$body"; else gh issue create --title "Production smoke failing" --label outage --body "$body"; fi
+          exit 1
+      - name: Close outage issue on recovery
+        if: steps.smoke.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for n in $(gh issue list --label outage --state open --json number --jq '.[].number'); do
+            gh issue close "$n" --comment "Recovered: $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          done

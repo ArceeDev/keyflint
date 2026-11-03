@@ -1,0 +1,43 @@
+name: Deploy to Fly.io
+
+# Manual, gated deploy of a published GHCR image to the production Fly app, followed by
+# the production smoke test. One-time setup (repo owner):
+#   1. fly tokens create deploy -a keyflint-gateway  -> repo secret FLY_API_TOKEN
+#   2. Settings > Environments > "production": add yourself as required reviewer
+# Rollback = run this workflow again with the previous version.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "GHCR image tag to deploy (e.g. 1.2.1). Must already exist (release.yml)."
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: fly-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: echo "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$' || { echo "version must be X.Y.Z"; exit 1; }
+      - uses: superfly/flyctl-actions/setup-flyctl@v1
+      - name: Deploy image
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          VERSION: ${{ inputs.version }}
+        run: flyctl deploy --app keyflint-gateway --image "ghcr.io/arceedev/keyflint:${VERSION}" --wait-timeout 300
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Post-deploy smoke (backup verify runs 60 s after boot)
+        run: python scripts/smoke_prod.py --retries 8 --delay 20
