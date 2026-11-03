@@ -1,6 +1,6 @@
 {
   "name": "keyflint-verify",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Zero-dependency offline verifier and MCP tool gating for KeyFlint Ed25519 license tokens (Web Crypto API).",
   "license": "MIT",
   "author": "ArceeDev",

@@ -19,7 +19,7 @@ from ._clock import ROLLBACK_LEEWAY_SECONDS, ClockGuard
 from ._validator import validate_offline
 
 __all__ = ["validate_offline", "verify_license", "decode_payload", "VerifyResult", "PublicKeys", "ClockGuard"]
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 
 PublicKeys = Union[str, Sequence[str], Mapping[str, str]]
 

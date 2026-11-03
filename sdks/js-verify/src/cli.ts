@@ -98,7 +98,7 @@ const USAGE = `Usage: keyflint-verify activate <LIC-...> [--client claude|cursor
 export async function main(argv: string[]): Promise<number> {
   const [cmd, ...rest] = argv;
   if (cmd === "--version" || cmd === "-v") {
-    console.log("keyflint-verify 1.1.0");
+    console.log("keyflint-verify 1.2.0");
     return 0;
   }
   if (cmd !== "activate") {

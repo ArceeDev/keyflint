@@ -27,7 +27,7 @@ class TestLandingV12(unittest.TestCase):
     def test_go_sdk_generator_and_pricing_cleanup(self):
         for page in PAGES:
             html = page.read_text(encoding="utf-8")
-            self.assertIn("go get github.com/ArceeDev/keyflint/sdks/go-verify@v1.1.0", html)
+            self.assertIn("go get github.com/ArceeDev/keyflint/sdks/go-verify@v1.2.0", html)
             self.assertIn('data-tab="go-offline"', html)
             for el in ('id="genLang"', 'id="genCredits"', 'id="genPubKey"', 'id="genOutput"',
                        'id="btnNodesList"', 'id="portalWelcome"'):

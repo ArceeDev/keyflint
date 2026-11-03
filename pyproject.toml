@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "keyflint"
-version = "1.1.0"
+version = "1.2.0"
 description = "Cryptographic Licensing & Quota-Metering Gateway for AI tools and micro-SaaS"
 readme = "README.md"
 requires-python = ">=3.11"

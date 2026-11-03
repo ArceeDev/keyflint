@@ -1,16 +1,16 @@
-# KeyFlint v1.1.0
+# KeyFlint v1.2.0
 
 Self-hosted license issuing and credit metering for MCP servers, CLIs and desktop apps.
 The gateway signs Ed25519 license tokens; your code verifies them offline with a 32-byte
 public key and debits credits with one HTTP call per metered tool.
 
-[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](pyproject.toml)
+[![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)](pyproject.toml)
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/)
 [![Node.js >=18.4](https://img.shields.io/badge/node-%3E%3D18.4-brightgreen.svg)](https://nodejs.org/)
 [![Server License: BSL 1.1](https://img.shields.io/badge/gateway%20license-BSL--1.1-orange.svg)](LICENSE)
 [![SDK License: MIT](https://img.shields.io/badge/sdk%20license-MIT-green.svg)](sdks/js-verify/LICENSE)
 [![CI](https://github.com/ArceeDev/keyflint/actions/workflows/ci.yml/badge.svg)](https://github.com/ArceeDev/keyflint/actions/workflows/ci.yml)
-[![Docker: GHCR](https://img.shields.io/badge/docker-ghcr.io%2Farceedev%2Fkeyflint%3A1.1.0-blue.svg)](https://github.com/ArceeDev/keyflint/pkgs/container/keyflint)
+[![Docker: GHCR](https://img.shields.io/badge/docker-ghcr.io%2Farceedev%2Fkeyflint%3A1.2.0-blue.svg)](https://github.com/ArceeDev/keyflint/pkgs/container/keyflint)
 
 ---
 
@@ -24,7 +24,7 @@ python -m app.cli init --env production
 
 # 2. Run the gateway container:
 docker run -d --name keyflint -p 8000:8000 -v keyflint_data:/app/data \
-  --env-file .env ghcr.io/arceedev/keyflint:1.1.0
+  --env-file .env ghcr.io/arceedev/keyflint:1.2.0
 # (Or run natively: python -m app.cli serve --host 0.0.0.0 --port 8000)
 
 # 3. Check readiness probe:
@@ -47,7 +47,7 @@ LEMONSQUEEZY_WEBHOOK_SECRET=$(openssl rand -hex 24)
 EOF
 
 docker run -d --name keyflint -p 8000:8000 -v keyflint_data:/app/data \
-  --env-file .env ghcr.io/arceedev/keyflint:1.1.0
+  --env-file .env ghcr.io/arceedev/keyflint:1.2.0
 ```
 </details>
 
@@ -297,7 +297,7 @@ async def analyze_document(url: str) -> str:
 ### Go SDK (`go-verify`)
 
 ```bash
-go get github.com/ArceeDev/keyflint/sdks/go-verify@v1.1.0   # Go 1.20+
+go get github.com/ArceeDev/keyflint/sdks/go-verify@v1.2.0   # Go 1.20+
 ```
 
 ```go

@@ -761,7 +761,7 @@ is_valid, payload, err = validate_offline(
 
         "go-offline": `<span class="hl-kw">import</span> keyflint <span class="hl-str">"github.com/ArceeDev/keyflint/sdks/go-verify"</span>
 
-<span class="hl-cm">// go get github.com/ArceeDev/keyflint/sdks/go-verify@v1.1.0 · sin red, sin dependencias</span>
+<span class="hl-cm">// go get github.com/ArceeDev/keyflint/sdks/go-verify@v1.2.0 · sin red, sin dependencias</span>
 payload, err := keyflint.Verify(os.Getenv(<span class="hl-str">"KEYFLINT_LICENSE"</span>), publicKeyHex)
 <span class="hl-kw">if</span> err != <span class="hl-kw">nil</span> {
     log.Fatalf(<span class="hl-str">"licencia inválida: %s"</span>, keyflint.Code(err))
@@ -832,7 +832,7 @@ fmt.Println(payload.Tier, payload.Features)`
         }
         if (lang === "go") {
             return [
-                "// go get github.com/ArceeDev/keyflint/sdks/go-verify@v1.1.0",
+                "// go get github.com/ArceeDev/keyflint/sdks/go-verify@v1.2.0",
                 "package main",
                 "",
                 "import (",
