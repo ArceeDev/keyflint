@@ -39,6 +39,7 @@ class TestSeoAssets(unittest.TestCase):
         data = json.loads(blocks[0])
         self.assertEqual(data["@type"], "SoftwareApplication")
         visible = set(re.findall(r'class="tier-price">\$(\d+)', html))
+        visible |= set(re.findall(r"<strong>Founder · \$(\d+)", html))
         offered = {o["price"] for o in data["offers"] if o["price"] != "0"}
         self.assertEqual(offered, visible, "JSON-LD prices drifted from the pricing cards")
 

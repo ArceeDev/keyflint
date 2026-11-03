@@ -10,7 +10,7 @@ PAGES = [ROOT / "docs" / "index.html", ROOT / "app" / "presentation" / "static" 
 LINK_RE = re.compile(
     r'<a href="(https://buy\.stripe\.com/[^"]+)"[^>]*data-tier="([a-z]+)">([^<]*)</a>'
 )
-EXPECTED = {"indie": "($149)", "agency": "($349)", "pro": "($29/mo)", "studio": "($89/mo)"}
+EXPECTED = {"indie": "($149)", "agency": "($349)", "pro": "($29/mo)", "studio": "($89/mo)", "lifetime": "($199)"}
 
 
 def _links(page: Path) -> dict[str, tuple[str, str]]:
@@ -25,7 +25,8 @@ class TestPaymentLinks(unittest.TestCase):
             for tier, (url, label) in links.items():
                 self.assertNotIn("/test_", url, f"{page}: {tier} uses a test-mode link")
                 self.assertTrue(label.endswith(EXPECTED[tier]), f"{page}: {tier} label {label!r}")
-            self.assertEqual(len({u for u, _ in links.values()}), 4, f"{page}: duplicated link")
+            self.assertEqual(len({u for u, _ in links.values()}), len(EXPECTED), f"{page}: duplicated link")
+            self.assertNotIn("PENDING", " ".join(u for u, _ in links.values()), f"{page}: Founder link not set")
 
     def test_pages_and_console_stay_in_sync(self):
         self.assertEqual(_links(PAGES[0]), _links(PAGES[1]))
