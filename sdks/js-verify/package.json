@@ -18,6 +18,9 @@
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
   "types": "./dist/esm/index.d.ts",
+  "bin": {
+    "keyflint-verify": "dist/esm/cli.js"
+  },
   "exports": {
     ".": {
       "import": {
