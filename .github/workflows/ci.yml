@@ -105,3 +105,29 @@ jobs:
 
       - name: Destroy a volume and restore from the replica
         run: python scripts/e2e_backup.py --image keyflint:e2e
+
+  security:
+    name: Dependency audit (pip-audit, npm audit, govulncheck)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Audit hash-locked runtime dependencies
+        run: |
+          python -m pip install --upgrade pip pip-audit
+          pip-audit --disable-pip --require-hashes -r requirements.lock --progress-spinner off
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Audit JS SDK runtime dependencies
+        working-directory: sdks/js-verify
+        run: npm audit --omit=dev --audit-level=high
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22"
+      - name: govulncheck Go SDK
+        working-directory: sdks/go-verify
+        run: go run golang.org/x/vuln/cmd/govulncheck@v1.1.4 ./...
