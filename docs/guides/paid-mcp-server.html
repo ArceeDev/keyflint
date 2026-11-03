@@ -70,7 +70,7 @@
         <h2>1. Deploy the gateway</h2>
         <pre><code>docker run -d -p 8000:8000 -v keyflint_data:/app/data ghcr.io/arceedev/keyflint:1.2.0
 curl -s localhost:8000/readyz</code></pre>
-        <p>First boot generates the signing key and secrets into the volume. One container with SQLite is the design; Fly.io, Render and Railway configs ship in the repo.</p>
+        <p>First boot generates the signing key and secrets into the volume. One container with SQLite is the design; Fly.io and Render configs ship in the repo (any host works if it gives the container a persistent volume).</p>
 
         <h2>2. Issue a license and get the public key</h2>
         <pre><code>docker exec &lt;container&gt; python -m app.cli issue --email dev@example.com --tier pro
