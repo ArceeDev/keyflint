@@ -1,6 +1,6 @@
 {
   "name": "@keyflint/wrap",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Put KeyFlint license checks and credit metering in front of any stdio MCP server, with no code changes.",
   "license": "MIT",
   "author": "ArceeDev",
