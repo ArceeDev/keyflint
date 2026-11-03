@@ -270,6 +270,11 @@
         },
     };
 
+    document.addEventListener("DOMContentLoaded", () => {
+        const note = document.getElementById("demoNote");
+        if (note) note.classList.remove("is-hidden");
+    });
+
     const nativeFetch = window.fetch.bind(window);
     window.fetch = async (input, init = {}) => {
         const url = new URL(typeof input === "string" ? input : input.url, window.location.href);

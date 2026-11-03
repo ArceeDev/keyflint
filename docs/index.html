@@ -327,6 +327,10 @@
         footer { margin-top: 72px; padding: 24px 0 40px; border-top: 1px solid var(--line); }
         .footer-inner { display: flex; justify-content: space-between; align-items: center; gap: 16px 32px; flex-wrap: wrap; font-size: 14px; color: var(--ink); }
         .footer-links { display: flex; flex-wrap: wrap; gap: 12px 28px; list-style: none; }
+        .tag.tag-warn { color: var(--warn); border-color: var(--warn-line); }
+        .portal-row { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: end; }
+        @media (max-width: 520px) { .portal-row { grid-template-columns: 1fr; } }
+        .demo-note { margin-bottom: 16px; padding: 12px 16px; border: 1px solid var(--line-strong); border-radius: var(--radius-lg); font-size: 14px; }
         .footer-inner a { color: var(--ink); text-decoration: none; opacity: .8; }
         .footer-inner a:hover { opacity: 1; text-decoration: underline; text-underline-offset: 3px; }
         .foot-gh { display: inline-flex; align-items: center; gap: 5px; vertical-align: middle; }
@@ -567,8 +571,9 @@ kf = KeyFlint()  <span class="hl-cm"># lee KEYFLINT_LICENSE, KEYFLINT_PUBLIC_KEY
         <section id="console-section" class="block">
             <div class="section-head">
                 <h2>Consola</h2>
-                <p>Opera contra este gateway. Cada panel llama al endpoint real y muestra la respuesta sin procesar.</p>
+                <p>Prueba el flujo completo: emite, verifica, cobra créditos y simula un pago. Cada panel muestra la respuesta de la API sin procesar.</p>
             </div>
+            <p class="demo-note is-hidden" id="demoNote">Demo en tu navegador: las claves Ed25519 se generan aquí y nada se envía a ningún servidor. Tu gateway desplegado trae esta misma consola conectada a la API real.</p>
 
             <div class="grid">
                 <div class="card col-6" id="cardIssue">
@@ -757,7 +762,7 @@ kf = KeyFlint()  <span class="hl-cm"># lee KEYFLINT_LICENSE, KEYFLINT_PUBLIC_KEY
                     <tbody>
                         <tr>
                             <td>Coste</td>
-                            <td class="kf-col">Pago único. Sin cuota mensual ni comisión por venta.</td>
+                            <td class="kf-col">Pago único (Indie, Agency) o mensual (Pro, Studio). Sin comisión por venta.</td>
                             <td>Suscripción mensual, normalmente por volumen de licencias o validaciones.</td>
                             <td>Horas de ingeniería y mantenimiento propio.</td>
                         </tr>
@@ -792,7 +797,7 @@ kf = KeyFlint()  <span class="hl-cm"># lee KEYFLINT_LICENSE, KEYFLINT_PUBLIC_KEY
 
         <section id="pricing-section" class="block">
             <div class="section-head">
-                <h2>Niveles y Licencias Oficiales</h2>
+                <h2>Niveles y licencias</h2>
                 <p>Elige tu licencia para monetizar tus herramientas CLI y servidores MCP. Pago seguro con Stripe. Precios sin IVA: el impuesto aplicable a tu país se añade en el checkout.</p>
             </div>
 
@@ -892,35 +897,33 @@ kf = KeyFlint()  <span class="hl-cm"># lee KEYFLINT_LICENSE, KEYFLINT_PUBLIC_KEY
 
         <section id="portal-section" class="block">
             <div class="section-head">
-                <h2>Portal de Autoservicio de Licencias</h2>
+                <h2>Portal del comprador</h2>
                 <p>Consulta tus tokens Ed25519, saldo de créditos y fragmentos de integración con tu token de licencia, o con tu email de compra: te enviamos un enlace de acceso de un solo uso.</p>
             </div>
 
             <div class="card col-12">
-                <div class="form-row">
-                    <div class="form-group" style="flex: 3;">
-                        <label for="portalQuery">Email del comprador o Token de Licencia</label>
-                        <input type="text" id="portalQuery" placeholder="ejemplo: buyer@acme.ai o LIC-PRO-..." autocomplete="off">
+                <div class="portal-row">
+                    <div class="form-group">
+                        <label for="portalQuery">Email de compra o token de licencia</label>
+                        <input type="text" id="portalQuery" placeholder="tu@empresa.com o LIC-PRO-…" autocomplete="off">
                     </div>
-                    <div class="form-group" style="flex: 1; align-self: flex-end;">
-                        <button type="button" class="btn" id="btnPortalLookup" style="width: 100%;">Consultar Licencia</button>
-                    </div>
+                    <button type="button" class="btn" id="btnPortalLookup">Consultar licencia</button>
                 </div>
 
                 <div id="portalResults" class="is-hidden" style="margin-top: 20px;">
                     <div class="card-header" style="padding-bottom: 8px; border-bottom: 1px solid var(--line);">
                         <div>
-                            <h3 class="card-title" id="portalCustomerEmail" style="color: var(--brand);"></h3>
+                            <h3 class="card-title" id="portalCustomerEmail"></h3>
                             <p class="card-sub" id="portalCustomerCount"></p>
                         </div>
                     </div>
                     <div id="portalLicensesContainer" style="margin: 16px 0;"></div>
                     <div class="form-group" style="margin-top: 16px;">
-                        <label>Verificación en Python (Zero Dependencies)</label>
+                        <label>Verificación en Python (sin dependencias)</label>
                         <pre class="code-box state-ok" id="portalPySnippet"></pre>
                     </div>
                     <div class="form-group" style="margin-top: 16px;">
-                        <label>Verificación en TypeScript / Node (Web Crypto API)</label>
+                        <label>Verificación en TypeScript / Node (Web Crypto)</label>
                         <pre class="code-box state-ok" id="portalTsSnippet"></pre>
                     </div>
                 </div>
@@ -949,14 +952,12 @@ kf = KeyFlint()  <span class="hl-cm"># lee KEYFLINT_LICENSE, KEYFLINT_PUBLIC_KEY
                         <p class="card-sub">¿Reconstruiste un contenedor o cambiaste de equipo? Libera su asiento (1 vez cada 24 h por licencia).</p>
                     </div>
                 </div>
-                <div class="form-row">
-                    <div class="form-group" style="flex: 3;">
+                <div class="portal-row">
+                    <div class="form-group">
                         <label for="nodesKey">Token de licencia</label>
                         <input type="text" id="nodesKey" placeholder="LIC-PRO-..." autocomplete="off" spellcheck="false">
                     </div>
-                    <div class="form-group" style="flex: 1; align-self: flex-end;">
-                        <button type="button" class="btn btn-secondary" id="btnNodesList" style="width: 100%;">Ver nodos</button>
-                    </div>
+                    <button type="button" class="btn btn-secondary" id="btnNodesList">Ver nodos</button>
                 </div>
                 <div id="nodesList" style="margin-top: 12px;"></div>
                 <pre class="code-box is-hidden" id="nodesResult" aria-live="polite"></pre>
@@ -1033,7 +1034,7 @@ kf = KeyFlint()  <span class="hl-cm"># lee KEYFLINT_LICENSE, KEYFLINT_PUBLIC_KEY
 
         <footer>
             <div class="footer-inner">
-                <div>KeyFlint 1.2.0 · Servidor BSL 1.1 · SDKs MIT</div>
+                <div>KeyFlint 1.2.0</div>
                 <ul class="footer-links">
                     <li><a href="./privacy.html">Privacidad</a></li>
                     <li><a href="./dpa.html">DPA</a></li>
