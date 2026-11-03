@@ -38,6 +38,7 @@ class RefundBreaker:
     max_ratio: float = 0.25
     sample: int = 50
     min_sample: int = 10
+    max_credit_ratio: float = 0.25
 
     def evaluate(
         self, conn: sqlite3.Connection, license_id: str, idempotency_key: str
@@ -81,9 +82,39 @@ class RefundBreaker:
             (license_id, self.sample),
         ).fetchone()
         deducts, refunded = int(row["deducts"] or 0), int(row["refunded"] or 0)
-        if deducts >= self.min_sample and (refunded + 1) / deducts > self.max_ratio:
+        if deducts < self.min_sample:
+            return None
+        if (refunded + 1) / deducts > self.max_ratio:
             return {"rule": "ratio", "refunded": refunded, "deducts": deducts,
                     "max_ratio": self.max_ratio, "sample": self.sample}
+
+        # v1.2.2: the same ratio weighted by credits, so padding with cheap successful calls
+        # cannot hide refunds of expensive ones. The deduct being refunded counts once on both sides.
+        cred = conn.execute(
+            """
+            SELECT COALESCE(SUM(d.credits_consumed), 0) AS deducted,
+                   COALESCE(SUM(CASE WHEN EXISTS (SELECT 1 FROM usage_events r
+                                                  WHERE r.license_id = d.license_id
+                                                    AND r.idempotency_key = 'refund:' || d.idempotency_key)
+                                     THEN d.credits_consumed ELSE 0 END), 0) AS refunded
+            FROM (SELECT license_id, idempotency_key, credits_consumed FROM usage_events
+                  WHERE license_id = ? AND event_type != 'refund' AND credits_consumed > 0
+                    AND idempotency_key != ?
+                  ORDER BY rowid DESC LIMIT ?) d
+            """,
+            (license_id, idempotency_key, self.sample),
+        ).fetchone()
+        current = conn.execute(
+            "SELECT credits_consumed FROM usage_events WHERE license_id = ? AND idempotency_key = ?",
+            (license_id, idempotency_key),
+        ).fetchone()
+        now_credits = int(current["credits_consumed"]) if current else 0
+        refunded_credits = int(cred["refunded"]) + now_credits
+        deducted_credits = int(cred["deducted"]) + now_credits
+        if deducted_credits > 0 and refunded_credits / deducted_credits > self.max_credit_ratio:
+            return {"rule": "credit_ratio", "refunded_credits": refunded_credits,
+                    "deducted_credits": deducted_credits, "max_credit_ratio": self.max_credit_ratio,
+                    "sample": self.sample}
         return None
 
 

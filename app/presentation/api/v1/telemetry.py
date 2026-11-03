@@ -46,7 +46,7 @@ def list_events(
         SELECT id, license_id, event_type, credits_consumed, idempotency_key, metadata_json, timestamp
         FROM usage_events
         WHERE license_id = ?
-        ORDER BY timestamp DESC
+        ORDER BY rowid DESC
         LIMIT 100
         """,
         (license_entity.id,),

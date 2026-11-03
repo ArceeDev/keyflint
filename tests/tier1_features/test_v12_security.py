@@ -7,7 +7,8 @@ import uuid
 
 from tests.conftest import BaseKeyFlintTestCase
 
-_ENV = ("REFUND_BREAKER_ENABLED", "REFUND_BREAKER_MIN_SAMPLE", "NODE_RELEASES_PER_24H")
+_ENV = ("REFUND_BREAKER_ENABLED", "REFUND_BREAKER_MIN_SAMPLE", "REFUND_BREAKER_MAX_CREDIT_RATIO",
+        "NODE_RELEASES_PER_24H")
 
 
 class _EnvCase(BaseKeyFlintTestCase):
@@ -70,6 +71,45 @@ class TestRefundCircuitBreaker(_EnvCase):
         self.assertEqual(self._cycle(key, refund=True).status_code, 200)   # (1+1)/10 = 20%
         self.assertEqual(self._cycle(key, refund=True).status_code, 429)   # (2+1)/11 = 27% > 25%
         self.assertEqual(self._events(key)[0]["details"]["rule"], "ratio")
+
+    def _deduct(self, key: str, credits: int) -> str:
+        ik = str(uuid.uuid4())
+        self.assertEqual(self.deduct_quota_api(key, credits=credits, idempotency_key=ik).status_code, 200)
+        return ik
+
+    def _refund(self, key: str, ik: str):
+        return self.client.post("/api/v1/quota/refund", json={"license_key": key, "idempotency_key": ik})
+
+    def test_cheap_calls_cannot_dilute_expensive_refunds(self):
+        """v1.2.2: padding with 1-credit calls keeps the count ratio low; the credit ratio still trips."""
+        key = self.issue_license_api(customer_email="dilute@acme.ai")["license_key"]
+        for _ in range(5):
+            self._deduct(key, 1)
+        self.assertEqual(self._refund(key, self._deduct(key, 50)).status_code, 200)  # 6 deducts < min sample
+        for _ in range(5):
+            self._deduct(key, 1)
+        before = self.client.get("/api/v1/quota/balance", params={"license_key": key}).json()["data"]["balance"]
+        res = self._refund(key, self._deduct(key, 50))  # count (1+1)/12 = 17 %, credits (50+50)/110 = 91 %
+        self.assertEqual(res.status_code, 429, res.text)
+        self.assertEqual(res.json()["error"]["code"], "REFUND_VELOCITY_EXCEEDED")
+        after = self.client.get("/api/v1/quota/balance", params={"license_key": key}).json()["data"]["balance"]
+        self.assertEqual(after, before - 50)  # the credits stay charged
+        details = self._events(key)[0]["details"]
+        self.assertEqual(details["rule"], "credit_ratio")
+        self.assertEqual((details["refunded_credits"], details["deducted_credits"]), (100, 110))
+
+    def test_rare_cheap_refund_among_expensive_calls_passes(self):
+        key = self.issue_license_api(customer_email="mixed@acme.ai")["license_key"]
+        for _ in range(12):
+            self._deduct(key, 30)
+        self.assertEqual(self._refund(key, self._deduct(key, 1)).status_code, 200)
+
+    def test_credit_ratio_can_be_relaxed(self):
+        self._env(REFUND_BREAKER_MAX_CREDIT_RATIO=1)
+        key = self.issue_license_api(customer_email="relaxed@acme.ai")["license_key"]
+        for _ in range(10):
+            self._deduct(key, 1)
+        self.assertEqual(self._refund(key, self._deduct(key, 50)).status_code, 200)
 
     def test_breaker_can_be_disabled(self):
         self._env(REFUND_BREAKER_ENABLED="false")

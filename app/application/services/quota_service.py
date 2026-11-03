@@ -104,6 +104,7 @@ class QuotaService:
                 max_ratio=cfg.REFUND_BREAKER_MAX_RATIO,
                 sample=cfg.REFUND_BREAKER_SAMPLE,
                 min_sample=cfg.REFUND_BREAKER_MIN_SAMPLE,
+                max_credit_ratio=cfg.REFUND_BREAKER_MAX_CREDIT_RATIO,
             )
             if cfg.REFUND_BREAKER_ENABLED
             else None
