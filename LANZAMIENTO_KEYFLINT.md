@@ -11,7 +11,7 @@ Enlaces: `https://keyflint.dev` · `https://github.com/ArceeDev/keyflint` · `su
 | 2 | Fusionar PR #40 (versión 1.2.2), #41 (legal EN), #42 (`@keyflint/wrap` + `.mcpb`). | Arcee / Antigravity | ✓ Hecho (PRs #40, #41, #42 fusionadas) |
 | 3 | `@keyflint/wrap`: crear la org npm `keyflint` y `npm publish` en `sdks/js-wrap` (OTP). Si no se publica antes de D, **borra las líneas marcadas [WRAP]** de los posts. | Arcee | Abierto |
 | 4 | Botón "Deploy on Railway": quitado de landing y README para evitar despliegues sin volumen persistente. | Antigravity | ✓ Hecho |
-| 5 | Clave Ed25519 en `.txt` plano → gestor/USB cifrado. | Arcee | Abierto |
+| 5 | Clave Ed25519 en `.txt` plano → gestor/USB cifrado. | Arcee | ✓ Hecho (custodiada y .txt eliminado) |
 | 6 | Search Console + sitemap enviado. | Arcee | ✓ Hecho |
 | 7 | Deploy de la imagen 1.2.2 en Fly. | Antigravity | ✓ Hecho |
 | 8 | Landing en inglés, Founder $199 (100 uds., Payment Link con límite), SEO/guía, monitor. | — | ✓ Hecho (PR #32-#38) |
