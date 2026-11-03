@@ -125,9 +125,11 @@ jobs:
       - name: Audit JS SDK runtime dependencies
         working-directory: sdks/js-verify
         run: npm audit --omit=dev --audit-level=high
+      # Latest stable toolchain: govulncheck also reports stdlib CVEs of the Go used to run it,
+      # and SDK users build with their own (current) Go, not the 1.22 conformance toolchain.
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.22"
+          go-version: stable
       - name: govulncheck Go SDK
         working-directory: sdks/go-verify
         run: go run golang.org/x/vuln/cmd/govulncheck@v1.1.4 ./...
