@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /demo-api.js
+
+Sitemap: https://keyflint.dev/sitemap.xml
