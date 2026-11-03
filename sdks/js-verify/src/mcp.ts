@@ -23,6 +23,9 @@ export const LICENSE_INVALID = -32060;
 export const FEATURE_NOT_ENTITLED = -32061;
 export const QUOTA_EXHAUSTED = -32062;
 export const GATEWAY_ERROR = -32063;
+/** Hard cap for `offlineGraceCalls`: calls that may run unpaid while the gateway is down. */
+export const MAX_OFFLINE_GRACE_CALLS = 5;
+const TRANSIENT_STATUSES = new Set([502, 503, 504]);
 
 const LICENSE_MESSAGES: Record<string, string> = {
   ERR_EMPTY_TOKEN: "No KeyFlint license is configured. Set KEYFLINT_LICENSE.",
@@ -106,6 +109,8 @@ export interface DeductOptions {
   idempotencyKey?: string;
   eventType?: string;
   metadata?: Record<string, unknown>;
+  /** Per-call timeout in ms (default: the instance's timeoutMs). */
+  timeoutMs?: number;
 }
 
 export interface GateOptions {
@@ -116,6 +121,15 @@ export interface MeteredOptions extends GateOptions {
   eventType?: string;
   /** Give the credits back (POST /quota/refund) if the handler throws or returns { isError: true }. Default true. */
   refundOnError?: boolean;
+  /**
+   * v1.2, opt-in (default 0, max 5 per instance): when the gateway is unreachable within `timeoutMs`
+   * (or answers 502/503/504) but the license verified offline, up to N calls run anyway. Their debits
+   * are queued in memory and replayed with the same idempotency key before the next successful debit.
+   * Queued debits are never refunded and are lost if the process exits first.
+   */
+  offlineGraceCalls?: number;
+  /** Deduct timeout for this tool in ms (default: the instance's timeoutMs). */
+  timeoutMs?: number;
 }
 
 type AnyFn = (...args: never[]) => unknown;
@@ -128,6 +142,10 @@ export interface KeyFlint {
   deduct(credits?: number, options?: DeductOptions): Promise<Record<string, unknown>>;
   /** Best-effort POST /api/v1/quota/refund for a previous deduct. Never throws; resolves true on success. */
   refund(idempotencyKey: string, reason?: string): Promise<boolean>;
+  /** Replays debits of calls that ran on offline grace; resolves how many were sent. */
+  flushPending(): Promise<number>;
+  /** Calls that ran on offline grace and are not yet debited. */
+  readonly pendingDebits: number;
   requireLicense<F extends AnyFn>(handler: F, options?: GateOptions): Wrapped<F>;
   metered<F extends AnyFn>(credits: number, handler: F, options?: MeteredOptions): Wrapped<F>;
 }
@@ -254,7 +272,7 @@ export function createKeyFlint(options: KeyFlintOptions = {}): KeyFlint {
           method: "POST",
           headers: { "Content-Type": "application/json", Accept: "application/json", "Idempotency-Key": key },
           body,
-          signal: AbortSignal.timeout(timeoutMs),
+          signal: AbortSignal.timeout(opts.timeoutMs ?? timeoutMs),
         });
       } catch (e) {
         lastErr = e; // network error: retry once with the same idempotency key
@@ -310,10 +328,36 @@ export function createKeyFlint(options: KeyFlintOptions = {}): KeyFlint {
     }
   }
 
+  type Pending = { key: string; credits: number; eventType: string };
+  const pending: Pending[] = [];
+  const isTransient = (e: unknown): boolean =>
+    e instanceof KeyFlintMcpError &&
+    (e.data.reason === "GATEWAY_UNREACHABLE" || (typeof e.data.status === "number" && TRANSIENT_STATUSES.has(e.data.status)));
+
+  async function flushPending(): Promise<number> {
+    let sent = 0;
+    while (pending.length) {
+      const entry = pending[0] as Pending;
+      try {
+        await deduct(entry.credits, { idempotencyKey: entry.key, eventType: entry.eventType, metadata: { offline_grace: true } });
+      } catch (e) {
+        if (isTransient(e)) return sent;
+        // Refused (e.g. 402): the call was served on grace; drop it.
+      }
+      if (pending[0] === entry) pending.shift();
+      sent++;
+    }
+    return sent;
+  }
+
   return {
     check,
     deduct,
     refund,
+    flushPending,
+    get pendingDebits() {
+      return pending.length;
+    },
     requireLicense(handler, gate = {}) {
       return (async (...args) => {
         await check(gate);
@@ -322,11 +366,26 @@ export function createKeyFlint(options: KeyFlintOptions = {}): KeyFlint {
     },
     metered(credits, handler, opts = {}) {
       if (!Number.isInteger(credits) || credits <= 0) throw new RangeError("credits must be a positive integer");
+      const grace = opts.offlineGraceCalls ?? 0;
+      if (!Number.isInteger(grace) || grace < 0 || grace > MAX_OFFLINE_GRACE_CALLS) {
+        throw new RangeError(`offlineGraceCalls must be an integer between 0 and ${MAX_OFFLINE_GRACE_CALLS}`);
+      }
       const eventType = opts.eventType ?? (handler.name ? `mcp:${handler.name}` : defaultEvent);
       return (async (...args) => {
         await check(opts);
         const idempotencyKey = randomKey();
-        await deduct(credits, { eventType, idempotencyKey });
+        if (pending.length) await flushPending();
+        try {
+          const d: DeductOptions = { eventType, idempotencyKey };
+          if (opts.timeoutMs !== undefined) d.timeoutMs = opts.timeoutMs;
+          await deduct(credits, d);
+        } catch (e) {
+          if (grace > 0 && isTransient(e) && pending.length < grace) {
+            pending.push({ key: idempotencyKey, credits, eventType });
+            return (await handler(...args)) as never; // offline grace: never refunded
+          }
+          throw e;
+        }
         if (opts.refundOnError === false) return (await handler(...args)) as never;
         let out: unknown;
         try {

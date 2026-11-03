@@ -71,6 +71,34 @@ async def _backup_check_loop(interval_seconds: int, heartbeat_url: str | None) -
             logger.error(f"Backup verification pass crashed: {exc}")
 
 
+def _maintenance_once() -> dict:
+    from app.bootstrap import LITESTREAM_CONFIG
+    from app.infrastructure.database.connection import create_connection
+    from app.infrastructure.maintenance import litestream_active, run_maintenance
+
+    conn = create_connection()
+    try:
+        return run_maintenance(
+            conn,
+            retention_days=get_settings().USAGE_EVENTS_RETENTION_DAYS,
+            checkpoint=not litestream_active(LITESTREAM_CONFIG),
+        )
+    finally:
+        conn.close()
+
+
+async def _maintenance_loop(interval_seconds: int) -> None:
+    """Hourly: optional usage-event retention + WAL checkpoint (skipped while Litestream runs)."""
+    while True:
+        await asyncio.sleep(interval_seconds)
+        try:
+            summary = await asyncio.to_thread(_maintenance_once)
+            if summary.get("deleted_usage_events"):
+                logger.info(f"Maintenance pass: {summary}")
+        except Exception as exc:  # keep the loop alive
+            logger.error(f"Maintenance pass failed: {exc}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Manages application startup validation, logging, and database schema readiness."""
@@ -117,9 +145,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             _backup_check_loop(settings.BACKUP_CHECK_INTERVAL_SECONDS, settings.BACKUP_HEARTBEAT_URL)
         )
 
+    maintenance_task: asyncio.Task[None] | None = None
+    if settings.MAINTENANCE_INTERVAL_SECONDS > 0 and settings.DATABASE_PATH != ":memory:":
+        maintenance_task = asyncio.create_task(_maintenance_loop(settings.MAINTENANCE_INTERVAL_SECONDS))
+
     yield
 
-    for task in (retry_task, backup_task):
+    for task in (retry_task, backup_task, maintenance_task):
         if task is not None:
             task.cancel()
             with suppress(asyncio.CancelledError):

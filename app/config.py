@@ -85,6 +85,11 @@ class Settings(BaseSettings):
     BACKUP_CHECK_INTERVAL_SECONDS: int = 3600  # 0 disables it
     BACKUP_HEARTBEAT_URL: Optional[str] = None  # healthchecks.io-style ping URL (+ "/fail" on failure)
 
+    # Hourly SQLite maintenance (0 disables). Usage events are the usage history and the idempotency
+    # ledger, so they are kept forever unless USAGE_EVENTS_RETENTION_DAYS is set (minimum 30).
+    MAINTENANCE_INTERVAL_SECONDS: int = 3600
+    USAGE_EVENTS_RETENTION_DAYS: int = 0
+
     BILLING_MODE: str = "mock"
     ENVIRONMENT: str = "development"
     HOST: str = "0.0.0.0"

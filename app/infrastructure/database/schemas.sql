@@ -71,7 +71,9 @@ CREATE TABLE IF NOT EXISTS usage_events (
     UNIQUE(license_id, idempotency_key)
 );
 CREATE INDEX IF NOT EXISTS idx_usage_license ON usage_events(license_id);
-CREATE INDEX IF NOT EXISTS idx_usage_idempotency ON usage_events(license_id, idempotency_key);
+-- v1.2: idx_usage_idempotency duplicated the UNIQUE(license_id, idempotency_key) index (one extra
+-- B-tree write per deduct for nothing).
+DROP INDEX IF EXISTS idx_usage_idempotency;
 
 -- License Security Events (refund circuit breaker trips, node releases; manual review)
 CREATE TABLE IF NOT EXISTS license_events (

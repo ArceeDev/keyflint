@@ -36,6 +36,8 @@ from __future__ import annotations
 
 import asyncio
 import functools
+import logging
+import threading
 import inspect
 import json
 import os
@@ -63,6 +65,10 @@ LICENSE_INVALID = -32060
 FEATURE_NOT_ENTITLED = -32061
 QUOTA_EXHAUSTED = -32062
 GATEWAY_ERROR = -32063
+
+# Hard cap for @metered(offline_grace_calls=N): calls that may run unpaid while the gateway is down.
+MAX_OFFLINE_GRACE_CALLS = 5
+_TRANSIENT_STATUSES = (502, 503, 504)  # edge proxy answers while the gateway restarts
 
 _LICENSE_MESSAGES = {
     "ERR_EMPTY_TOKEN": "No KeyFlint license is configured. Set KEYFLINT_LICENSE.",
@@ -93,6 +99,7 @@ def _license_message(error: Optional[str], payload: Optional[Mapping[str, Any]],
     return text
 
 F = TypeVar("F", bound=Callable[..., Any])
+logger = logging.getLogger("keyflint_verify.mcp")
 
 try:  # mcp >= 2
     from mcp.shared.exceptions import MCPError as _MCPBase  # type: ignore[import-not-found]
@@ -185,6 +192,9 @@ class KeyFlint:
         )
         self._cached: Optional[VerifyResult] = None
         self._cached_until: float = 0.0
+        # Debits of calls that ran on offline grace, replayed (same idempotency key) on recovery.
+        self._pending: list[dict[str, Any]] = []
+        self._pending_lock = threading.Lock()
 
     # ------------------------------------------------------------------ offline
 
@@ -251,6 +261,7 @@ class KeyFlint:
         idempotency_key: Optional[str] = None,
         event_type: Optional[str] = None,
         metadata: Optional[Mapping[str, Any]] = None,
+        timeout: Optional[float] = None,
     ) -> dict[str, Any]:
         """POST /api/v1/quota/deduct. Retries once on network errors with the same idempotency key."""
         if not self.gateway_url:
@@ -273,7 +284,7 @@ class KeyFlint:
         last_exc: Optional[Exception] = None
         for _attempt in range(2):
             try:
-                with urllib.request.urlopen(req, timeout=self.timeout) as resp:  # noqa: S310 - configured URL
+                with urllib.request.urlopen(req, timeout=timeout or self.timeout) as resp:  # noqa: S310
                     data = json.loads(resp.read().decode("utf-8") or "{}")
                     return cast("dict[str, Any]", data.get("data", data))
             except urllib.error.HTTPError as exc:
@@ -283,6 +294,43 @@ class KeyFlint:
         raise _error(GATEWAY_ERROR, "GATEWAY_UNREACHABLE",
                      f"Could not reach the KeyFlint license server at {self.gateway_url} ({last_exc}). "
                      "The tool did not run.")
+
+    @property
+    def pending_debits(self) -> int:
+        """Calls that ran on offline grace and are not yet debited."""
+        with self._pending_lock:
+            return len(self._pending)
+
+    def _queue_grace(self, entry: dict[str, Any], limit: int) -> bool:
+        with self._pending_lock:
+            if len(self._pending) >= limit:
+                return False
+            self._pending.append(entry)
+            return True
+
+    def flush_pending(self) -> int:
+        """Replays queued debits; stops at the first network failure. Returns how many were sent.
+
+        A queued debit the gateway refuses (e.g. 402, credits ran out meanwhile) is dropped: that
+        call was served on grace. Queued debits are never refunded.
+        """
+        sent = 0
+        while True:
+            with self._pending_lock:
+                if not self._pending:
+                    return sent
+                entry = self._pending[0]
+            try:
+                self.deduct(entry["credits"], idempotency_key=entry["key"], event_type=entry["event_type"],
+                            metadata={"offline_grace": True})
+            except LicenseError as exc:
+                if _is_transient(exc):
+                    return sent
+                logger.warning(f"KeyFlint: dropping offline-grace debit {entry['key']}: {exc.reason}")
+            with self._pending_lock:
+                if self._pending and self._pending[0] is entry:
+                    self._pending.pop(0)
+            sent += 1
 
     def refund(self, idempotency_key: str, reason: Optional[str] = None) -> bool:
         """Best-effort POST /api/v1/quota/refund for a previous deduct. Never raises; True on success."""
@@ -346,26 +394,51 @@ class KeyFlint:
         features: Optional[Sequence[str]] = None,
         event_type: Optional[str] = None,
         refund_on_error: bool = True,
+        offline_grace_calls: int = 0,
+        timeout_ms: Optional[int] = None,
     ) -> Callable[[F], F]:
         """Decorator: offline license check, then debit ``credits`` before the tool runs.
 
         With ``refund_on_error`` (default) the credits are given back via /quota/refund if the
         tool raises or returns an MCP error result (``isError: True``).
+
+        ``offline_grace_calls`` (opt-in, default 0, max 5 per KeyFlint instance): when the gateway
+        cannot be reached within ``timeout_ms`` (or answers 502/503/504) but the license verified
+        offline, up to N calls run anyway; their debits are queued in memory and replayed with the
+        same idempotency key before the next successful debit. Queued debits are never refunded and
+        are lost if the process exits first, so N bounds what you can give away.
         """
         if credits <= 0:
             raise ValueError("credits must be a positive integer")
+        if not 0 <= offline_grace_calls <= MAX_OFFLINE_GRACE_CALLS:
+            raise ValueError(f"offline_grace_calls must be between 0 and {MAX_OFFLINE_GRACE_CALLS}")
+        timeout = timeout_ms / 1000.0 if timeout_ms else None
 
         def decorate(func: F) -> F:
             name = event_type or f"mcp:{func.__name__}"
 
             def charge() -> Optional[Callable[[str], Any]]:
                 key = f"mcp-{uuid.uuid4().hex}"
-                self.deduct(credits, idempotency_key=key, event_type=name)
+                if self.pending_debits:
+                    self.flush_pending()
+                try:
+                    self.deduct(credits, idempotency_key=key, event_type=name, timeout=timeout)
+                except LicenseError as exc:
+                    entry = {"key": key, "credits": credits, "event_type": name}
+                    if offline_grace_calls and _is_transient(exc) and self._queue_grace(entry, offline_grace_calls):
+                        logger.warning(f"KeyFlint gateway unreachable; running {func.__name__} on offline grace "
+                                       f"({self.pending_debits}/{offline_grace_calls}).")
+                        return None  # never refunded
+                    raise
                 return (lambda reason: self.refund(key, reason)) if refund_on_error else None
 
             return _wrap(func, lambda: self.check(features), charge)
 
         return decorate
+
+
+def _is_transient(exc: LicenseError) -> bool:
+    return exc.reason == "GATEWAY_UNREACHABLE" or exc.details.get("status") in _TRANSIENT_STATUSES
 
 
 def _is_error_result(out: Any) -> bool:
