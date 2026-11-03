@@ -11,7 +11,7 @@ Do not scale horizontally (SQLite = one writer).
 One-time: `fly tokens create deploy -a keyflint-gateway` → repo secret `FLY_API_TOKEN`; create environment `production` with you as required reviewer.
 
 ## Rollback (≈3 min)
-Run **Deploy to Fly.io** with the previous version. Schema migrations are additive; never roll back past a release whose notes say otherwise.
+Run **Deploy to Fly.io** with the previous version. Check the release notes for schema changes first: an older image may not read a newer schema.
 
 ## Monitoring
 | Signal | Where | Action |
