@@ -76,7 +76,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 const b = document.getElementById(id);
                 if (b && !b.classList.contains("is-loading")) {
                     b.disabled = empty;
-                    b.title = empty ? "Introduce un token" : "";
+                    b.title = empty ? "Enter a token" : "";
                 }
             }
         }
@@ -112,10 +112,10 @@ document.addEventListener("DOMContentLoaded", () => {
             previewToken.textContent = newKey.length > 36 ? `${newKey.slice(0, 24)}...${newKey.slice(-10)}` : newKey;
         }
         if (previewEnt && seats && credits !== undefined) {
-            previewEnt.textContent = `${seats} nodos / ${credits} créditos (${(tierLabel || "pro").toUpperCase()})`;
+            previewEnt.textContent = `${seats} nodes / ${credits} credits (${(tierLabel || "pro").toUpperCase()})`;
         }
         if (previewStatus) {
-            previewStatus.textContent = "Clave activa";
+            previewStatus.textContent = "Active key";
         }
         syncKeyBoundButtons();
     }
@@ -176,7 +176,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const telemetryResult = document.getElementById("telemetryResult");
         const key = (targetKey || quotaKey.value || verifyKey.value || "").trim();
         if (!key) {
-            renderBox(telemetryResult, "Sin token. Emite una licencia o pega una en el panel 02.", "warn");
+            renderBox(telemetryResult, "No token. Issue a license or paste one into panel 02.", "warn");
             return;
         }
         try {
@@ -223,7 +223,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnIssue = document.getElementById("btnIssue");
     const issueResult = document.getElementById("issueResult");
     btnIssue.addEventListener("click", () =>
-        withButtonLock(btnIssue, "Emitiendo...", async () => {
+        withButtonLock(btnIssue, "Issuing...", async () => {
             const domainVal = issueDomain.value.trim();
             const payload = {
                 customer_email: issueEmail.value.trim(),
@@ -267,7 +267,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnVerifyOnline = document.getElementById("btnVerifyOnline");
     const verifyResult = document.getElementById("verifyResult");
     btnVerifyOnline.addEventListener("click", () =>
-        withButtonLock(btnVerifyOnline, "Verificando...", async () => {
+        withButtonLock(btnVerifyOnline, "Verifying...", async () => {
             try {
                 const res = await fetch("/api/v1/licenses/verify", {
                     method: "POST",
@@ -291,7 +291,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // 2B. Verify Offline (Air-Gapped Browser WebCrypto Ed25519)
     const btnVerifyOffline = document.getElementById("btnVerifyOffline");
     btnVerifyOffline.addEventListener("click", () =>
-        withButtonLock(btnVerifyOffline, "Validando...", async () => {
+        withButtonLock(btnVerifyOffline, "Validating...", async () => {
             const token = verifyKey.value.trim();
             if (!token || !token.startsWith("LIC-") || token.split(".").length !== 2) {
                 renderBox(
@@ -420,7 +420,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // 2C. Activate Node
     const btnActivate = document.getElementById("btnActivate");
     btnActivate.addEventListener("click", () =>
-        withButtonLock(btnActivate, "Activando...", async () => {
+        withButtonLock(btnActivate, "Activating...", async () => {
             const hw = verifyHw.value.trim() || "hw-console-node-01";
             verifyHw.value = hw;
             try {
@@ -445,10 +445,10 @@ document.addEventListener("DOMContentLoaded", () => {
     // 2D. Revoke License
     const btnRevoke = document.getElementById("btnRevoke");
     btnRevoke.addEventListener("click", () =>
-        withButtonLock(btnRevoke, "Revocando...", async () => {
+        withButtonLock(btnRevoke, "Revoking...", async () => {
             const key = verifyKey.value.trim();
             const shortKey = key.length > 40 ? `${key.slice(0, 20)}…${key.slice(-8)}` : key;
-            if (!window.confirm(`Revocar ${shortKey}\n\nLa revocación es definitiva: verificación online y cuotas dejarán de aceptarla.`)) {
+            if (!window.confirm(`Revoke ${shortKey}\n\nRevocation is final: online verification and quotas will stop accepting it.`)) {
                 return;
             }
             try {
@@ -457,7 +457,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({
                         license_key: verifyKey.value.trim(),
-                        reason: "Revocación manual desde consola",
+                        reason: "Manual revocation from console",
                     }),
                 });
                 const data = await res.json();
@@ -472,7 +472,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnQuotaBalance = document.getElementById("btnQuotaBalance");
     const quotaResult = document.getElementById("quotaResult");
     btnQuotaBalance.addEventListener("click", () =>
-        withButtonLock(btnQuotaBalance, "Consultando...", async () => {
+        withButtonLock(btnQuotaBalance, "Checking...", async () => {
             const key = quotaKey.value.trim();
             try {
                 const res = await fetch(`/api/v1/quota/balance?license_key=${encodeURIComponent(key)}`);
@@ -487,7 +487,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // 3B. Quota Deduct
     const btnQuotaDeduct = document.getElementById("btnQuotaDeduct");
     btnQuotaDeduct.addEventListener("click", () =>
-        withButtonLock(btnQuotaDeduct, "Deduciendo...", async () => {
+        withButtonLock(btnQuotaDeduct, "Debiting...", async () => {
             const key = quotaKey.value.trim();
             const credits = parseInt(quotaCredits.value || "1", 10);
             try {
@@ -515,7 +515,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // 3C. Quota Replenish
     const btnQuotaReplenish = document.getElementById("btnQuotaReplenish");
     btnQuotaReplenish.addEventListener("click", () =>
-        withButtonLock(btnQuotaReplenish, "Recargando...", async () => {
+        withButtonLock(btnQuotaReplenish, "Topping up...", async () => {
             const key = quotaKey.value.trim();
             const credits = parseInt(quotaCredits.value || "50", 10);
             try {
@@ -540,7 +540,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const btnSimulate = document.getElementById("btnSimulate");
     const simResult = document.getElementById("simResult");
     btnSimulate.addEventListener("click", () =>
-        withButtonLock(btnSimulate, "Ejecutando...", async () => {
+        withButtonLock(btnSimulate, "Running...", async () => {
             const provider = document.getElementById("simProvider").value;
             const eventType = document.getElementById("simEvent").value;
             const email = simEmail.value.trim() || issueEmail.value.trim();
@@ -579,7 +579,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // 5. Telemetry Refresh
     const btnTelemetryRefresh = document.getElementById("btnTelemetryRefresh");
     btnTelemetryRefresh.addEventListener("click", () =>
-        withButtonLock(btnTelemetryRefresh, "Cargando...", async () => {
+        withButtonLock(btnTelemetryRefresh, "Loading...", async () => {
             await refreshTelemetry();
         })
     );
@@ -591,15 +591,15 @@ document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll(".js-checkout-link").forEach((link) => {
         link.addEventListener("click", () => {
             const tier = link.getAttribute("data-tier") || "indie";
-            showToast(`Abriendo Stripe Checkout (${tier.toUpperCase()})...`);
+            showToast(`Opening Stripe Checkout (${tier.toUpperCase()})...`);
         });
     });
 
     document.querySelectorAll(".js-checkout-tier").forEach((btn) => {
         btn.addEventListener("click", () =>
-            withButtonLock(btn, "Generando Checkout...", async () => {
+            withButtonLock(btn, "Creating checkout...", async () => {
                 const selectedTier = btn.getAttribute("data-tier") || "pro";
-                const email = issueEmail.value.trim() || "demo@empresa.com";
+                const email = issueEmail.value.trim() || "demo@company.com";
                 try {
                     const res = await fetch("/api/v1/billing/checkout", {
                         method: "POST",
@@ -627,8 +627,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const btnBillingPortal = document.getElementById("btnBillingPortal");
     btnBillingPortal.addEventListener("click", () =>
-        withButtonLock(btnBillingPortal, "Abriendo Portal...", async () => {
-            const email = issueEmail.value.trim() || "demo@empresa.com";
+        withButtonLock(btnBillingPortal, "Opening portal...", async () => {
+            const email = issueEmail.value.trim() || "demo@company.com";
             try {
                 const res = await fetch("/api/v1/billing/portal", {
                     method: "POST",
@@ -686,8 +686,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function renderPortal(data) {
         lastPortalLicenseKey = data.licenses.length ? data.licenses[0].license_key : null;
-        portalCustomerEmail.textContent = `Licencias de ${data.customer_email}`;
-        portalCustomerCount.textContent = `${data.total_licenses} licencia(s) · Clave pública Ed25519: ${data.public_key_hex.slice(0, 16)}...`;
+        portalCustomerEmail.textContent = `Licenses for ${data.customer_email}`;
+        portalCustomerCount.textContent = `${data.total_licenses} license(s) · Ed25519 public key: ${data.public_key_hex.slice(0, 16)}...`;
 
         portalLicensesContainer.innerHTML = data.licenses.map(lic => `
             <div style="background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; margin-bottom: 12px;">
@@ -697,7 +697,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 </div>
                 <div style="font-family: var(--mono); font-size: 11px; word-break: break-all; background: var(--sunken); padding: 8px; border-radius: 4px; margin-bottom: 8px; color: var(--ink);">${lic.license_key}</div>
                 <div style="display: flex; gap: 16px; font-size: 13px; color: var(--muted); flex-wrap: wrap;">
-                    <span>Saldo créditos: <b style="color: var(--ink);">${Number(lic.credit_balance).toLocaleString()}</b></span>
+                    <span>Credit balance: <b style="color: var(--ink);">${Number(lic.credit_balance).toLocaleString()}</b></span>
                     <span>Nodos activos: <b style="color: var(--ink);">${lic.current_activations} / ${lic.max_seats}</b></span>
                     <span>Caducidad: <b style="color: var(--ink);">${lic.expires_at ? lic.expires_at.split('T')[0] : 'Permanente'}</b></span>
                 </div>
@@ -711,10 +711,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (btnPortalLookup && portalQuery) {
         btnPortalLookup.addEventListener("click", () =>
-            withButtonLock(btnPortalLookup, "Consultando...", async () => {
+            withButtonLock(btnPortalLookup, "Checking...", async () => {
                 const q = portalQuery.value.trim();
                 if (!q) {
-                    showToast("Por favor introduce un email o token de licencia.");
+                    showToast("Please enter an email or a license token.");
                     return;
                 }
                 portalResults.classList.add("is-hidden");
@@ -728,17 +728,17 @@ document.addEventListener("DOMContentLoaded", () => {
                     });
                     const json = await res.json();
                     if (!res.ok || !json.success) {
-                        showPortalMessage(portalErrorText(json, "No se encontraron licencias para la consulta introducida."), false);
+                        showPortalMessage(portalErrorText(json, "No licenses found for that lookup."), false);
                         return;
                     }
                     if (json.data.magic_link_sent) {
                         const mins = Math.round((json.data.expires_in_seconds || 900) / 60);
-                        showPortalMessage(`Si ese email tiene licencias de KeyFlint, te hemos enviado un enlace de acceso de un solo uso (caduca en ${mins} min). Revisa tu bandeja de entrada.`, true);
+                        showPortalMessage(`If that email has KeyFlint licenses, we sent a one-time sign-in link (expires in ${mins} min). Check your inbox.`, true);
                         return;
                     }
                     renderPortal(json.data);
                 } catch (err) {
-                    showPortalMessage(`Consulta no disponible en modo estático sin backend. Requiere gateway KeyFlint activo en Railway/Render: ${err.message}`, false);
+                    showPortalMessage(`Lookup is unavailable on this static page. It needs a running KeyFlint gateway: ${err.message}`, false);
                 }
             })
         );
@@ -762,12 +762,12 @@ document.addEventListener("DOMContentLoaded", () => {
             });
             const json = await res.json();
             if (!res.ok || !json.success) {
-                showPortalMessage(portalErrorText(json, "El enlace no es válido, ha caducado o ya se usó. Pide uno nuevo."), false);
+                showPortalMessage(portalErrorText(json, "The link is invalid, expired or already used. Request a new one."), false);
             } else {
                 renderPortal(json.data);
             }
         } catch (err) {
-            showPortalMessage(`No se pudo abrir el portal: ${err.message}`, false);
+            showPortalMessage(`Could not open the portal: ${err.message}`, false);
         }
         document.getElementById("portal-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
     })();
@@ -778,48 +778,48 @@ document.addEventListener("DOMContentLoaded", () => {
     const codeSnippets = {
         "python-mcp": `<span class="hl-kw">from</span> keyflint_verify.mcp <span class="hl-kw">import</span> KeyFlint
 
-kf = KeyFlint()  <span class="hl-cm"># lee KEYFLINT_LICENSE, KEYFLINT_PUBLIC_KEYS y KEYFLINT_URL</span>
+kf = KeyFlint()  <span class="hl-cm"># reads KEYFLINT_LICENSE, KEYFLINT_PUBLIC_KEYS and KEYFLINT_URL</span>
 
-<span class="hl-cm"># 2 créditos por llamada; reembolso automático si la tool lanza o devuelve isError</span>
+<span class="hl-cm"># 2 credits per call; refunded automatically if the tool raises or returns isError</span>
 <span class="hl-fn">@mcp.tool</span>()
 <span class="hl-fn">@kf.metered</span>(credits=2)
-<span class="hl-kw">async def</span> <span class="hl-fn">analizar_codigo</span>(repo_url: str) -> str:
+<span class="hl-kw">async def</span> <span class="hl-fn">audit_code</span>(repo_url: str) -> str:
     <span class="hl-kw">return await</span> run_ai_audit(repo_url)`,
 
         "ts-mcp": `<span class="hl-kw">import</span> { createKeyFlint } <span class="hl-kw">from</span> <span class="hl-str">"keyflint-verify/mcp"</span>;
 
 <span class="hl-kw">const</span> kf = createKeyFlint({ gatewayUrl: <span class="hl-str">"https://licenses.tu-dominio.com"</span> });
 
-<span class="hl-cm">// Descuento atómico por llamada en @modelcontextprotocol/sdk</span>
-server.tool(<span class="hl-str">"analizar_codigo"</span>, schema, kf.metered(2, <span class="hl-kw">async</span> (args) => {
+<span class="hl-cm">// Atomic per-call debit in @modelcontextprotocol/sdk</span>
+server.tool(<span class="hl-str">"audit_code"</span>, schema, kf.metered(2, <span class="hl-kw">async</span> (args) => {
     <span class="hl-kw">return await</span> runAiAudit(args);
 }));`,
 
         "python-offline": `<span class="hl-kw">from</span> keyflint_verify <span class="hl-kw">import</span> validate_offline
 
-<span class="hl-cm"># Verificación local, sin red</span>
+<span class="hl-cm"># Local verification, offline</span>
 is_valid, payload, err = validate_offline(
     license_token=<span class="hl-str">"LIC-PRO-eyJ..."</span>,
     public_key_hex=<span class="hl-str">"0043b567..."</span>,
-    expected_machine_id=<span class="hl-str">"nodo-prod-01"</span>
+    expected_machine_id=<span class="hl-str">"node-prod-01"</span>
 )
 <span class="hl-kw">if not</span> is_valid:
-    sys.exit(<span class="hl-str">f"Licencia inválida: {err}"</span>)`,
+    sys.exit(<span class="hl-str">f"Invalid license: {err}"</span>)`,
 
         "js-webcrypto": `<span class="hl-kw">import</span> { verifyLicense } <span class="hl-kw">from</span> <span class="hl-str">"keyflint-verify"</span>;
 
-<span class="hl-cm">// Web Crypto: mismo código en Node y navegador</span>
+<span class="hl-cm">// Web Crypto: same code in Node and the browser</span>
 <span class="hl-kw">const</span> { valid, payload, error } = <span class="hl-kw">await</span> verifyLicense(token, publicKeyHex);
 <span class="hl-kw">if</span> (!valid) {
-    <span class="hl-kw">throw new</span> Error(<span class="hl-str">\`Acceso denegado: \${error}\`</span>);
+    <span class="hl-kw">throw new</span> Error(<span class="hl-str">\`Access denied: \${error}\`</span>);
 }`,
 
         "go-offline": `<span class="hl-kw">import</span> keyflint <span class="hl-str">"github.com/ArceeDev/keyflint/sdks/go-verify"</span>
 
-<span class="hl-cm">// go get github.com/ArceeDev/keyflint/sdks/go-verify@v1.2.0 · sin red, sin dependencias</span>
+<span class="hl-cm">// go get github.com/ArceeDev/keyflint/sdks/go-verify@v1.2.0 · offline, no dependencies</span>
 payload, err := keyflint.Verify(os.Getenv(<span class="hl-str">"KEYFLINT_LICENSE"</span>), publicKeyHex)
 <span class="hl-kw">if</span> err != <span class="hl-kw">nil</span> {
-    log.Fatalf(<span class="hl-str">"licencia inválida: %s"</span>, keyflint.Code(err))
+    log.Fatalf(<span class="hl-str">"invalid license: %s"</span>, keyflint.Code(err))
 }
 fmt.Println(payload.Tier, payload.Features)`
     };
@@ -844,11 +844,11 @@ fmt.Println(payload.Tier, payload.Features)`
             const rawText = codeSnippet.textContent || codeSnippet.innerText;
             try {
                 await navigator.clipboard.writeText(rawText);
-                showToast("Copiado");
-                btnCopySnippet.textContent = "Copiado";
-                setTimeout(() => (btnCopySnippet.textContent = "Copiar"), 1400);
+                showToast("Copied");
+                btnCopySnippet.textContent = "Copied";
+                setTimeout(() => (btnCopySnippet.textContent = "Copy"), 1400);
             } catch (err) {
-                showToast("Selecciona el código para copiar");
+                showToast("Select the code to copy");
             }
         });
     }
@@ -877,9 +877,9 @@ fmt.Println(payload.Tier, payload.Features)`
                 `const kf = createKeyFlint({ publicKeys: ${JSON.stringify(key)}${n ? `, gatewayUrl: ${JSON.stringify(gw)}` : ""} });`,
                 'const server = new McpServer({ name: "mi-herramienta", version: "1.0.0" });',
                 "",
-                n ? `// ${n} crédito(s) por llamada; se devuelven si la tool falla` : "// Solo licencia (offline, sin red)",
+                n ? `// ${n} credit(s) per call; refunded if the tool fails` : "// License only (offline)",
                 'server.registerTool("buscar", { inputSchema: { query: z.string() } }, ' + wrap,
-                '  return { content: [{ type: "text" as const, text: `Resultado para ${query}` }] };',
+                '  return { content: [{ type: "text" as const, text: `Result for ${query}` }] };',
                 "}));",
                 "",
                 "await server.connect(new StdioServerTransport());",
@@ -903,10 +903,10 @@ fmt.Println(payload.Tier, payload.Features)`
                 "func main() {",
                 '\tpayload, err := keyflint.Verify(os.Getenv("KEYFLINT_LICENSE"), publicKeyHex)',
                 "\tif err != nil {",
-                '\t\tlog.Fatalf("licencia inválida: %s", keyflint.Code(err))',
+                '\t\tlog.Fatalf("invalid license: %s", keyflint.Code(err))',
                 "\t}",
-                '\tfmt.Println("licencia OK:", payload.Tier)',
-                n ? `\t// Para cobrar ${n} crédito(s) por llamada: POST ${gw}/api/v1/quota/deduct` : null,
+                '\tfmt.Println("license OK:", payload.Tier)',
+                n ? `\t// To charge ${n} credit(s) per call: POST ${gw}/api/v1/quota/deduct` : null,
                 "}",
             ].filter((l) => l !== null).join("\n");
         }
@@ -918,11 +918,11 @@ fmt.Println(payload.Tier, payload.Features)`
             `kf = KeyFlint(public_keys=${JSON.stringify(key)}${n ? `, gateway_url=${JSON.stringify(gw)}` : ""})`,
             'mcp = FastMCP("mi-herramienta")',
             "",
-            n ? `# ${n} crédito(s) por llamada; se devuelven si la tool falla` : "# Solo licencia (offline, sin red)",
+            n ? `# ${n} credit(s) per call; refunded if the tool fails` : "# License only (offline)",
             "@mcp.tool()",
             n ? `@kf.metered(credits=${n})` : "@kf.require_license",
             "def buscar(query: str) -> str:",
-            '    return f"Resultado para {query}"',
+            '    return f"Result for {query}"',
             "",
             'if __name__ == "__main__":',
             "    mcp.run()",
@@ -946,9 +946,9 @@ fmt.Println(payload.Tier, payload.Features)`
         btnCopyGenerated.addEventListener("click", async () => {
             try {
                 await navigator.clipboard.writeText(genOutput.textContent);
-                showToast("Código copiado");
+                showToast("Code copied");
             } catch (err) {
-                showToast("Selecciona el código para copiar");
+                showToast("Select the code to copy");
             }
         });
     }
@@ -985,27 +985,27 @@ fmt.Println(payload.Tier, payload.Features)`
             const info = data.data || {};
             const head = document.createElement("p");
             head.className = "card-sub";
-            head.textContent = `${info.current_activations || 0} de ${info.max_seats || 0} asientos en uso`;
+            head.textContent = `${info.current_activations || 0} of ${info.max_seats || 0} seats in use`;
             nodesList.appendChild(head);
             (info.nodes || []).forEach((node) => {
                 const row = document.createElement("div");
                 row.className = "form-row";
                 const label = document.createElement("code");
-                label.textContent = `${node.machine_name || "equipo"} · ${node.hardware_id}`;
+                label.textContent = `${node.machine_name || "machine"} · ${node.hardware_id}`;
                 label.style.flex = "3";
                 label.style.overflowWrap = "anywhere";
                 const btn = document.createElement("button");
                 btn.type = "button";
                 btn.className = "btn btn-secondary btn-inline";
-                btn.textContent = "Liberar";
+                btn.textContent = "Release";
                 btn.addEventListener("click", () =>
-                    withButtonLock(btn, "Liberando...", async () => {
+                    withButtonLock(btn, "Releasing...", async () => {
                         const r = await postJson("/api/v1/licenses/nodes/release", {
                             license_key: key,
                             hardware_id: node.hardware_id,
                         });
                         if (!r.res.ok) return showNodesError(r.res, r.data);
-                        showToast("Nodo liberado");
+                        showToast("Node released");
                         await loadNodes();
                     })
                 );
@@ -1014,27 +1014,27 @@ fmt.Println(payload.Tier, payload.Features)`
             });
         } catch (err) {
             nodesResult.classList.remove("is-hidden");
-            renderBox(nodesResult, { error: `Requiere un gateway KeyFlint activo: ${err.message}` }, "err");
+            renderBox(nodesResult, { error: `Needs a running KeyFlint gateway: ${err.message}` }, "err");
         }
     }
 
     if (btnNodesList) {
-        btnNodesList.addEventListener("click", () => withButtonLock(btnNodesList, "Cargando...", loadNodes));
+        btnNodesList.addEventListener("click", () => withButtonLock(btnNodesList, "Loading...", loadNodes));
     }
 
     // 9. Hero Token Copy Interaction
     const heroPreviewToken = document.getElementById("heroPreviewToken");
     if (heroPreviewToken) {
         heroPreviewToken.style.cursor = "pointer";
-        heroPreviewToken.title = "Haz clic para copiar el token";
+        heroPreviewToken.title = "Click to copy the token";
         heroPreviewToken.addEventListener("click", async () => {
             const val = verifyKey.value.trim() || heroPreviewToken.textContent.trim();
             if (val && !val.includes("<")) {
                 try {
                     await navigator.clipboard.writeText(val);
-                    showToast("Token copiado");
+                    showToast("Token copied");
                 } catch {
-                    showToast("Error al copiar");
+                    showToast("Copy failed");
                 }
             }
         });
