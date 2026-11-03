@@ -57,7 +57,7 @@
         const spec = TIERS[t];
         if (!spec) return fail(422, "ERR_UNKNOWN_TIER", `Nivel desconocido: ${tier}`);
         const email = String(customer_email || "").trim();
-        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return fail(422, "ERR_INVALID_EMAIL", "Email no válido.");
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return fail(422, "ERR_INVALID_EMAIL", "Invalid email.");
         const issued = Math.floor(Date.now() / 1000);
         const payload = {
             license_id: crypto.randomUUID(),
@@ -103,7 +103,7 @@
         return rec || null;
     }
     const notFound = () => fail(404, "ERR_LICENSE_NOT_FOUND",
-        "Token no encontrado. En esta demo solo existen las licencias emitidas en esta página.");
+        "Token not found. This demo only knows licenses issued on this page.");
 
     async function verifySignature(rec) {
         const [p, s] = rec.license_key.split("-").slice(2).join("-").split(".");
@@ -134,7 +134,7 @@
         "POST /api/v1/licenses/verify": async (b) => {
             const rec = find(b.license_key);
             if (!rec) return notFound();
-            if (!(await verifySignature(rec))) return fail(401, "ERR_SIGNATURE_TAMPERED", "Firma no válida.");
+            if (!(await verifySignature(rec))) return fail(401, "ERR_SIGNATURE_TAMPERED", "Invalid signature.");
             if (rec.status === "revoked") return ok({ valid: false, license_status: "revoked", error: "ERR_LICENSE_REVOKED" });
             if (rec.payload.expires_at && Date.now() / 1000 > rec.payload.expires_at) {
                 return ok({ valid: false, license_status: "expired", error: "ERR_LICENSE_EXPIRED" });
@@ -156,10 +156,10 @@
         "POST /api/v1/licenses/activate": async (b) => {
             const rec = find(b.license_key);
             if (!rec) return notFound();
-            if (rec.status === "revoked") return fail(403, "ERR_LICENSE_REVOKED", "La licencia está revocada.");
+            if (rec.status === "revoked") return fail(403, "ERR_LICENSE_REVOKED", "The license is revoked.");
             const hw = String(b.hardware_id || "").trim();
             if (!rec.activations.has(hw) && rec.activations.size >= rec.payload.max_seats) {
-                return fail(409, "ERR_SEAT_LIMIT_REACHED", `Límite de ${rec.payload.max_seats} nodos alcanzado.`);
+                return fail(409, "ERR_SEAT_LIMIT_REACHED", `Seat limit of ${rec.payload.max_seats} nodes reached.`);
             }
             rec.activations.set(hw, { machine_name: b.machine_name || null, activated_at: nowIso() });
             log(rec, "node_activated", { hardware_id: hw });
@@ -180,12 +180,12 @@
         "POST /api/v1/quota/deduct": async (b) => {
             const rec = find(b.license_key);
             if (!rec) return notFound();
-            if (rec.status === "revoked") return fail(403, "ERR_LICENSE_REVOKED", "La licencia está revocada.");
+            if (rec.status === "revoked") return fail(403, "ERR_LICENSE_REVOKED", "The license is revoked.");
             const credits = Number.parseInt(b.credits, 10);
-            if (!(credits > 0)) return fail(422, "ERR_INVALID_CREDITS", "Créditos debe ser un entero positivo.");
+            if (!(credits > 0)) return fail(422, "ERR_INVALID_CREDITS", "Credits must be a positive integer.");
             if (rec.idem.has(b.idempotency_key)) return ok({ deducted: 0, replayed: true, credit_balance: rec.balance });
             if (rec.balance < credits) {
-                return fail(402, "ERR_QUOTA_EXHAUSTED", `Saldo insuficiente: quedan ${rec.balance} créditos.`);
+                return fail(402, "ERR_QUOTA_EXHAUSTED", `Insufficient balance: ${rec.balance} credits left.`);
             }
             rec.idem.add(b.idempotency_key);
             rec.balance -= credits;
@@ -196,7 +196,7 @@
             const rec = find(b.license_key);
             if (!rec) return notFound();
             const credits = Number.parseInt(b.credits, 10);
-            if (!(credits > 0)) return fail(422, "ERR_INVALID_CREDITS", "Créditos debe ser un entero positivo.");
+            if (!(credits > 0)) return fail(422, "ERR_INVALID_CREDITS", "Credits must be a positive integer.");
             rec.balance += credits;
             log(rec, "quota_replenished", { credits });
             return ok({ replenished: credits, credit_balance: rec.balance });
@@ -220,7 +220,7 @@
                         result: { action: "license_issued", ...res.body.data }, license_key: res.body.data.license_key });
                 }
                 case "invoice.payment_succeeded": {
-                    if (!latest) return fail(404, "ERR_NO_SUBSCRIPTION", "Este email no tiene licencias en la demo.");
+                    if (!latest) return fail(404, "ERR_NO_SUBSCRIPTION", "This email has no licenses in the demo.");
                     latest.status = "active";
                     latest.balance = TIERS[latest.payload.tier].credits;
                     log(latest, "subscription_renewed");
@@ -228,14 +228,14 @@
                         result: { action: "quota_replenished", license_key: latest.license_key, credit_balance: latest.balance } });
                 }
                 case "invoice.payment_failed": {
-                    if (!latest) return fail(404, "ERR_NO_SUBSCRIPTION", "Este email no tiene licencias en la demo.");
+                    if (!latest) return fail(404, "ERR_NO_SUBSCRIPTION", "This email has no licenses in the demo.");
                     latest.status = "grace_period";
                     log(latest, "payment_failed_grace_period");
                     return ok({ provider: b.provider, event_type: b.event_type, signature_verified: signature,
                         result: { action: "grace_period", license_key: latest.license_key, license_status: "grace_period" } });
                 }
                 case "customer.subscription.deleted": {
-                    if (!latest) return fail(404, "ERR_NO_SUBSCRIPTION", "Este email no tiene licencias en la demo.");
+                    if (!latest) return fail(404, "ERR_NO_SUBSCRIPTION", "This email has no licenses in the demo.");
                     latest.status = "revoked";
                     log(latest, "subscription_cancelled");
                     return ok({ provider: b.provider, event_type: b.event_type, signature_verified: signature,
@@ -252,7 +252,7 @@
                 : [...licenses.values()].filter((r) => r.payload.customer_email.toLowerCase() === q.toLowerCase());
             if (!found.length) {
                 return fail(404, "ERR_LICENSE_NOT_FOUND",
-                    "No hay licencias de la demo para esa consulta. Emite una en la consola de arriba y vuelve a probar.");
+                    "No demo licenses for that lookup. Issue one in the console above and try again.");
             }
             const { publicHex } = await keys();
             return ok({
@@ -288,11 +288,11 @@
             const body = init.body ? JSON.parse(init.body) : {};
             out = handler
                 ? await handler(body, url.searchParams)
-                : fail(404, "ERR_NOT_AVAILABLE_IN_DEMO", "Este endpoint solo existe en el gateway desplegado.");
+                : fail(404, "ERR_NOT_AVAILABLE_IN_DEMO", "This endpoint only exists on a deployed gateway.");
         } catch (err) {
             const unsupported = err && /Ed25519|not supported|NotSupported/i.test(`${err.name} ${err.message}`);
             out = fail(500, unsupported ? "ERR_BROWSER_NO_ED25519" : "ERR_DEMO",
-                unsupported ? "Tu navegador no soporta Ed25519 en Web Crypto. Prueba con una versión reciente de Chrome, Firefox o Safari."
+                unsupported ? "Your browser does not support Ed25519 in Web Crypto. Try a recent Chrome, Firefox or Safari."
                     : String(err && err.message));
         }
         return new Response(JSON.stringify(out.body), {

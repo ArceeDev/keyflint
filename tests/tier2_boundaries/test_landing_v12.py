@@ -21,7 +21,7 @@ class TestLandingV12(unittest.TestCase):
     def test_vector_count_matches_suite(self):
         n = len(json.loads((ROOT / "sdks" / "vectors" / "vectors.json").read_text(encoding="utf-8"))["vectors"])
         for page in PAGES:
-            counts = {int(m) for m in re.findall(r"(\d+) vectores", page.read_text(encoding="utf-8"))}
+            counts = {int(m) for m in re.findall(r"(\d+) (?:shared conformance )?vectors", page.read_text(encoding="utf-8"))}
             self.assertEqual(counts, {n}, page)
 
     def test_go_sdk_generator_and_pricing_cleanup(self):
@@ -46,6 +46,15 @@ class TestLandingV12(unittest.TestCase):
         self.assertNotIn("createMcpWrapper", js)
         self.assertIn("createKeyFlint", js)
 
+
+    def test_landing_is_english(self):
+        # Launch audience (HN, X, Reddit) is English; keep both pages and the console in English.
+        for page in PAGES:
+            html = page.read_text(encoding="utf-8")
+            self.assertIn('<html lang="en">', html, page)
+            body = _main(html)
+            for marker in ("IVA", "Comprar", "Suscribir", "créditos", "¿", "Licencias"):
+                self.assertNotIn(marker, body, f"{page}: {marker}")
 
 if __name__ == "__main__":
     unittest.main()

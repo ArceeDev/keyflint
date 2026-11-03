@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="color-scheme" content="light dark">
-    <title>KeyFlint · Licencias Ed25519 offline y medición de créditos para MCP, CLIs y APIs</title>
-    <meta name="description" content="Gateway autoalojado de licencias Ed25519 verificables sin red y medición de créditos para servidores MCP, CLIs y APIs.">
+    <title>KeyFlint · Offline Ed25519 licenses &amp; credit metering for MCP servers, CLIs and APIs</title>
+    <meta name="description" content="Self-hosted gateway for Ed25519 licenses verified offline and atomic, refundable credit metering for MCP servers, CLIs and APIs.">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -369,7 +369,7 @@
 <body>
     <header>
         <div class="container nav-inner">
-            <a class="logo" href="#" aria-label="KeyFlint, inicio">
+            <a class="logo" href="#" aria-label="KeyFlint, home">
                 <svg class="logo-mark" viewBox="0 0 20 20" aria-hidden="true">
                     <rect x="1" y="1" width="18" height="18" rx="4" fill="none" stroke="currentColor" stroke-width="1.6"/>
                     <circle cx="7.5" cy="10" r="2.6" fill="none" stroke="var(--brand)" stroke-width="1.8"/>
@@ -379,17 +379,17 @@
                 <span class="logo-ver">1.2.0</span>
             </a>
             <div class="nav-right">
-            <nav class="nav-links" aria-label="Secciones">
-                <a href="#how-section" class="nav-link opt">Cómo funciona</a>
+            <nav class="nav-links" aria-label="Sections">
+                <a href="#how-section" class="nav-link opt">How it works</a>
                 <a href="#showcase-section" class="nav-link">SDKs</a>
-                <a href="#console-section" class="nav-link">Consola</a>
-                <a href="#comparison-section" class="nav-link opt">Comparativa</a>
-                <a href="#pricing-section" class="nav-link opt">Niveles</a>
+                <a href="#console-section" class="nav-link">Console</a>
+                <a href="#comparison-section" class="nav-link opt">Compare</a>
+                <a href="#pricing-section" class="nav-link opt">Pricing</a>
                 <a href="#portal-section" class="nav-link opt">Portal</a>
                 <a href="#faq-section" class="nav-link opt">FAQ</a>
                 <a href="/docs" class="nav-link">API</a>
             </nav>
-            <a class="nav-gh" href="https://github.com/ArceeDev/keyflint" target="_blank" rel="noopener noreferrer" aria-label="KeyFlint en GitHub"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span>GitHub</span></a>
+            <a class="nav-gh" href="https://github.com/ArceeDev/keyflint" target="_blank" rel="noopener noreferrer" aria-label="KeyFlint on GitHub"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span>GitHub</span></a>
             </div>
         </div>
     </header>
@@ -397,57 +397,57 @@
     <main class="container">
         <section class="hero">
             <div class="hero-copy">
-                <span class="eyebrow">Gateway autoalojado · Ed25519 (RFC 8032) · SQLite WAL</span>
-                <h1>Licencias firmadas y cuotas de créditos para <em>servidores MCP</em>, CLIs y APIs.</h1>
-                <p class="hero-lead">Emites tokens Ed25519 que el cliente verifica sin red. Cada llamada descuenta créditos de forma atómica e idempotente, y se reembolsa si la herramienta falla. Stripe y LemonSqueezy emiten y revocan licencias por webhook firmado.</p>
+                <span class="eyebrow">Self-hosted gateway · Ed25519 (RFC 8032) · SQLite WAL</span>
+                <h1>Signed licenses and credit metering for <em>MCP servers</em>, CLIs and APIs.</h1>
+                <p class="hero-lead">Issue Ed25519 tokens your clients verify offline. Every call debits credits atomically and idempotently, and is refunded if the tool fails. Stripe and LemonSqueezy issue and revoke licenses via signed webhooks.</p>
                 <div class="hero-actions">
-                    <button type="button" class="btn" id="btnHeroStart">Emitir licencia de prueba</button>
-                    <a href="#pricing-section" class="btn btn-secondary">Comprar licencia ($149)</a>
+                    <button type="button" class="btn" id="btnHeroStart">Issue a test license</button>
+                    <a href="#pricing-section" class="btn btn-secondary">Buy a license ($149)</a>
                     <a href="https://github.com/ArceeDev/keyflint" target="_blank" rel="noopener noreferrer" class="btn btn-secondary"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a>
                 </div>
                 <p class="hero-install"><code>pip install keyflint-verify</code><code>npm i keyflint-verify</code><code class="wrap">go get github.com/ArceeDev/keyflint/sdks/go-verify@v1.2.0</code></p>
             </div>
-            <aside class="inspector" aria-label="Anatomía de un token">
+            <aside class="inspector" aria-label="Token anatomy">
                 <div class="inspector-head">
                     <span>token</span>
-                    <span class="tag" id="heroPreviewStatus">Verificable sin red</span>
+                    <span class="tag" id="heroPreviewStatus">Verifiable offline</span>
                 </div>
                 <dl>
                     <div class="inspector-row">
-                        <dt>formato</dt>
-                        <dd id="heroPreviewToken">LIC-&lt;TIER&gt;-&lt;payload&gt;.&lt;firma&gt;</dd>
+                        <dt>format</dt>
+                        <dd id="heroPreviewToken">LIC-&lt;TIER&gt;-&lt;payload&gt;.&lt;signature&gt;</dd>
                     </div>
                     <div class="inspector-row">
-                        <dt>derechos</dt>
-                        <dd id="heroPreviewEntitlements">3 nodos / 500 créditos</dd>
+                        <dt>entitlements</dt>
+                        <dd id="heroPreviewEntitlements">3 nodes / 500 credits</dd>
                     </div>
                     <div class="inspector-row">
-                        <dt>firma</dt>
-                        <dd>Ed25519, 64 bytes, kid opcional</dd>
+                        <dt>signature</dt>
+                        <dd>Ed25519, 64 bytes, optional kid</dd>
                     </div>
                     <div class="inspector-row">
-                        <dt>cobro</dt>
-                        <dd>atómico, sin saldo negativo</dd>
+                        <dt>debit</dt>
+                        <dd>atomic, never negative</dd>
                     </div>
                     <div class="inspector-row">
-                        <dt>reintentos</dt>
-                        <dd>sin doble cobro</dd>
+                        <dt>retries</dt>
+                        <dd>never double-charged</dd>
                     </div>
                 </dl>
             </aside>
         </section>
 
-        <section class="stat-grid" aria-label="Especificaciones">
+        <section class="stat-grid" aria-label="Specifications">
             <div class="stat-box">
-                <div class="stat-label">Firma</div>
+                <div class="stat-label">Signature</div>
                 <div class="stat-value">Ed25519</div>
             </div>
             <div class="stat-box">
-                <div class="stat-label">Verificación local</div>
-                <div class="stat-value">&lt; 1 ms, sin red</div>
+                <div class="stat-label">Local verification</div>
+                <div class="stat-value">&lt; 1 ms, offline</div>
             </div>
             <div class="stat-box">
-                <div class="stat-label">Rotación de claves</div>
+                <div class="stat-label">Key rotation</div>
                 <div class="stat-value">kid + keyring</div>
             </div>
             <div class="stat-box">
@@ -458,29 +458,29 @@
 
         <section id="how-section" class="block">
             <div class="section-head">
-                <span class="eyebrow">Cómo funciona</span>
-                <h2>De la compra a la llamada cobrada, en 4 pasos</h2>
+                <span class="eyebrow">How it works</span>
+                <h2>From purchase to a paid call in 4 steps</h2>
             </div>
             <ol class="steps">
                 <li class="step">
                     <div class="step-top"><span class="step-num">1</span><svg class="step-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 8l-9-5-9 5 9 5 9-5zM3 8v8l9 5 9-5V8M12 13v8"/></svg></div>
-                    <h3>Despliega el gateway</h3>
-                    <p>Un contenedor Docker con un volumen SQLite. Sin Postgres ni Redis.</p>
+                    <h3>Deploy the gateway</h3>
+                    <p>One Docker container with a SQLite volume. No Postgres, no Redis.</p>
                 </li>
                 <li class="step">
                     <div class="step-top"><span class="step-num">2</span><svg class="step-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 7h20v10H2zM2 11h20M6 15h4"/></svg></div>
-                    <h3>Conecta tus pagos</h3>
-                    <p>Cada compra en Stripe o LemonSqueezy emite la licencia por webhook firmado y la envía por correo.</p>
+                    <h3>Connect your payments</h3>
+                    <p>Every Stripe or LemonSqueezy purchase issues the license via signed webhook and emails it.</p>
                 </li>
                 <li class="step">
                     <div class="step-top"><span class="step-num">3</span><svg class="step-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2l8 4v6c0 5-3.5 9-8 10-4.5-1-8-5-8-10V6l8-4zM9 12l2 2 4-4"/></svg></div>
-                    <h3>Verifica sin red</h3>
-                    <p>Tu app comprueba el token Ed25519 en local con <code>keyflint-verify</code>, en menos de 1 ms.</p>
+                    <h3>Verify offline</h3>
+                    <p>Your app checks the Ed25519 token locally with <code>keyflint-verify</code> in under 1 ms.</p>
                 </li>
                 <li class="step">
                     <div class="step-top"><span class="step-num">4</span><svg class="step-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 2v20M17 6H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg></div>
-                    <h3>Cobra por uso</h3>
-                    <p>Cada llamada descuenta créditos con <code>@metered</code>. Si la tool falla, se reembolsan solos.</p>
+                    <h3>Charge per use</h3>
+                    <p>Each call debits credits with <code>@metered</code>. If the tool fails, they are refunded automatically.</p>
                 </li>
             </ol>
         </section>
@@ -489,27 +489,27 @@
             <div id="showcase-section" class="card showcase-card">
                 <div class="code-tabs-header">
                     <div>
-                        <h2 class="card-title">Integración</h2>
-                        <p class="card-sub"><code>keyflint-verify</code> en PyPI y npm, <code>go-verify</code> para Go. Licencia MIT.</p>
+                        <h2 class="card-title">Integration</h2>
+                        <p class="card-sub"><code>keyflint-verify</code> on PyPI and npm, <code>go-verify</code> for Go. MIT licensed.</p>
                     </div>
-                    <div class="tab-btn-group" role="tablist" aria-label="Ejemplos de código">
+                    <div class="tab-btn-group" role="tablist" aria-label="Code examples">
                         <button type="button" class="tab-btn active" role="tab" aria-selected="true" data-tab="python-mcp">Python · MCP</button>
                         <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="ts-mcp">TypeScript · MCP</button>
                         <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="python-offline">Python · offline</button>
-                        <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="js-webcrypto">Node / navegador</button>
+                        <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="js-webcrypto">Node / browser</button>
                         <button type="button" class="tab-btn" role="tab" aria-selected="false" data-tab="go-offline">Go</button>
                     </div>
                 </div>
                 <div class="code-snippet-wrap">
-                    <button type="button" class="btn-copy-code" id="btnCopySnippet">Copiar</button>
+                    <button type="button" class="btn-copy-code" id="btnCopySnippet">Copy</button>
                     <pre id="codeSnippet" role="tabpanel"><span class="hl-kw">from</span> keyflint_verify.mcp <span class="hl-kw">import</span> KeyFlint
 
-kf = KeyFlint()  <span class="hl-cm"># lee KEYFLINT_LICENSE, KEYFLINT_PUBLIC_KEYS y KEYFLINT_URL</span>
+kf = KeyFlint()  <span class="hl-cm"># reads KEYFLINT_LICENSE, KEYFLINT_PUBLIC_KEYS and KEYFLINT_URL</span>
 
-<span class="hl-cm"># 2 créditos por llamada; reembolso automático si la tool lanza o devuelve isError</span>
+<span class="hl-cm"># 2 credits per call; refunded automatically if the tool raises or returns isError</span>
 <span class="hl-fn">@mcp.tool</span>()
 <span class="hl-fn">@kf.metered</span>(credits=2)
-<span class="hl-kw">async def</span> <span class="hl-fn">analizar_codigo</span>(repo_url: str) -&gt; str:
+<span class="hl-kw">async def</span> <span class="hl-fn">audit_code</span>(repo_url: str) -&gt; str:
     <span class="hl-kw">return await</span> run_ai_audit(repo_url)</pre>
                 </div>
             </div>
@@ -517,95 +517,95 @@ kf = KeyFlint()  <span class="hl-cm"># lee KEYFLINT_LICENSE, KEYFLINT_PUBLIC_KEY
             <div id="generator-section" class="card" style="margin-top: 16px;">
                 <div class="card-header">
                     <div>
-                        <h2 class="card-title">Generador en 3 pasos</h2>
-                        <p class="card-sub">Elige el lenguaje, el coste por llamada y pega tu clave pública. Copia el resultado tal cual.</p>
+                        <h2 class="card-title">3-step generator</h2>
+                        <p class="card-sub">Pick a language, the cost per call and paste your public key. Copy the result as is.</p>
                     </div>
                 </div>
                 <div class="gen-grid">
                     <div class="form-group">
-                        <label for="genLang">1. Lenguaje</label>
+                        <label for="genLang">1. Language</label>
                         <select id="genLang">
-                            <option value="python">Python (servidor MCP)</option>
-                            <option value="ts">TypeScript (servidor MCP)</option>
-                            <option value="go">Go (verificación offline)</option>
+                            <option value="python">Python (MCP server)</option>
+                            <option value="ts">TypeScript (MCP server)</option>
+                            <option value="go">Go (offline verification)</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="genCredits">2. Créditos por llamada</label>
+                        <label for="genCredits">2. Credits per call</label>
                         <input type="number" id="genCredits" min="0" max="100000" value="2">
                     </div>
                     <div class="form-group">
-                        <label for="genPubKey">3. Clave pública (64 hex)</label>
+                        <label for="genPubKey">3. Public key (64 hex)</label>
                         <input type="text" id="genPubKey" placeholder="GET /api/v1/licenses/public-key" autocomplete="off" spellcheck="false">
                     </div>
                     <div class="form-group">
-                        <label for="genGateway">URL del gateway (opcional)</label>
-                        <input type="url" id="genGateway" placeholder="https://licencias.tu-dominio.com" autocomplete="off">
+                        <label for="genGateway">Gateway URL (optional)</label>
+                        <input type="url" id="genGateway" placeholder="https://licenses.your-domain.com" autocomplete="off">
                     </div>
                 </div>
                 <div class="code-snippet-wrap" style="margin-top: 12px;">
-                    <button type="button" class="btn-copy-code" id="btnCopyGenerated">Copiar</button>
+                    <button type="button" class="btn-copy-code" id="btnCopyGenerated">Copy</button>
                     <pre id="genOutput" aria-live="polite"></pre>
                 </div>
-                <p class="card-sub" id="genHint" style="margin-top: 8px;">Tus clientes activan su licencia con <code>npx keyflint-verify activate LIC-...</code> o <code>uvx keyflint-verify activate LIC-...</code> (Claude Desktop, Cursor, Windsurf).</p>
+                <p class="card-sub" id="genHint" style="margin-top: 8px;">Your customers activate their license with <code>npx keyflint-verify activate LIC-...</code> or <code>uvx keyflint-verify activate LIC-...</code> (Claude Desktop, Cursor, Windsurf).</p>
             </div>
         </section>
 
         <section id="console-section" class="block">
             <div class="section-head">
-                <h2>Consola</h2>
-                <p>Prueba el flujo completo: emite, verifica, cobra créditos y simula un pago. Cada panel muestra la respuesta de la API sin procesar.</p>
+                <h2>Console</h2>
+                <p>Try the full flow: issue, verify, debit credits and simulate a payment. Each panel shows the raw API response.</p>
             </div>
-            <p class="demo-note is-hidden" id="demoNote">Demo en tu navegador: las claves Ed25519 se generan aquí y nada se envía a ningún servidor. Tu gateway desplegado trae esta misma consola conectada a la API real.</p>
+            <p class="demo-note is-hidden" id="demoNote">In-browser demo: Ed25519 keys are generated here and nothing is sent to any server. Your deployed gateway ships this same console wired to the real API.</p>
 
             <div class="grid">
                 <div class="card col-6" id="cardIssue">
                     <div class="card-header">
                         <div>
-                            <h3 class="card-title">Emitir licencia</h3>
+                            <h3 class="card-title">Issue a license</h3>
                             <p class="card-sub"><code>POST /api/v1/licenses/issue</code></p>
                         </div>
-                        <span class="card-step" aria-label="Paso 1">1</span>
+                        <span class="card-step" aria-label="Step 1">1</span>
                     </div>
                     <div class="form-group">
-                        <label for="issueEmail">Email del cliente</label>
-                        <input type="email" id="issueEmail" value="demo@empresa.com" autocomplete="email" spellcheck="false">
+                        <label for="issueEmail">Customer email</label>
+                        <input type="email" id="issueEmail" value="demo@company.com" autocomplete="email" spellcheck="false">
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="issueTier">Nivel</label>
+                            <label for="issueTier">Tier</label>
                             <select id="issueTier">
-                                <option value="community">Community · 25 cr · 1 nodo</option>
-                                <option value="indie">Indie · 10.000 cr · 3 nodos</option>
-                                <option value="agency">Agency · 50.000 cr · 25 nodos</option>
-                                <option value="pro" selected>Pro · 500 cr · 3 nodos</option>
-                                <option value="studio">Studio · 5.000 cr · 25 nodos</option>
-                                <option value="lifetime">Lifetime · 10.000 cr · 3 nodos</option>
+                                <option value="community">Community · 25 cr · 1 node</option>
+                                <option value="indie">Indie · 10,000 cr · 3 nodes</option>
+                                <option value="agency">Agency · 50,000 cr · 25 nodes</option>
+                                <option value="pro" selected>Pro · 500 cr · 3 nodes</option>
+                                <option value="studio">Studio · 5,000 cr · 25 nodes</option>
+                                <option value="lifetime">Lifetime · 10,000 cr · 3 nodes</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="issueAlgo">Firma</label>
+                            <label for="issueAlgo">Signature</label>
                             <select id="issueAlgo">
-                                <option value="ed25519" selected>Ed25519 · asimétrica</option>
-                                <option value="hmac-sha256">HMAC-SHA256 · simétrica, solo online</option>
+                                <option value="ed25519" selected>Ed25519 · asymmetric</option>
+                                <option value="hmac-sha256">HMAC-SHA256 · symmetric, online only</option>
                             </select>
                         </div>
                     </div>
                     <div class="form-group">
-                        <label for="issueDomain">Dominio permitido <span class="opt">· opcional</span></label>
-                        <input type="text" id="issueDomain" class="mono" placeholder="*.empresa.com" spellcheck="false" autocomplete="off">
+                        <label for="issueDomain">Allowed domain <span class="opt">· optional</span></label>
+                        <input type="text" id="issueDomain" class="mono" placeholder="*.company.com" spellcheck="false" autocomplete="off">
                     </div>
-                    <button type="button" class="btn" id="btnIssue">Emitir</button>
+                    <button type="button" class="btn" id="btnIssue">Issue</button>
                     <pre class="code-box state-ok is-hidden" id="issueResult" aria-live="polite"></pre>
                 </div>
 
                 <div class="card col-6">
                     <div class="card-header">
                         <div>
-                            <h3 class="card-title">Verificar, activar y revocar</h3>
-                            <p class="card-sub">Online contra la API u offline con Web Crypto en este navegador.</p>
+                            <h3 class="card-title">Verify, activate and revoke</h3>
+                            <p class="card-sub">Online against the API, or offline with Web Crypto in this browser.</p>
                         </div>
-                        <span class="card-step" aria-label="Paso 2">2</span>
+                        <span class="card-step" aria-label="Step 2">2</span>
                     </div>
                     <div class="form-group">
                         <label for="verifyKey">Token</label>
@@ -613,20 +613,20 @@ kf = KeyFlint()  <span class="hl-cm"># lee KEYFLINT_LICENSE, KEYFLINT_PUBLIC_KEY
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="verifyHw">Hardware ID <span class="opt">· opcional</span></label>
+                            <label for="verifyHw">Hardware ID <span class="opt">· optional</span></label>
                             <input type="text" id="verifyHw" placeholder="hw-node-001" spellcheck="false" autocomplete="off">
                         </div>
                         <div class="form-group">
-                            <label for="verifyDomain">Dominio <span class="opt">· opcional</span></label>
-                            <input type="text" id="verifyDomain" class="mono" placeholder="app.empresa.com" spellcheck="false" autocomplete="off">
+                            <label for="verifyDomain">Domain <span class="opt">· optional</span></label>
+                            <input type="text" id="verifyDomain" class="mono" placeholder="app.company.com" spellcheck="false" autocomplete="off">
                         </div>
                     </div>
                     <div class="action-row">
-                        <button type="button" class="btn btn-secondary" id="btnVerifyOnline">Verificar online</button>
-                        <button type="button" class="btn btn-secondary" id="btnVerifyOffline">Verificar offline</button>
-                        <button type="button" class="btn" id="btnActivate">Activar nodo</button>
+                        <button type="button" class="btn btn-secondary" id="btnVerifyOnline">Verify online</button>
+                        <button type="button" class="btn btn-secondary" id="btnVerifyOffline">Verify offline</button>
+                        <button type="button" class="btn" id="btnActivate">Activate node</button>
                         <span class="spacer"></span>
-                        <button type="button" class="btn btn-danger" id="btnRevoke">Revocar</button>
+                        <button type="button" class="btn btn-danger" id="btnRevoke">Revoke</button>
                     </div>
                     <pre class="code-box state-ok is-hidden" id="verifyResult" aria-live="polite"></pre>
                 </div>
@@ -634,23 +634,23 @@ kf = KeyFlint()  <span class="hl-cm"># lee KEYFLINT_LICENSE, KEYFLINT_PUBLIC_KEY
                 <div class="card col-6">
                     <div class="card-header">
                         <div>
-                            <h3 class="card-title">Cuota de créditos</h3>
-                            <p class="card-sub">Descuento atómico; cada operación lleva su propia clave de idempotencia.</p>
+                            <h3 class="card-title">Credit quota</h3>
+                            <p class="card-sub">Atomic debit; every operation carries its own idempotency key.</p>
                         </div>
-                        <span class="card-step" aria-label="Paso 3">3</span>
+                        <span class="card-step" aria-label="Step 3">3</span>
                     </div>
                     <div class="form-group">
                         <label for="quotaKey">Token</label>
                         <input type="text" id="quotaKey" placeholder="LIC-PRO-eyJ…" spellcheck="false" autocomplete="off">
                     </div>
                     <div class="form-group">
-                        <label for="quotaCredits">Créditos</label>
+                        <label for="quotaCredits">Credits</label>
                         <input type="number" id="quotaCredits" class="mono" value="5" min="1" step="1" inputmode="numeric">
                     </div>
                     <div class="action-row">
-                        <button type="button" class="btn btn-secondary" id="btnQuotaBalance">Saldo</button>
-                        <button type="button" class="btn" id="btnQuotaDeduct">Descontar</button>
-                        <button type="button" class="btn btn-secondary" id="btnQuotaReplenish">Recargar</button>
+                        <button type="button" class="btn btn-secondary" id="btnQuotaBalance">Balance</button>
+                        <button type="button" class="btn" id="btnQuotaDeduct">Debit</button>
+                        <button type="button" class="btn btn-secondary" id="btnQuotaReplenish">Top up</button>
                     </div>
                     <pre class="code-box state-ok is-hidden" id="quotaResult" aria-live="polite"></pre>
                 </div>
@@ -658,18 +658,18 @@ kf = KeyFlint()  <span class="hl-cm"># lee KEYFLINT_LICENSE, KEYFLINT_PUBLIC_KEY
                 <div class="card col-6">
                     <div class="card-header">
                         <div>
-                            <h3 class="card-title">Simular webhook de pago</h3>
-                            <p class="card-sub">Firma el evento con el secreto del proveedor y lo procesa como uno real.</p>
+                            <h3 class="card-title">Simulate a payment webhook</h3>
+                            <p class="card-sub">Signs the event with the provider secret and processes it like a real one.</p>
                         </div>
-                        <span class="card-step" aria-label="Paso 4">4</span>
+                        <span class="card-step" aria-label="Step 4">4</span>
                     </div>
                     <div class="form-row">
                         <div class="form-group">
                             <label for="simEmail">Email</label>
-                            <input type="email" id="simEmail" value="demo@empresa.com" spellcheck="false">
+                            <input type="email" id="simEmail" value="demo@company.com" spellcheck="false">
                         </div>
                         <div class="form-group">
-                            <label for="simTier">Nivel</label>
+                            <label for="simTier">Tier</label>
                             <select id="simTier">
                                 <option value="community">Community</option>
                                 <option value="indie">Indie</option>
@@ -682,45 +682,45 @@ kf = KeyFlint()  <span class="hl-cm"># lee KEYFLINT_LICENSE, KEYFLINT_PUBLIC_KEY
                     </div>
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="simProvider">Proveedor</label>
+                            <label for="simProvider">Provider</label>
                             <select id="simProvider">
                                 <option value="stripe" selected>Stripe · Stripe-Signature</option>
                                 <option value="lemonsqueezy">LemonSqueezy · X-Signature</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <label for="simEvent">Evento</label>
+                            <label for="simEvent">Event</label>
                             <select id="simEvent">
-                                <option value="checkout.session.completed">checkout.session.completed · alta</option>
-                                <option value="invoice.payment_succeeded">invoice.payment_succeeded · renovación</option>
-                                <option value="invoice.payment_failed">invoice.payment_failed · gracia</option>
-                                <option value="customer.subscription.deleted">customer.subscription.deleted · baja</option>
+                                <option value="checkout.session.completed">checkout.session.completed · new</option>
+                                <option value="invoice.payment_succeeded">invoice.payment_succeeded · renewal</option>
+                                <option value="invoice.payment_failed">invoice.payment_failed · grace</option>
+                                <option value="customer.subscription.deleted">customer.subscription.deleted · cancel</option>
                             </select>
                         </div>
                     </div>
-                    <button type="button" class="btn" id="btnSimulate">Enviar webhook</button>
+                    <button type="button" class="btn" id="btnSimulate">Send webhook</button>
                     <pre class="code-box state-ok is-hidden" id="simResult" aria-live="polite"></pre>
                 </div>
 
                 <div class="card col-12">
                     <div class="card-header">
                         <div>
-                            <h3 class="card-title">Eventos de la licencia</h3>
-                            <p class="card-sub">Activaciones y consumos registrados para el token actual.</p>
+                            <h3 class="card-title">License events</h3>
+                            <p class="card-sub">Activations and usage recorded for the current token.</p>
                         </div>
-                        <button type="button" class="btn btn-secondary btn-inline" id="btnTelemetryRefresh">Actualizar</button>
+                        <button type="button" class="btn btn-secondary btn-inline" id="btnTelemetryRefresh">Refresh</button>
                     </div>
-                    <pre class="code-box state-ok is-idle" id="telemetryResult" aria-live="polite">Sin token. Emite una licencia o pega una en el panel 02.</pre>
+                    <pre class="code-box state-ok is-idle" id="telemetryResult" aria-live="polite">No token. Issue a license or paste one into panel 02.</pre>
                 </div>
             </div>
             <div class="grid" style="margin-top: 16px;">
                 <div class="card col-12" id="billingActionCard">
                     <div class="card-header" style="flex-wrap: wrap; gap: 8px;">
                         <div>
-                            <h3 class="card-title">API de facturación</h3>
+                            <h3 class="card-title">Billing API</h3>
                             <p class="card-sub"><code>POST /api/v1/billing/checkout</code> · portal: <code>/api/v1/billing/portal</code></p>
                         </div>
-                        <button type="button" class="btn btn-secondary btn-inline" id="btnBillingPortal">Abrir portal del cliente</button>
+                        <button type="button" class="btn btn-secondary btn-inline" id="btnBillingPortal">Open customer portal</button>
                     </div>
                     <pre class="code-box state-ok" id="billingResult" aria-live="polite"></pre>
                 </div>
@@ -729,8 +729,8 @@ kf = KeyFlint()  <span class="hl-cm"># lee KEYFLINT_LICENSE, KEYFLINT_PUBLIC_KEY
 
         <section id="comparison-section" class="block">
             <div class="section-head">
-                <h2>Comparativa</h2>
-                <p>KeyFlint frente a un servicio de licencias en la nube y una implementación propia.</p>
+                <h2>Compare</h2>
+                <p>KeyFlint vs. a hosted licensing service and building it yourself.</p>
             </div>
             <div class="table-wrap">
                 <table class="comp-table">
@@ -738,40 +738,40 @@ kf = KeyFlint()  <span class="hl-cm"># lee KEYFLINT_LICENSE, KEYFLINT_PUBLIC_KEY
                         <tr>
                             <th scope="col"></th>
                             <th scope="col" class="kf-col">KeyFlint</th>
-                            <th scope="col">SaaS de licencias</th>
-                            <th scope="col">Desarrollo propio</th>
+                            <th scope="col">Licensing SaaS</th>
+                            <th scope="col">Build it yourself</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
-                            <td>Coste</td>
-                            <td class="kf-col">Pago único (Indie, Agency) o mensual (Pro, Studio). Sin comisión por venta.</td>
-                            <td>Suscripción mensual, normalmente por volumen de licencias o validaciones.</td>
-                            <td>Horas de ingeniería y mantenimiento propio.</td>
+                            <td>Cost</td>
+                            <td class="kf-col">One-time (Indie, Agency) or monthly (Pro, Studio). No cut per sale.</td>
+                            <td>Monthly subscription, usually priced by licenses or validations.</td>
+                            <td>Engineering hours and your own maintenance.</td>
                         </tr>
                         <tr>
-                            <td>Datos de clientes</td>
-                            <td class="kf-col">En tu servidor, en un archivo SQLite.</td>
-                            <td>En la infraestructura del proveedor.</td>
-                            <td>En tu servidor.</td>
+                            <td>Customer data</td>
+                            <td class="kf-col">On your server, in one SQLite file.</td>
+                            <td>On the vendor's infrastructure.</td>
+                            <td>On your server.</td>
                         </tr>
                         <tr>
-                            <td>Verificación offline</td>
-                            <td class="kf-col">Incluida. Ed25519 con rotación por <code>kid</code>.</td>
-                            <td>Según proveedor y plan.</td>
-                            <td>La implementas y auditas tú.</td>
+                            <td>Offline verification</td>
+                            <td class="kf-col">Included. Ed25519 with <code>kid</code> rotation.</td>
+                            <td>Depends on vendor and plan.</td>
+                            <td>You build and audit it.</td>
                         </tr>
                         <tr>
-                            <td>Cobro por llamada en MCP</td>
-                            <td class="kf-col"><code>@metered</code> en Python y TypeScript, con reembolso si falla.</td>
-                            <td>Habitualmente fuera del producto.</td>
-                            <td>Lo implementas tú.</td>
+                            <td>Per-call billing in MCP</td>
+                            <td class="kf-col"><code>@metered</code> in Python and TypeScript, refunded on failure.</td>
+                            <td>Usually not part of the product.</td>
+                            <td>You build it.</td>
                         </tr>
                         <tr>
-                            <td>Cliente de verificación</td>
-                            <td class="kf-col">SDKs MIT para Python, TypeScript y Go. 50 vectores de conformidad compartidos.</td>
-                            <td>SDK del proveedor.</td>
-                            <td>Sin vectores de prueba compartidos.</td>
+                            <td>Verification client</td>
+                            <td class="kf-col">MIT SDKs for Python, TypeScript and Go. 50 shared conformance vectors.</td>
+                            <td>The vendor's SDK.</td>
+                            <td>No shared test vectors.</td>
                         </tr>
                     </tbody>
                 </table>
@@ -780,8 +780,8 @@ kf = KeyFlint()  <span class="hl-cm"># lee KEYFLINT_LICENSE, KEYFLINT_PUBLIC_KEY
 
         <section id="pricing-section" class="block">
             <div class="section-head">
-                <h2>Niveles y licencias</h2>
-                <p>Elige tu licencia para monetizar tus herramientas CLI y servidores MCP. Pago seguro con Stripe. Precios sin IVA: el impuesto aplicable a tu país se añade en el checkout.</p>
+                <h2>Pricing</h2>
+                <p>Pick a license to monetize your CLI tools and MCP servers. Secure checkout with Stripe. Prices exclude tax: any VAT or sales tax for your country is added at checkout.</p>
             </div>
 
             <div class="grid">
@@ -789,81 +789,81 @@ kf = KeyFlint()  <span class="hl-cm"># lee KEYFLINT_LICENSE, KEYFLINT_PUBLIC_KEY
                 <div class="card col-3 pricing-card">
                     <div>
                         <div class="tier-name">Indie</div>
-                        <p class="tier-for">Un desarrollador o un producto.</p>
-                        <div class="tier-price">$149 <span>/ pago único + IVA</span></div>
+                        <p class="tier-for">One developer or one product.</p>
+                        <div class="tier-price">$149 <span>/ one-time + tax</span></div>
                         <ul class="tier-specs">
-                            <li><span>Licencia</span><b>Perpetua</b></li>
-                            <li><span>Nodos / Clientes</span><b>3</b></li>
-                            <li><span>Créditos iniciales</span><b>10.000</b></li>
-                            <li><span>Verificación</span><b>Offline, Ed25519</b></li>
-                            <li><span>Actualizaciones</span><b>Toda la v1.x</b></li>
-                            <li><span>Soporte</span><b>≤ 2 días laborables</b></li>
+                            <li><span>License</span><b>Perpetual</b></li>
+                            <li><span>Nodes / Clients</span><b>3</b></li>
+                            <li><span>Starting credits</span><b>10,000</b></li>
+                            <li><span>Verification</span><b>Offline, Ed25519</b></li>
+                            <li><span>Updates</span><b>All of v1.x</b></li>
+                            <li><span>Support</span><b>≤ 2 business days</b></li>
                         </ul>
                     </div>
-                    <a href="https://buy.stripe.com/eVq6oz64kbc7g7abF1awo03" target="_blank" rel="noopener noreferrer" class="btn btn-secondary js-checkout-link" data-tier="indie">Comprar Indie ($149)</a>
+                    <a href="https://buy.stripe.com/eVq6oz64kbc7g7abF1awo03" target="_blank" rel="noopener noreferrer" class="btn btn-secondary js-checkout-link" data-tier="indie">Buy Indie ($149)</a>
                 </div>
 
                 <!-- 2. Agency License ($349 One-time - Featured) -->
                 <div class="card col-3 pricing-card featured">
                     <div>
-                        <div class="tier-name">Agency <span class="tier-flag">Recomendado</span></div>
-                        <p class="tier-for">Agencias que venden a varios clientes.</p>
-                        <div class="tier-price">$349 <span>/ pago único + IVA</span></div>
+                        <div class="tier-name">Agency <span class="tier-flag">Recommended</span></div>
+                        <p class="tier-for">Agencies selling to several clients.</p>
+                        <div class="tier-price">$349 <span>/ one-time + tax</span></div>
                         <ul class="tier-specs">
-                            <li><span>Licencia</span><b>Perpetua</b></li>
-                            <li><span>Nodos / Clientes</span><b>25</b></li>
-                            <li><span>Créditos iniciales</span><b>50.000</b></li>
-                            <li><span>Verificación</span><b>Offline, Ed25519</b></li>
-                            <li><span>Actualizaciones</span><b>Toda la v1.x</b></li>
-                            <li><span>Soporte</span><b>≤ 1 día laborable</b></li>
+                            <li><span>License</span><b>Perpetual</b></li>
+                            <li><span>Nodes / Clients</span><b>25</b></li>
+                            <li><span>Starting credits</span><b>50,000</b></li>
+                            <li><span>Verification</span><b>Offline, Ed25519</b></li>
+                            <li><span>Updates</span><b>All of v1.x</b></li>
+                            <li><span>Support</span><b>≤ 1 business day</b></li>
                         </ul>
                     </div>
-                    <a href="https://buy.stripe.com/dRmeV578ogwr8EI24rawo02" target="_blank" rel="noopener noreferrer" class="btn js-checkout-link" data-tier="agency">Comprar Agency ($349)</a>
+                    <a href="https://buy.stripe.com/dRmeV578ogwr8EI24rawo02" target="_blank" rel="noopener noreferrer" class="btn js-checkout-link" data-tier="agency">Buy Agency ($349)</a>
                 </div>
 
                 <!-- 3. Pro Cloud ($29/mo Recurring) -->
                 <div class="card col-3 pricing-card">
                     <div>
                         <div class="tier-name">Pro Cloud</div>
-                        <p class="tier-for">Gateway gestionado, sin servidor propio.</p>
-                        <div class="tier-price">$29 <span>/ mes + IVA</span></div>
+                        <p class="tier-for">Managed gateway, no server of your own.</p>
+                        <div class="tier-price">$29 <span>/ month + tax</span></div>
                         <ul class="tier-specs">
-                            <li><span>Créditos / ciclo</span><b>500</b></li>
-                            <li><span>Nodos activos</span><b>3</b></li>
-                            <li><span>Verificación</span><b>Offline + API</b></li>
-                            <li><span>Webhooks</span><b>Stripe incluidos</b></li>
-                            <li><span>Facturación</span><b>Mensual recurrente</b></li>
-                            <li><span>Soporte</span><b>≤ 2 días laborables</b></li>
+                            <li><span>Credits / cycle</span><b>500</b></li>
+                            <li><span>Active nodes</span><b>3</b></li>
+                            <li><span>Verification</span><b>Offline + API</b></li>
+                            <li><span>Webhooks</span><b>Stripe included</b></li>
+                            <li><span>Billing</span><b>Monthly, recurring</b></li>
+                            <li><span>Support</span><b>≤ 2 business days</b></li>
                         </ul>
                     </div>
-                    <a href="https://buy.stripe.com/8x2eV578o7ZV6wAbF1awo01" target="_blank" rel="noopener noreferrer" class="btn btn-secondary js-checkout-link" data-tier="pro">Suscribir Pro ($29/mo)</a>
+                    <a href="https://buy.stripe.com/8x2eV578o7ZV6wAbF1awo01" target="_blank" rel="noopener noreferrer" class="btn btn-secondary js-checkout-link" data-tier="pro">Subscribe Pro ($29/mo)</a>
                 </div>
 
                 <!-- 4. Studio Cloud ($89/mo Recurring) -->
                 <div class="card col-3 pricing-card">
                     <div>
                         <div class="tier-name">Studio Cloud</div>
-                        <p class="tier-for">Equipos con más volumen y auditoría.</p>
-                        <div class="tier-price">$89 <span>/ mes + IVA</span></div>
+                        <p class="tier-for">Teams with more volume and auditing.</p>
+                        <div class="tier-price">$89 <span>/ month + tax</span></div>
                         <ul class="tier-specs">
-                            <li><span>Créditos / ciclo</span><b>5.000</b></li>
-                            <li><span>Nodos activos</span><b>25</b></li>
-                            <li><span>Telemetría</span><b>Auditoría incluida</b></li>
-                            <li><span>Transacciones</span><b>ACID, SQLite</b></li>
-                            <li><span>Soporte</span><b>≤ 1 día laborable</b></li>
+                            <li><span>Credits / cycle</span><b>5,000</b></li>
+                            <li><span>Active nodes</span><b>25</b></li>
+                            <li><span>Telemetry</span><b>Audit log included</b></li>
+                            <li><span>Transactions</span><b>ACID, SQLite</b></li>
+                            <li><span>Support</span><b>≤ 1 business day</b></li>
                         </ul>
                     </div>
-                    <a href="https://buy.stripe.com/5kQeV52S8gwrbQUdN9awo00" target="_blank" rel="noopener noreferrer" class="btn btn-secondary js-checkout-link" data-tier="studio">Suscribir Studio ($89/mo)</a>
+                    <a href="https://buy.stripe.com/5kQeV52S8gwrbQUdN9awo00" target="_blank" rel="noopener noreferrer" class="btn btn-secondary js-checkout-link" data-tier="studio">Subscribe Studio ($89/mo)</a>
                 </div>
 
                 <!-- Community Banner -->
                 <div class="card col-12 community-card">
                     <div class="community-row">
                         <div>
-                            <strong>¿Quieres probarlo gratis?</strong>
-                            <p>El código está en GitHub: servidor BSL 1.1 y SDKs de verificación MIT.</p>
+                            <strong>Want to try it for free?</strong>
+                            <p>The code is on GitHub: BSL 1.1 server and MIT verification SDKs.</p>
                         </div>
-                        <a href="https://github.com/ArceeDev/keyflint" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-inline"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>Ver en GitHub ($0)</a>
+                        <a href="https://github.com/ArceeDev/keyflint" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-inline"><svg class="ico" viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>View on GitHub ($0)</a>
                     </div>
                 </div>
 
@@ -871,26 +871,26 @@ kf = KeyFlint()  <span class="hl-cm"># lee KEYFLINT_LICENSE, KEYFLINT_PUBLIC_KEY
 
             <div class="guarantee-bar">
                 <div>
-                    <div class="guarantee-title">Reembolso de 14 días</div>
-                    <div class="guarantee-desc">Si KeyFlint no cumple tus requisitos en tu infraestructura, se devuelve el importe completo de la licencia.</div>
+                    <div class="guarantee-title">14-day refund</div>
+                    <div class="guarantee-desc">If KeyFlint doesn't meet your requirements on your infrastructure, you get a full refund.</div>
                 </div>
-                <a class="btn btn-secondary btn-inline" href="https://licenses.keyflint.dev/docs" target="_blank" rel="noopener noreferrer">Ver la API antes de comprar</a>
+                <a class="btn btn-secondary btn-inline" href="https://licenses.keyflint.dev/docs" target="_blank" rel="noopener noreferrer">See the API before you buy</a>
             </div>
         </section>
 
         <section id="portal-section" class="block">
             <div class="section-head">
-                <h2>Portal del comprador</h2>
-                <p>Consulta tus tokens Ed25519, saldo de créditos y fragmentos de integración con tu token de licencia, o con tu email de compra: te enviamos un enlace de acceso de un solo uso.</p>
+                <h2>Customer portal</h2>
+                <p>See your Ed25519 tokens, credit balance and integration snippets with your license token, or with your purchase email: we send you a one-time sign-in link.</p>
             </div>
 
             <div class="card col-12">
                 <div class="portal-row">
                     <div class="form-group">
-                        <label for="portalQuery">Email de compra o token de licencia</label>
-                        <input type="text" id="portalQuery" placeholder="tu@empresa.com o LIC-PRO-…" autocomplete="off">
+                        <label for="portalQuery">Purchase email or license token</label>
+                        <input type="text" id="portalQuery" placeholder="you@company.com or LIC-PRO-…" autocomplete="off">
                     </div>
-                    <button type="button" class="btn" id="btnPortalLookup">Consultar licencia</button>
+                    <button type="button" class="btn" id="btnPortalLookup">Look up license</button>
                 </div>
 
                 <div id="portalResults" class="is-hidden" style="margin-top: 20px;">
@@ -902,11 +902,11 @@ kf = KeyFlint()  <span class="hl-cm"># lee KEYFLINT_LICENSE, KEYFLINT_PUBLIC_KEY
                     </div>
                     <div id="portalLicensesContainer" style="margin: 16px 0;"></div>
                     <div class="form-group" style="margin-top: 16px;">
-                        <label>Verificación en Python (sin dependencias)</label>
+                        <label>Verification in Python (no dependencies)</label>
                         <pre class="code-box state-ok" id="portalPySnippet"></pre>
                     </div>
                     <div class="form-group" style="margin-top: 16px;">
-                        <label>Verificación en TypeScript / Node (Web Crypto)</label>
+                        <label>Verification in TypeScript / Node (Web Crypto)</label>
                         <pre class="code-box state-ok" id="portalTsSnippet"></pre>
                     </div>
                 </div>
@@ -916,8 +916,8 @@ kf = KeyFlint()  <span class="hl-cm"># lee KEYFLINT_LICENSE, KEYFLINT_PUBLIC_KEY
             <div class="card col-12" id="portalWelcome" style="margin-top: 16px;">
                 <div class="card-header">
                     <div>
-                        <h3 class="card-title">Tras la compra: despliega tu gateway sin terminal</h3>
-                        <p class="card-sub">Indie y Agency incluyen el gateway autoalojado (Docker + SQLite). Las claves se generan solas en el primer arranque.</p>
+                        <h3 class="card-title">After purchase: deploy your gateway without a terminal</h3>
+                        <p class="card-sub">Indie and Agency include the self-hosted gateway (Docker + SQLite). Keys are generated automatically on first boot.</p>
                     </div>
                 </div>
                 <div class="deploy-row">
@@ -925,22 +925,22 @@ kf = KeyFlint()  <span class="hl-cm"># lee KEYFLINT_LICENSE, KEYFLINT_PUBLIC_KEY
                     <a class="btn btn-secondary btn-inline" href="https://railway.com/new/template?template=https%3A%2F%2Fgithub.com%2FArceeDev%2Fkeyflint" target="_blank" rel="noopener noreferrer">Deploy on Railway</a>
                     <code>fly launch --from https://github.com/ArceeDev/keyflint</code>
                 </div>
-                <p class="card-sub" style="margin-top: 8px;">Después, usa el <a href="#generator-section">generador</a> con la clave pública que aparece en los logs.</p>
+                <p class="card-sub" style="margin-top: 8px;">Then use the <a href="#generator-section">generator</a> with the public key printed in the logs.</p>
             </div>
 
             <div class="card col-12" id="portalNodes" style="margin-top: 16px;">
                 <div class="card-header">
                     <div>
-                        <h3 class="card-title">Liberar un nodo</h3>
-                        <p class="card-sub">¿Reconstruiste un contenedor o cambiaste de equipo? Libera su asiento (1 vez cada 24 h por licencia).</p>
+                        <h3 class="card-title">Release a node</h3>
+                        <p class="card-sub">Rebuilt a container or switched machines? Free its seat (once every 24 h per license).</p>
                     </div>
                 </div>
                 <div class="portal-row">
                     <div class="form-group">
-                        <label for="nodesKey">Token de licencia</label>
+                        <label for="nodesKey">License token</label>
                         <input type="text" id="nodesKey" placeholder="LIC-PRO-..." autocomplete="off" spellcheck="false">
                     </div>
-                    <button type="button" class="btn btn-secondary" id="btnNodesList">Ver nodos</button>
+                    <button type="button" class="btn btn-secondary" id="btnNodesList">Show nodes</button>
                 </div>
                 <div id="nodesList" style="margin-top: 12px;"></div>
                 <pre class="code-box is-hidden" id="nodesResult" aria-live="polite"></pre>
@@ -949,67 +949,67 @@ kf = KeyFlint()  <span class="hl-cm"># lee KEYFLINT_LICENSE, KEYFLINT_PUBLIC_KEY
 
         <section id="faq-section" class="block faq-section">
             <div class="section-head">
-                <h2>Preguntas frecuentes</h2>
+                <h2>FAQ</h2>
             </div>
 
             <div class="faq-list">
                 <div class="faq-item">
                     <button type="button" class="faq-question" aria-expanded="false">
-                        <span>¿Se puede validar una licencia sin conexión?</span>
+                        <span>Can a license be validated offline?</span>
                         <span class="faq-icon" aria-hidden="true"></span>
                     </button>
                     <div class="faq-answer"><div>
-                        Sí, con tokens Ed25519. El cliente embebe la clave pública (o el keyring de <code>/api/v1/licenses/public-key</code>) y verifica firma, caducidad, nodo y dominio en local. Los tokens HMAC-SHA256 solo se validan online, porque el secreto no puede salir del servidor.
+                        Yes, with Ed25519 tokens. The client embeds the public key (or the keyring from <code>/api/v1/licenses/public-key</code>) and checks signature, expiry, node and domain locally. HMAC-SHA256 tokens are validated online only, because the secret cannot leave the server.
                     </div></div>
                 </div>
 
                 <div class="faq-item">
                     <button type="button" class="faq-question" aria-expanded="false">
-                        <span>¿Cómo roto la clave de firma sin invalidar licencias emitidas?</span>
+                        <span>How do I rotate the signing key without invalidating issued licenses?</span>
                         <span class="faq-icon" aria-hidden="true"></span>
                     </button>
                     <div class="faq-answer"><div>
-                        Define <code>ED25519_KID</code> para la clave nueva y mueve la anterior a <code>ED25519_RETIRED_PUBLIC_KEYS</code>. Los SDKs eligen la clave por <code>kid</code>; los tokens sin <code>kid</code> (v1.0) siguen siendo válidos.
+                        Set <code>ED25519_KID</code> for the new key and move the old one to <code>ED25519_RETIRED_PUBLIC_KEYS</code>. The SDKs pick the key by <code>kid</code>; tokens without a <code>kid</code> (v1.0) stay valid.
                     </div></div>
                 </div>
 
                 <div class="faq-item">
                     <button type="button" class="faq-question" aria-expanded="false">
-                        <span>¿Qué infraestructura necesita el servidor?</span>
+                        <span>What infrastructure does the server need?</span>
                         <span class="faq-icon" aria-hidden="true"></span>
                     </button>
                     <div class="faq-answer"><div>
-                        Un contenedor Docker con un volumen persistente para el archivo SQLite. No requiere Postgres, Redis ni colas externas.
+                        One Docker container with a persistent volume for the SQLite file. No Postgres, Redis or external queues.
                     </div></div>
                 </div>
 
                 <div class="faq-item">
                     <button type="button" class="faq-question" aria-expanded="false">
-                        <span>¿Cómo se cobran créditos en un servidor MCP?</span>
+                        <span>How are credits charged in an MCP server?</span>
                         <span class="faq-icon" aria-hidden="true"></span>
                     </button>
                     <div class="faq-answer"><div>
-                        Decora la tool con <code>@metered(credits=N)</code>. El descuento es atómico en SQLite WAL. Sin saldo, la tool devuelve el error JSON-RPC <code>-32062</code> sin ejecutarse.
+                        Decorate the tool with <code>@metered(credits=N)</code>. The debit is atomic in SQLite WAL. With no balance left, the tool returns JSON-RPC error <code>-32062</code> without running.
                     </div></div>
                 </div>
 
                 <div class="faq-item">
                     <button type="button" class="faq-question" aria-expanded="false">
-                        <span>¿Qué pasa si la tool falla después de cobrar?</span>
+                        <span>What if the tool fails after charging?</span>
                         <span class="faq-icon" aria-hidden="true"></span>
                     </button>
                     <div class="faq-answer"><div>
-                        Si lanza una excepción o devuelve <code>isError</code>, el SDK llama a <code>POST /api/v1/quota/refund</code> con la misma clave de idempotencia. El reembolso es idempotente y solo se acepta dentro de <code>QUOTA_REFUND_WINDOW_SECONDS</code> (900 s por defecto).
+                        If it raises or returns <code>isError</code>, the SDK calls <code>POST /api/v1/quota/refund</code> with the same idempotency key. The refund is idempotent and only accepted within <code>QUOTA_REFUND_WINDOW_SECONDS</code> (900 s by default).
                     </div></div>
                 </div>
 
                 <div class="faq-item">
                     <button type="button" class="faq-question" aria-expanded="false">
-                        <span>¿Quién cobra a mis clientes?</span>
+                        <span>Who charges my customers?</span>
                         <span class="faq-icon" aria-hidden="true"></span>
                     </button>
                     <div class="faq-answer"><div>
-                        Tu cuenta de Stripe o LemonSqueezy. KeyFlint recibe sus webhooks firmados, emite, renueva o revoca la licencia y no cobra comisión por transacción.
+                        Your own Stripe or LemonSqueezy account. KeyFlint receives their signed webhooks, issues, renews or revokes the license, and takes no cut per transaction.
                     </div></div>
                 </div>
             </div>
@@ -1021,8 +1021,8 @@ kf = KeyFlint()  <span class="hl-cm"># lee KEYFLINT_LICENSE, KEYFLINT_PUBLIC_KEY
                 <ul class="footer-links">
                     <li><a href="/docs">API</a></li>
                     <li><a href="https://github.com/ArceeDev/keyflint" target="_blank" rel="noopener noreferrer">GitHub</a></li>
-                    <li><a href="https://keyflint.dev/guides/paid-mcp-server.html">Guía: MCP de pago</a></li>
-                    <li><a href="mailto:support@keyflint.dev">Soporte</a></li>
+                    <li><a href="https://keyflint.dev/guides/paid-mcp-server.html">Guide: paid MCP server</a></li>
+                    <li><a href="mailto:support@keyflint.dev">Support</a></li>
                 </ul>
             </div>
         </footer>
