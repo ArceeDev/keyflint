@@ -7,7 +7,7 @@
     <title>KeyFlint · Offline Ed25519 licenses &amp; credit metering for MCP servers, CLIs and APIs</title>
     <meta name="description" content="Self-hosted gateway for Ed25519 licenses verified offline and atomic, refundable credit metering for MCP servers, CLIs and APIs.">
     <link rel="canonical" href="https://keyflint.dev/">
-    <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"KeyFlint","applicationCategory":"DeveloperApplication","operatingSystem":"Linux, macOS, Windows (Docker)","url":"https://keyflint.dev/","image":"https://keyflint.dev/og.png","description":"Self-hosted gateway for Ed25519 licenses verified offline and atomic, refundable credit metering for MCP servers, CLIs and APIs.","softwareHelp":"https://keyflint.dev/guides/paid-mcp-server.html","codeRepository":"https://github.com/ArceeDev/keyflint","offers":[{"@type":"Offer","name":"Community","price":"0","priceCurrency":"USD"},{"@type":"Offer","name":"Indie (one-time)","price":"149","priceCurrency":"USD"},{"@type":"Offer","name":"Agency (one-time)","price":"349","priceCurrency":"USD"},{"@type":"Offer","name":"Pro (monthly)","price":"29","priceCurrency":"USD"},{"@type":"Offer","name":"Studio (monthly)","price":"89","priceCurrency":"USD"}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"KeyFlint","applicationCategory":"DeveloperApplication","operatingSystem":"Linux, macOS, Windows (Docker)","url":"https://keyflint.dev/","image":"https://keyflint.dev/og.png","description":"Self-hosted gateway for Ed25519 licenses verified offline and atomic, refundable credit metering for MCP servers, CLIs and APIs.","softwareHelp":"https://keyflint.dev/guides/paid-mcp-server.html","codeRepository":"https://github.com/ArceeDev/keyflint","offers":[{"@type":"Offer","name":"Community","price":"0","priceCurrency":"USD"},{"@type":"Offer","name":"Indie (one-time)","price":"149","priceCurrency":"USD"},{"@type":"Offer","name":"Agency (one-time)","price":"349","priceCurrency":"USD"},{"@type":"Offer","name":"Founder (one-time, 100 units)","price":"199","priceCurrency":"USD"},{"@type":"Offer","name":"Pro (monthly)","price":"29","priceCurrency":"USD"},{"@type":"Offer","name":"Studio (monthly)","price":"89","priceCurrency":"USD"}]}</script>
     <meta name="theme-color" content="#0B0D17">
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230B0D17'/%3E%3Cpath d='M10 7v18M10 16l10-9M14 13l7 12' stroke='%23CCFF00' stroke-width='3.2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
     <!-- Social previews (HN, X, Reddit, Slack, Discord). English: launch audiences are English-speaking. -->
@@ -872,6 +872,17 @@ kf = KeyFlint()  <span class="hl-cm"># reads KEYFLINT_LICENSE, KEYFLINT_PUBLIC_K
                         </ul>
                     </div>
                     <a href="https://buy.stripe.com/5kQeV52S8gwrbQUdN9awo00" target="_blank" rel="noopener noreferrer" class="btn btn-secondary js-checkout-link" data-tier="studio">Subscribe Studio ($89/mo)</a>
+                </div>
+
+                <!-- 5. Founder (lifetime tier, $199 one-time, capped at 100 via the Stripe Payment Link) -->
+                <div class="card col-12 community-card founder-card">
+                    <div class="community-row">
+                        <div>
+                            <strong>Founder · $199 one-time + tax <span class="tier-flag">Launch only · 100 licenses</span></strong>
+                            <p>Everything in Indie (perpetual license, 3 nodes, 10,000 starting credits, offline Ed25519) plus every v1.x and v2.x update. Sold once: when the 100 licenses are gone, the offer closes.</p>
+                        </div>
+                        <a href="https://buy.stripe.com/9B6cMX64kcgb08cbF1awo07" target="_blank" rel="noopener noreferrer" class="btn js-checkout-link" data-tier="lifetime">Become a Founder ($199)</a>
+                    </div>
                 </div>
 
                 <!-- Community Banner -->
