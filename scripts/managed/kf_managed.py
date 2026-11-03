@@ -2,8 +2,8 @@
 """KeyFlint Managed: one isolated Fly.io instance per customer.
 
   python scripts/managed/kf_managed.py create  acme --region cdg [--domain lic.acme.com] [--dry-run]
-  python scripts/managed/kf_managed.py upgrade acme --image ghcr.io/arceedev/keyflint:1.2.0
-  python scripts/managed/kf_managed.py upgrade --all --image ghcr.io/arceedev/keyflint:1.2.0
+  python scripts/managed/kf_managed.py upgrade acme --image ghcr.io/arceedev/keyflint:1.2.2
+  python scripts/managed/kf_managed.py upgrade --all --image ghcr.io/arceedev/keyflint:1.2.2
   python scripts/managed/kf_managed.py status  acme
   python scripts/managed/kf_managed.py list
   python scripts/managed/kf_managed.py destroy acme --confirm acme
