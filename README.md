@@ -141,6 +141,19 @@ from the host (Windows MachineGuid, macOS IOPlatformUUID, Linux/WSL `/etc/machin
 `-v /etc/machine-id:/etc/machine-id:ro`. The default stays the v1.0 formula because node-locked
 licenses embed it. Node.js: `stableMachineId()` from `keyflint-verify/mcp`.
 
+**Gateway blips (v1.2, opt-in).** `@kf.metered(credits=2, offline_grace_calls=3, timeout_ms=1500)`
+(TS: `kf.metered(2, handler, { offlineGraceCalls: 3, timeoutMs: 1500 })`) lets up to N calls run
+while the gateway is unreachable or answers 502/503/504, as long as the license verifies offline.
+Their debits are queued in memory and replayed with the same idempotency key before the next
+successful debit. Default 0 (fail closed), hard cap 5 per instance; queued debits are never
+refunded, a replay the gateway refuses (402) is dropped, and the queue is lost if the process exits.
+
+**Database maintenance (v1.2).** An hourly job (`MAINTENANCE_INTERVAL_SECONDS`, `0` disables it)
+runs `PRAGMA wal_checkpoint(TRUNCATE)` when Litestream is not replicating (Litestream manages its
+own checkpoints). `usage_events` is both the idempotency ledger and the usage history, so it is kept
+forever unless you set `USAGE_EVENTS_RETENTION_DAYS` (minimum 30; deleted in batches of 5,000).
+The redundant `idx_usage_idempotency` index (a duplicate of the UNIQUE key) is dropped on boot.
+
 **Clock rollback (v1.2, SDKs).** For licenses with `expires_at`, the MCP wrappers remember the latest
 time seen in `~/.keyflint/clock_state` (memory only if read-only; `KEYFLINT_CLOCK_STATE=off` keeps it
 in memory) and reject a clock more than 300 s behind it with `ERR_CLOCK_ROLLBACK_DETECTED`. This is a
