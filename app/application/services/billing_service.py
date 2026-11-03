@@ -6,12 +6,13 @@ replay protection idempotency, subscription lifecycles, and local webhook simula
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import hashlib
 import hmac
 import json
 import logging
 import re
+import secrets
 import time
 from typing import Any, Optional
 from urllib.parse import urlencode
@@ -107,6 +108,7 @@ class BillingService:
         stripe_webhook_secret: Optional[str] = None,
         lemonsqueezy_webhook_secret: Optional[str] = None,
         email_sender: Optional[IEmailSender] = None,
+        portal_token_repo: Optional[Any] = None,
     ) -> None:
         self._customer_repo = customer_repo
         self._license_repo = license_repo
@@ -115,6 +117,7 @@ class BillingService:
         self._license_service = license_service
         self._quota_service = quota_service
         self._email_sender = email_sender
+        self._portal_token_repo = portal_token_repo
 
         settings = get_settings()
         self._stripe_secret = stripe_webhook_secret or settings.STRIPE_WEBHOOK_SECRET
@@ -221,9 +224,27 @@ class BillingService:
         )
 
     def create_portal_session(self, request: PortalRequest) -> PortalResponse:
-        """Generates customer management portal session URL."""
+        """Generates customer management portal session URL.
+
+        The customer is resolved from license_key (proof of possession). An email alone is
+        only accepted in mock mode: in live mode it would hand anyone a buyer's Stripe portal.
+        """
         settings = get_settings()
-        if settings.BILLING_MODE.strip().lower() == "live":
+        is_live = settings.BILLING_MODE.strip().lower() == "live"
+        customer_email = request.customer_email or ""
+        if request.license_key:
+            lic = self._license_repo.get_by_key(request.license_key)
+            customer = self._customer_repo.get_by_id(lic.customer_id) if lic else None
+            if customer is None or _PLACEHOLDER_EMAIL.match(customer.email):
+                raise LicenseNotFoundError("No billing profile found for this license key.")
+            customer_email = customer.email
+        elif is_live:
+            raise DomainError(
+                "The billing portal requires your license key (or use the emailed portal link).",
+                code="PORTAL_PROOF_REQUIRED",
+                status_code=401,
+            )
+        if is_live:
             stripe_key = (settings.STRIPE_SECRET_KEY or "").strip()
             if not stripe_key:
                 raise DomainError(
@@ -235,7 +256,7 @@ class BillingService:
                 cust_resp = httpx.get(
                     "https://api.stripe.com/v1/customers",
                     auth=(stripe_key, ""),
-                    params={"email": request.customer_email, "limit": 1},
+                    params={"email": customer_email, "limit": 1},
                     timeout=10.0,
                 )
                 if cust_resp.status_code >= 400:
@@ -247,7 +268,7 @@ class BillingService:
                 customers = cust_resp.json().get("data") or []
                 if not customers:
                     raise LicenseNotFoundError(
-                        f"No Stripe billing profile found for '{request.customer_email}'."
+                        "No Stripe billing profile found for this license."
                     )
                 portal_resp = httpx.post(
                     "https://api.stripe.com/v1/billing_portal/sessions",
@@ -273,14 +294,14 @@ class BillingService:
                 )
             return PortalResponse(
                 portal_url=str(portal_resp.json().get("url") or ""),
-                customer_email=request.customer_email,
+                customer_email=customer_email,
             )
 
         session_id = f"portal_{uuid.uuid4().hex}"
         portal_url = f"/api/v1/billing/portal/session-{session_id}"
         return PortalResponse(
             portal_url=portal_url,
-            customer_email=request.customer_email,
+            customer_email=customer_email,
         )
 
     def verify_stripe_signature(self, raw_body: bytes, signature_header: Optional[str]) -> None:
@@ -1031,25 +1052,83 @@ class BillingService:
     def lookup_customer_licenses(
         self, request: CustomerPortalLookupRequest
     ) -> CustomerPortalLookupResponse:
-        """Returns customer license summaries, balances, and verification snippets."""
+        """Returns the portal view for a license key (possession of the key is the proof).
+
+        Email lookups never return data directly: use request_portal_magic_link instead.
+        """
         q = request.query.strip()
-        pub_key = self._license_service.get_public_key_hex()
-
-        customer = None
-        target_licenses = []
-
         if "@" in q:
-            customer = self._customer_repo.get_by_email(q)
-            if customer:
-                target_licenses = self._license_repo.list_by_customer_id(customer.id)
-        else:
-            lic = self._license_repo.get_by_key(q)
-            if lic:
-                target_licenses = [lic]
-                customer = self._customer_repo.get_by_id(lic.customer_id)
+            raise DomainError(
+                "Email lookups are answered with a one-time link sent to that inbox.",
+                code="PORTAL_EMAIL_REQUIRES_LINK",
+                status_code=400,
+            )
+        lic = self._license_repo.get_by_key(q)
+        if lic is None:
+            raise LicenseNotFoundError("No license found for this key.")
+        customer = self._customer_repo.get_by_id(lic.customer_id)
+        return self._portal_view(customer, [lic])
 
-        if not target_licenses:
-            raise LicenseNotFoundError(f"No licenses found matching query '{q}'.")
+    def request_portal_magic_link(self, email: str) -> Optional[tuple[str, str]]:
+        """Creates a single-use portal link for a known buyer.
+
+        Returns (recipient, link) to email, or None when the email is unknown, has no licenses or
+        hit the per-window limit. Callers must answer identically in every case (no enumeration).
+        """
+        if self._portal_token_repo is None:
+            raise DomainError("Portal sign-in links are not configured.", code="PORTAL_UNAVAILABLE", status_code=503)
+        settings = get_settings()
+        customer = self._customer_repo.get_by_email(email.strip())
+        if customer is None or _PLACEHOLDER_EMAIL.match(customer.email):
+            return None
+        if not self._license_repo.list_by_customer_id(customer.id):
+            return None
+        ttl = max(60, int(settings.PORTAL_LINK_TTL_SECONDS))
+        since = datetime.now(timezone.utc) - timedelta(seconds=ttl)
+        if self._portal_token_repo.count_recent(customer.id, since) >= max(1, settings.PORTAL_LINK_MAX_PER_WINDOW):
+            logger.warning("Portal magic link throttled for customer %s", customer.id)
+            return None
+        token = secrets.token_urlsafe(32)
+        self._portal_token_repo.create(token, customer.id, ttl)
+        base = settings.PORTAL_LINK_BASE_URL.strip() or "/"
+        sep = "&" if "?" in base else "?"
+        link = f"{base}{sep}portal_token={token}#portal-section"
+        return customer.email, link
+
+    def send_portal_magic_link(self, recipient: str, link: str) -> bool:
+        """Emails a portal link. Never raises (runs after the HTTP response)."""
+        if self._email_sender is None:
+            logger.error("PORTAL LINK NOT SENT to %s: email_sender_not_wired", recipient)
+            return False
+        ttl_minutes = max(1, int(get_settings().PORTAL_LINK_TTL_SECONDS) // 60)
+        try:
+            ok = bool(self._email_sender.send_portal_magic_link(recipient, link, ttl_minutes))
+        except Exception as exc:
+            logger.error("PORTAL LINK NOT SENT to %s: %s", recipient, exc)
+            return False
+        if not ok:
+            logger.error(
+                "PORTAL LINK NOT SENT to %s: %s",
+                recipient,
+                getattr(self._email_sender, "last_error", None) or "send_failed",
+            )
+        return ok
+
+    def redeem_portal_magic_link(self, token: str) -> CustomerPortalLookupResponse:
+        """Consumes a single-use link and returns every license of its buyer."""
+        customer_id = self._portal_token_repo.redeem(token.strip()) if self._portal_token_repo else None
+        customer = self._customer_repo.get_by_id(customer_id) if customer_id else None
+        licenses = self._license_repo.list_by_customer_id(customer.id) if customer else []
+        if not licenses:
+            raise DomainError(
+                "This portal link is invalid, expired or already used. Request a new one.",
+                code="PORTAL_LINK_INVALID",
+                status_code=401,
+            )
+        return self._portal_view(customer, licenses)
+
+    def _portal_view(self, customer: Any, target_licenses: list[Any]) -> CustomerPortalLookupResponse:
+        pub_key = self._license_service.get_public_key_hex()
 
         resolved_email = customer.email if customer else "customer@external.ai"
         summaries: list[CustomerLicenseSummary] = []

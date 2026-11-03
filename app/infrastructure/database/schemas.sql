@@ -104,6 +104,16 @@ CREATE TABLE IF NOT EXISTS revoked_licenses (
     revoked_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Customer Portal Magic Links (single-use, short-lived; only the SHA-256 of the token is stored)
+CREATE TABLE IF NOT EXISTS portal_login_tokens (
+    token_hash TEXT PRIMARY KEY,
+    customer_id TEXT NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    used_at TEXT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_portal_tokens_customer ON portal_login_tokens(customer_id, created_at);
+
 -- Schema Migrations Table (Idempotent Migration Tracker)
 CREATE TABLE IF NOT EXISTS schema_migrations (
     version INTEGER PRIMARY KEY,

@@ -622,6 +622,9 @@ document.addEventListener("DOMContentLoaded", () => {
         );
     });
 
+    // Set after a successful portal lookup/redeem; the billing portal requires it in live mode.
+    let lastPortalLicenseKey = null;
+
     const btnBillingPortal = document.getElementById("btnBillingPortal");
     btnBillingPortal.addEventListener("click", () =>
         withButtonLock(btnBillingPortal, "Abriendo Portal...", async () => {
@@ -630,7 +633,11 @@ document.addEventListener("DOMContentLoaded", () => {
                 const res = await fetch("/api/v1/billing/portal", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ customer_email: email }),
+                    body: JSON.stringify(
+                        lastPortalLicenseKey
+                            ? { license_key: lastPortalLicenseKey, customer_email: email }
+                            : { customer_email: email }
+                    ),
                 });
                 const data = await res.json();
                 renderBox(billingResult, data, classifyResponse(res, data));
@@ -664,6 +671,44 @@ document.addEventListener("DOMContentLoaded", () => {
     const portalPySnippet = document.getElementById("portalPySnippet");
     const portalTsSnippet = document.getElementById("portalTsSnippet");
 
+    function showPortalMessage(text, ok) {
+        portalError.textContent = text;
+        portalError.classList.toggle("state-err", !ok);
+        portalError.classList.toggle("state-ok", !!ok);
+        portalError.classList.remove("is-hidden");
+    }
+
+    function portalErrorText(json, fallback) {
+        if (!json) return fallback;
+        if (json.error && typeof json.error === "object") return json.error.message || fallback;
+        return json.detail || json.error || json.message || fallback;
+    }
+
+    function renderPortal(data) {
+        lastPortalLicenseKey = data.licenses.length ? data.licenses[0].license_key : null;
+        portalCustomerEmail.textContent = `Licencias de ${data.customer_email}`;
+        portalCustomerCount.textContent = `${data.total_licenses} licencia(s) · Clave pública Ed25519: ${data.public_key_hex.slice(0, 16)}...`;
+
+        portalLicensesContainer.innerHTML = data.licenses.map(lic => `
+            <div style="background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; margin-bottom: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <strong style="color: var(--ink);">${lic.tier.toUpperCase()}</strong>
+                    <span class="tag ${lic.status === 'active' ? '' : 'tag-warn'}">${lic.status}</span>
+                </div>
+                <div style="font-family: var(--mono); font-size: 11px; word-break: break-all; background: var(--sunken); padding: 8px; border-radius: 4px; margin-bottom: 8px; color: var(--ink);">${lic.license_key}</div>
+                <div style="display: flex; gap: 16px; font-size: 13px; color: var(--muted); flex-wrap: wrap;">
+                    <span>Saldo créditos: <b style="color: var(--ink);">${Number(lic.credit_balance).toLocaleString()}</b></span>
+                    <span>Nodos activos: <b style="color: var(--ink);">${lic.current_activations} / ${lic.max_seats}</b></span>
+                    <span>Caducidad: <b style="color: var(--ink);">${lic.expires_at ? lic.expires_at.split('T')[0] : 'Permanente'}</b></span>
+                </div>
+            </div>
+        `).join("");
+
+        portalPySnippet.textContent = data.python_snippet;
+        portalTsSnippet.textContent = data.typescript_snippet;
+        portalResults.classList.remove("is-hidden");
+    }
+
     if (btnPortalLookup && portalQuery) {
         btnPortalLookup.addEventListener("click", () =>
             withButtonLock(btnPortalLookup, "Consultando...", async () => {
@@ -683,39 +728,49 @@ document.addEventListener("DOMContentLoaded", () => {
                     });
                     const json = await res.json();
                     if (!res.ok || !json.success) {
-                        portalError.textContent = json.detail || json.error || "No se encontraron licencias para la consulta introducida.";
-                        portalError.classList.remove("is-hidden");
+                        showPortalMessage(portalErrorText(json, "No se encontraron licencias para la consulta introducida."), false);
                         return;
                     }
-                    const data = json.data;
-                    portalCustomerEmail.textContent = `Licencias de ${data.customer_email}`;
-                    portalCustomerCount.textContent = `${data.total_licenses} licencia(s) · Clave pública Ed25519: ${data.public_key_hex.slice(0, 16)}...`;
-
-                    portalLicensesContainer.innerHTML = data.licenses.map(lic => `
-                        <div style="background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; margin-bottom: 12px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                <strong style="color: var(--ink);">${lic.tier.toUpperCase()}</strong>
-                                <span class="tag ${lic.status === 'active' ? '' : 'tag-warn'}">${lic.status}</span>
-                            </div>
-                            <div style="font-family: var(--mono); font-size: 11px; word-break: break-all; background: var(--sunken); padding: 8px; border-radius: 4px; margin-bottom: 8px; color: var(--ink);">${lic.license_key}</div>
-                            <div style="display: flex; gap: 16px; font-size: 13px; color: var(--muted); flex-wrap: wrap;">
-                                <span>Saldo créditos: <b style="color: var(--ink);">${Number(lic.credit_balance).toLocaleString()}</b></span>
-                                <span>Nodos activos: <b style="color: var(--ink);">${lic.current_activations} / ${lic.max_seats}</b></span>
-                                <span>Caducidad: <b style="color: var(--ink);">${lic.expires_at ? lic.expires_at.split('T')[0] : 'Permanente'}</b></span>
-                            </div>
-                        </div>
-                    `).join("");
-
-                    portalPySnippet.textContent = data.python_snippet;
-                    portalTsSnippet.textContent = data.typescript_snippet;
-                    portalResults.classList.remove("is-hidden");
+                    if (json.data.magic_link_sent) {
+                        const mins = Math.round((json.data.expires_in_seconds || 900) / 60);
+                        showPortalMessage(`Si ese email tiene licencias de KeyFlint, te hemos enviado un enlace de acceso de un solo uso (caduca en ${mins} min). Revisa tu bandeja de entrada.`, true);
+                        return;
+                    }
+                    renderPortal(json.data);
                 } catch (err) {
-                    portalError.textContent = `Consulta no disponible en modo estático sin backend. Requiere gateway KeyFlint activo en Railway/Render: ${err.message}`;
-                    portalError.classList.remove("is-hidden");
+                    showPortalMessage(`Consulta no disponible en modo estático sin backend. Requiere gateway KeyFlint activo en Railway/Render: ${err.message}`, false);
                 }
             })
         );
     }
+
+    // Single-use magic link from the portal email: ?portal_token=...#portal-section
+    (async () => {
+        if (!portalResults) return;
+        const params = new URLSearchParams(window.location.search);
+        const portalToken = params.get("portal_token");
+        if (!portalToken) return;
+        params.delete("portal_token");
+        const qs = params.toString();
+        // Drop the token from the address bar/history before using it.
+        window.history.replaceState(null, "", window.location.pathname + (qs ? `?${qs}` : "") + window.location.hash);
+        try {
+            const res = await fetch("/api/v1/billing/portal/redeem", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ token: portalToken }),
+            });
+            const json = await res.json();
+            if (!res.ok || !json.success) {
+                showPortalMessage(portalErrorText(json, "El enlace no es válido, ha caducado o ya se usó. Pide uno nuevo."), false);
+            } else {
+                renderPortal(json.data);
+            }
+        } catch (err) {
+            showPortalMessage(`No se pudo abrir el portal: ${err.message}`, false);
+        }
+        document.getElementById("portal-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+    })();
 
     // 8. Interactive Code Showcase Tabs
     const codeSnippet = document.getElementById("codeSnippet");

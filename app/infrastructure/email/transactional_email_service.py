@@ -140,6 +140,32 @@ class TransactionalEmailService(IEmailSender):
             html_body=f"<pre style=\"font-family:monospace;white-space:pre-wrap\">{safe}</pre>",
         )
 
+    def send_portal_magic_link(self, recipient_email: str, link: str, ttl_minutes: int) -> bool:
+        """Single-use sign-in link for the customer portal. Never raises."""
+        safe_link = html.escape(link, quote=True)
+        text_body = (
+            "Hola,\n\n"
+            "Alguien (probablemente tú) ha pedido ver sus licencias de KeyFlint.\n"
+            f"Abre este enlace para entrar al portal. Caduca en {ttl_minutes} minutos y solo funciona una vez:\n\n"
+            f"{link}\n\n"
+            "Si no lo has pedido tú, ignora este correo: nadie puede ver tus licencias sin este enlace.\n\n"
+            "KeyFlint · support@keyflint.dev"
+        )
+        html_body = f"""<!doctype html>
+<html><body style="margin:0;padding:24px;background:#0B0D17;color:#FFFFFF;font-family:Arial,Helvetica,sans-serif">
+<p style="font-size:16px;margin:0 0 16px">Alguien (probablemente tú) ha pedido ver sus licencias de KeyFlint.</p>
+<p style="margin:0 0 24px">Este enlace caduca en {ttl_minutes} minutos y solo funciona una vez.</p>
+<p style="margin:0 0 24px"><a href="{safe_link}" style="display:inline-block;background:#CCFF00;color:#0B0D17;padding:12px 20px;border-radius:6px;font-weight:bold;text-decoration:none">Abrir mi portal</a></p>
+<p style="font-size:13px;margin:0 0 8px">Si no lo has pedido tú, ignora este correo: nadie puede ver tus licencias sin este enlace.</p>
+<p style="font-size:13px;margin:0">KeyFlint · support@keyflint.dev</p>
+</body></html>"""
+        return self._dispatch(
+            recipient=recipient_email,
+            subject="Tu enlace de acceso al portal de KeyFlint",
+            text_body=text_body,
+            html_body=html_body,
+        )
+
     def _dispatch(
         self,
         recipient: str,

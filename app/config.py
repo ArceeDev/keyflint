@@ -67,6 +67,11 @@ class Settings(BaseSettings):
     CHECKOUT_SUCCESS_URL: str = "http://127.0.0.1:8000/?checkout=success"
     CHECKOUT_CANCEL_URL: str = "http://127.0.0.1:8000/?checkout=cancelled"
     BILLING_PORTAL_RETURN_URL: str = "http://127.0.0.1:8000/"
+    # Base URL of the page that redeems portal magic links (the gateway serving the portal UI).
+    # Never derived from the request Host header (it would let an attacker redirect the link).
+    PORTAL_LINK_BASE_URL: str = "http://127.0.0.1:8000/"
+    PORTAL_LINK_TTL_SECONDS: int = 900
+    PORTAL_LINK_MAX_PER_WINDOW: int = 3  # magic links per customer per TTL window (anti email-bombing)
     ADMIN_API_KEY: str = "kf_dev_admin_key_change_in_prod"
 
     # Transactional Email Dispatch (Resend / SMTP)

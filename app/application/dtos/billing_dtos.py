@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from typing import Any, Optional
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 
 VALID_TIERS = ("community", "indie", "agency", "pro", "studio", "lifetime")
@@ -57,17 +57,37 @@ class CheckoutResponse(BaseModel):
 
 
 class PortalRequest(BaseModel):
-    """Payload to generate a customer billing portal URL."""
+    """Payload to generate a customer billing portal URL.
 
-    customer_email: str = Field(min_length=1)
+    Live mode requires license_key (proof of possession); an email alone is only accepted in mock mode.
+    """
+
+    customer_email: Optional[str] = None
+    license_key: Optional[str] = None
 
     @field_validator("customer_email")
     @classmethod
-    def validate_email(cls, v: str) -> str:
+    def validate_email(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
         s = v.strip()
         if not s or "@" not in s:
             raise ValueError("customer_email must be a valid, non-empty email address")
         return s
+
+    @field_validator("license_key")
+    @classmethod
+    def validate_license_key(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return None
+        s = v.strip()
+        return s or None
+
+    @model_validator(mode="after")
+    def require_identity(self) -> "PortalRequest":
+        if not self.customer_email and not self.license_key:
+            raise ValueError("license_key or customer_email is required")
+        return self
 
 
 class PortalResponse(BaseModel):
@@ -138,6 +158,12 @@ class CustomerPortalLookupRequest(BaseModel):
         if not s:
             raise ValueError("Query string cannot be empty")
         return s
+
+
+class PortalRedeemRequest(BaseModel):
+    """Single-use magic link token received by email."""
+
+    token: str = Field(min_length=16, max_length=256)
 
 
 class CustomerPortalLookupResponse(BaseModel):

@@ -18,6 +18,7 @@ from app.infrastructure.database.connection import create_connection
 from app.infrastructure.email.transactional_email_service import TransactionalEmailService
 from app.infrastructure.repositories.sqlite_customer_repo import SqliteCustomerRepo
 from app.infrastructure.repositories.sqlite_license_repo import SqliteLicenseRepo
+from app.infrastructure.repositories.sqlite_portal_token_repo import SqlitePortalTokenRepo
 from app.infrastructure.repositories.sqlite_quota_repo import SqliteQuotaRepo
 from app.infrastructure.repositories.sqlite_webhook_repo import SqliteWebhookRepo
 from app.presentation.middlewares import get_request_id
@@ -87,6 +88,10 @@ def get_webhook_repo(conn: sqlite3.Connection = Depends(get_db)) -> SqliteWebhoo
     return SqliteWebhookRepo(conn)
 
 
+def get_portal_token_repo(conn: sqlite3.Connection = Depends(get_db)) -> SqlitePortalTokenRepo:
+    return SqlitePortalTokenRepo(conn)
+
+
 def get_license_service(
     license_repo: SqliteLicenseRepo = Depends(get_license_repo),
     customer_repo: SqliteCustomerRepo = Depends(get_customer_repo),
@@ -124,6 +129,7 @@ def get_billing_service(
     license_service: LicenseService = Depends(get_license_service),
     quota_service: QuotaService = Depends(get_quota_service),
     email_sender: TransactionalEmailService = Depends(get_email_sender),
+    portal_token_repo: SqlitePortalTokenRepo = Depends(get_portal_token_repo),
 ) -> BillingService:
     return BillingService(
         customer_repo=customer_repo,
@@ -133,4 +139,5 @@ def get_billing_service(
         license_service=license_service,
         quota_service=quota_service,
         email_sender=email_sender,
+        portal_token_repo=portal_token_repo,
     )
