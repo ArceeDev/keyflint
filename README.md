@@ -197,7 +197,7 @@ prefix). The database is replicated every second; on a fresh volume it is restor
 gateway starts, and if the restore fails the container refuses to start. Litestream backs up the
 database only: keep your secrets as environment variables (not only in `secrets.env`) so a lost
 volume comes back with the same signing key. `python scripts/e2e_backup.py` verifies the recovery;
-[`docs/ops/RESTORE_DRILL.md`](docs/ops/RESTORE_DRILL.md) runs the same check against production.
+[`internal/ops/RESTORE_DRILL.md`](internal/ops/RESTORE_DRILL.md) runs the same check against production.
 Hosting customers yourself: see [`scripts/managed/README.md`](scripts/managed/README.md).
 
 ## Architecture
@@ -385,15 +385,15 @@ KeyFlint uses two licenses:
 ## Documentation, Operations & Legal Directory
 
 ### Commercial & Go-To-Market
-- **[Commercial Launch Kit](docs/commercial/COMMERCIAL_LAUNCH_KIT.md)**: GTM positioning, pricing tiers, objections handling, and launch copy for Hacker News and X.
-- **[MCP Prospect Leads](docs/commercial/MCP_PROSPECT_LEADS.md)**: 20 curated active Model Context Protocol repositories with tailored developer outreach copy.
-- **[Sales Engine Automation](docs/commercial/SALES_ENGINE_AUTOMATION.md)**: Stripe Merchant of Record lifecycle and payment link webhooks.
+- **[Commercial Launch Kit](internal/commercial/COMMERCIAL_LAUNCH_KIT.md)**: GTM positioning, pricing tiers, objections handling, and launch copy for Hacker News and X.
+- **[MCP Prospect Leads](internal/commercial/MCP_PROSPECT_LEADS.md)**: 20 curated active Model Context Protocol repositories with tailored developer outreach copy.
+- **[Sales Engine Automation](internal/commercial/SALES_ENGINE_AUTOMATION.md)**: Stripe Merchant of Record lifecycle and payment link webhooks.
 
 ### Infrastructure & Operations
-- **[Cloudflare R2 & Fly.io Setup Guide](docs/ops/R2_FLY_SETUP.md)**: Private EU R2 bucket configuration, S3 token provisioning, and Fly.io deployment runbook.
+- **[Cloudflare R2 & Fly.io Setup Guide](internal/ops/R2_FLY_SETUP.md)**: Private EU R2 bucket configuration, S3 token provisioning, and Fly.io deployment runbook.
 - **[KeyFlint Managed Provisioning CLI](scripts/managed/README.md)**: Isolated single-tenant customer management and continuous Litestream replication.
-- **[Distribution & Release Commands](docs/ops/DISTRIBUTION_COMMANDS.md)**: Publishing SDK packages to npm, PyPI, and GitHub Container Registry.
+- **[Distribution & Release Commands](internal/ops/DISTRIBUTION_COMMANDS.md)**: Publishing SDK packages to npm, PyPI, and GitHub Container Registry.
 
 ### Legal & Compliance (EU GDPR)
-- **[Data Processing Agreement (DPA Borrador)](docs/legal/DPA_BORRADOR.md)**: Article 28 GDPR compliant data processing terms for KeyFlint Managed.
-- **[Privacy Policy (Privacidad Borrador)](docs/legal/PRIVACIDAD_BORRADOR.md)**: Privacy policy tailored to Stripe Merchant of Record and EU data retention rules.
+- **[Data Processing Agreement (DPA Borrador)](internal/legal/DPA_BORRADOR.md)**: Article 28 GDPR compliant data processing terms for KeyFlint Managed.
+- **[Privacy Policy (Privacidad Borrador)](internal/legal/PRIVACIDAD_BORRADOR.md)**: Privacy policy tailored to Stripe Merchant of Record and EU data retention rules.
