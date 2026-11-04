@@ -27,7 +27,7 @@ There is no multi-tenancy: a fault or a leak in one instance never touches anoth
 ```bash
 python scripts/managed/kf_managed.py --dry-run create acme --region cdg --domain lic.acme.com
 python scripts/managed/kf_managed.py create acme --region cdg --domain lic.acme.com \
-  --image ghcr.io/arceedev/keyflint:1.2.0
+  --image ghcr.io/arceedev/keyflint:1.2.2
 ```
 
 Send the customer: the URL, the **public key** (printed in the output) and the **admin key**
