@@ -13,6 +13,11 @@ updates:
     directory: /sdks/js-verify
     schedule: {interval: weekly, day: monday}
     groups: {js-dev: {dependency-type: development}}
+    # TypeScript 7 (native compiler) removed moduleResolution=node10, used by the CJS build (#36).
+    # Migrate the build deliberately, then drop this.
+    ignore:
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: gomod
     directory: /sdks/go-verify
     schedule: {interval: weekly, day: monday}
