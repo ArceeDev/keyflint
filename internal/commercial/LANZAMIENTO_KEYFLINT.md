@@ -79,8 +79,8 @@ container). Design choices:
   go get github.com/ArceeDev/keyflint/sdks/go-verify@v1.2.0
 
 Licensing: gateway BSL 1.1 (Apache 2.0 on 2030-10-31), SDKs MIT.
-Pricing: free Community tier; self-hosted Indie $149 one-time; a managed tier
-is coming. For launch, a Founder license at $199 one-time for the first 100
+Pricing: free Community tier; self-hosted Indie $149 one-time or Pro $29/mo
+(runs in your own Fly.io/Render account). For launch, a Founder license at $199 one-time for the first 100
 buyers (Indie + every v1.x and v2.x update).
 
 Known limits: single node by design, no Rust SDK yet.
@@ -237,7 +237,7 @@ MIT SDKs, 50 shared test vectors. Self-host in one container.
 ```
 KeyFlint v1.2 is live.
 
-Free Community · Indie $149 one-time · Agency $349 one-time
+Free Community · Indie $149 one-time · Pro $29/mo, self-hosted
 Founder: $199 once, first 100 buyers only (Indie + every v1.x and v2.x update).
 
 On HN today, feedback welcome 👇
@@ -273,11 +273,11 @@ Email público o Discussions, nunca issues. Sin [WRAP] publicado, quita "or with
 | Community | Gratis | 25 créditos, 1 nodo |
 | Indie | $149 único | 10k créditos, 3 seats, perpetua |
 | Agency | $349 único | 50k créditos, 25 seats, perpetua |
-| Pro Cloud (Managed) | $29/mes | Gateway gestionado ⚠ bloqueo 1 |
-| Studio | $89/mes | Managed, soporte ≤1 día laborable ⚠ bloqueo 1 |
+| Pro | $29/mes | Autoalojado en la cuenta Fly/Render del cliente; 500 créditos/ciclo, 3 nodos, uso comercial y actualizaciones mientras esté suscrito |
+| Studio Cloud / Pro Cloud (Managed) | $89 / $29 al mes | Oculto hasta revisar el DPA (bloqueo 1) |
 | Founder (tier `lifetime`) | $199 único | Máx. 100 (límite del Payment Link). = Indie + v1.x y v2.x. Sin Managed. |
 
-Soporte: Indie/Founder/Pro ≤2 días laborables; Agency/Studio ≤1. Reembolso 14 días.
+Soporte: Indie/Founder/Pro ≤2 días laborables; Agency ≤1. Reembolso 14 días.
 
 ---
 

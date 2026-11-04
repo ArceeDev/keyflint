@@ -6,8 +6,8 @@ issues), what you ran, and the error code you got.
 
 | Plan | First response |
 | :--- | :--- |
-| Indie, Pro Cloud | Within 2 business days |
-| Agency, Studio Cloud | Within 1 business day (priority queue) |
+| Indie, Founder, Pro | Within 2 business days |
+| Agency | Within 1 business day (priority queue) |
 | Community | GitHub issues, best effort |
 
 Business days: Monday to Friday, CET.

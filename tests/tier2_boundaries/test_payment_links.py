@@ -10,8 +10,8 @@ PAGES = [ROOT / "docs" / "index.html", ROOT / "app" / "presentation" / "static" 
 LINK_RE = re.compile(
     r'<a href="(https://buy\.stripe\.com/[^"]+)"[^>]*data-tier="([a-z]+)">([^<]*)</a>'
 )
-# Managed pro/studio links ($29/mo, $89/mo) are hidden until the DPA is reviewed.
-EXPECTED = {"indie": "($149)", "agency": "($349)", "lifetime": "($199)"}
+# Pro is sold self-hosted; managed studio ($89/mo) stays hidden until the DPA is reviewed.
+EXPECTED = {"indie": "($149)", "agency": "($349)", "pro": "($29/mo)", "lifetime": "($199)"}
 
 
 def _links(page: Path) -> dict[str, tuple[str, str]]:
