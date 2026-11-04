@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Migrating an MCP server off Smithery (and charging for it) · KeyFlint</title>
+    <meta name="description" content="Smithery's proxy, server URLs, accounts and API keys stopped working on October 31, 2026. How to give your MCP server a direct install path again, and optionally sell it with offline license keys.">
+    <link rel="canonical" href="https://keyflint.dev/guides/migrate-from-smithery.html">
+    <meta name="theme-color" content="#0B0D17">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="KeyFlint">
+    <meta property="og:url" content="https://keyflint.dev/guides/migrate-from-smithery.html">
+    <meta property="og:title" content="Migrating an MCP server off Smithery">
+    <meta property="og:description" content="Direct install paths after the Smithery proxy shutdown, plus optional offline licensing for paid servers.">
+    <meta property="og:image" content="https://keyflint.dev/og.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230B0D17'/%3E%3Cpath d='M10 7v18M10 16l10-9M14 13l7 12' stroke='%23CCFF00' stroke-width='3.2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Migrating an MCP server off Smithery (and charging for it)","datePublished":"2026-11-04","author":{"@type":"Organization","name":"KeyFlint","url":"https://keyflint.dev/"},"image":"https://keyflint.dev/og.png","mainEntityOfPage":"https://keyflint.dev/guides/migrate-from-smithery.html"}</script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg: #0B0D17; --fg: #FFFFFF; --muted: #A3A8B8; --line: #232738; --accent: #CCFF00; --code: #12151F;
+                --font: "IBM Plex Sans", system-ui, sans-serif; --mono: "IBM Plex Mono", ui-monospace, monospace; }
+        * { box-sizing: border-box; }
+        body { margin: 0; background: var(--bg); color: var(--fg); font: 400 17px/1.65 var(--font); }
+        main { max-width: 760px; margin: 0 auto; padding: 32px 16px 80px; }
+        header.top { max-width: 760px; margin: 0 auto; padding: 20px 16px 0; display: flex; justify-content: space-between; gap: 12px; }
+        header.top a { color: var(--fg); text-decoration: none; font-weight: 600; }
+        h1 { font-size: clamp(28px, 5vw, 40px); line-height: 1.15; letter-spacing: -0.02em; margin: 24px 0 12px; }
+        h2 { font-size: 24px; margin: 44px 0 8px; letter-spacing: -0.01em; }
+        p, li { color: #E6E8EF; }
+        .lead { color: var(--muted); font-size: 19px; }
+        .kw { color: var(--accent); }
+        a { color: var(--fg); text-underline-offset: 3px; }
+        pre { background: var(--code); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; overflow-x: auto; font: 400 14px/1.55 var(--mono); }
+        code { font-family: var(--mono); font-size: 0.92em; }
+        table { width: 100%; border-collapse: collapse; font-size: 15px; display: block; overflow-x: auto; }
+        th, td { border-bottom: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
+        .cta { display: inline-block; margin-top: 12px; padding: 12px 18px; border-radius: 8px; background: var(--accent); color: var(--bg); font-weight: 600; text-decoration: none; }
+        .note { color: var(--muted); font-size: 15px; }
+        footer { border-top: 1px solid var(--line); margin-top: 56px; padding-top: 20px; color: var(--muted); font-size: 14px; }
+    </style>
+</head>
+<body>
+<header class="top">
+    <a href="/">KeyFlint</a>
+    <a href="https://github.com/ArceeDev/keyflint" rel="noopener">GitHub</a>
+</header>
+<main>
+    <article>
+        <h1>Migrating an MCP server off Smithery</h1>
+        <p class="lead">On October 31, 2026 Smithery shut down its connection management: the proxy, server URLs on <code>run.tools</code> and <code>server.smithery.ai</code>, the API, Connect, Toolbox, accounts and API keys. The directory at smithery.ai stays online as a plain, non-proxied listing. If your users reached your server through a Smithery URL, they need a direct path now.</p>
+        <p class="note">Source: <a href="https://smithery.ai/future" rel="noopener">smithery.ai/future</a>. KeyFlint is not affiliated with Smithery.</p>
+
+        <h2>What KeyFlint does and does not replace</h2>
+        <table>
+            <tr><th>Smithery gave you</th><th>After the shutdown</th></tr>
+            <tr><td>A hosted URL that proxied your server</td><td>Run it yourself: stdio via <code>npx</code>/<code>uvx</code>, an MCP Bundle (<code>.mcpb</code>), or your own HTTP endpoint on any host. KeyFlint does <strong>not</strong> host MCP servers.</td></tr>
+            <tr><td>Managed end-user identity and OAuth connectors</td><td>Not a KeyFlint feature. Use your client's built-in OAuth support or a connector platform.</td></tr>
+            <tr><td>A directory listing</td><td>Still there; point it at your direct install command or official URL.</td></tr>
+            <tr><td>(Nothing for selling access)</td><td><span class="kw">KeyFlint</span>: license keys checked offline, per-call credits, Stripe checkout. Optional.</td></tr>
+        </table>
+
+        <h2>1. Give users a direct install path</h2>
+        <p>For a local (stdio) server, publish it to npm or PyPI so a client can start it with one command:</p>
+        <pre><code>{
+  "mcpServers": {
+    "my-server": { "command": "npx", "args": ["-y", "my-mcp-server"] }
+  }
+}</code></pre>
+        <p>For a remote server, deploy it on a host you control and give users the HTTPS URL directly. Update your README and your smithery.ai listing so nobody is left with a dead <code>server.smithery.ai</code> link.</p>
+
+        <h2>2. Optional: charge for it without touching its code</h2>
+        <p><code>@keyflint/wrap</code> starts your stdio server and gates every <code>tools/call</code>: offline Ed25519 license check, optional credit debit on your KeyFlint gateway, automatic refund when a call fails. Other messages pass through untouched.</p>
+        <pre><code>export KEYFLINT_LICENSE="LIC-..."                # the buyer's key
+export KEYFLINT_PUBLIC_KEYS="k1=&lt;hex&gt;"           # your issuer public key
+export KEYFLINT_URL="https://licenses.example.com"  # only for metered tools
+
+npx @keyflint/wrap --credits 0 --tool summarize=5 -- npx -y my-mcp-server</code></pre>
+        <p><code>--credits 0</code> means license check only; <code>--tool NAME=N</code> meters one tool. For HTTP servers, use the <code>keyflint-verify</code> SDK in code instead (Python, TypeScript, Go). The full setup, including the gateway and Stripe, is in <a href="/guides/paid-mcp-server.html">How to sell a paid MCP server</a>.</p>
+
+        <h2>3. Ship a one-click install for Claude Desktop</h2>
+        <p>The repo's <a href="https://github.com/ArceeDev/keyflint/tree/main/examples/mcpb-template" rel="noopener"><code>examples/mcpb-template</code></a> packages a server behind the wrapper as an MCP Bundle. The buyer pastes the license key once at install time; it is declared <code>sensitive</code>, so Claude Desktop masks it and stores it securely. Cursor and Windsurf users can run <code>npx keyflint-verify activate LIC-...</code> to write the key into their config.</p>
+
+        <h2>FAQ</h2>
+        <p><strong>Do I need KeyFlint to migrate?</strong> No. Step 1 is all a free server needs. KeyFlint only matters if you want to sell access.</p>
+        <p><strong>Does the wrapper stop someone who has my source?</strong> No. Anyone who can edit the server can run it without the wrapper. It protects buyers' keys and quota; keep paid logic behind your gateway if that matters.</p>
+        <p><strong>Is there a cut per sale?</strong> No. KeyFlint is self-hosted; you pay only your payment processor.</p>
+
+        <a class="cta" href="/guides/paid-mcp-server.html">Read the full guide</a>
+        <a class="cta" style="background:transparent;color:var(--fg);border:1px solid var(--line)" href="https://github.com/ArceeDev/keyflint" rel="noopener">Star on GitHub</a>
+    </article>
+    <footer>© 2026 KeyFlint · <a href="/privacy.html">Privacy</a> · <a href="mailto:support@keyflint.dev">support@keyflint.dev</a></footer>
+</main>
+</body>
+</html>
