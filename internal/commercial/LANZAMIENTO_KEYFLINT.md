@@ -7,7 +7,7 @@ Enlaces: `https://keyflint.dev` · `https://github.com/ArceeDev/keyflint` · `su
 
 | # | Qué | Quién | Estado |
 |---|---|---|---|
-| 1 | **Revisión legal de privacy/DPA.** PR #41 las pasa a inglés con aviso "Draft pending legal review" y checklist `internal/legal/LAWYER_REVIEW.md`. La landing ya vende **Pro Cloud $29/mo (Managed)**: o revisión legal antes de D, o quitar/ocultar Pro y Studio en el copy y en la landing hasta entonces. | Arcee + abogado | Abierto |
+| 1 | **Revisión legal de privacy/DPA.** PR #41 las pasa a inglés con aviso "Draft pending legal review" y checklist `internal/legal/LAWYER_REVIEW.md`. La landing ya vende **Pro Cloud $29/mo (Managed)**: o revisión legal antes de D, o quitar/ocultar Pro y Studio en el copy y en la landing hasta entonces. | Arcee + abogado | ✓ Decidido 2026-11-04: Pro Cloud y Studio Cloud ocultos en landing y README hasta la revisión; posts sin Managed |
 | 2 | Fusionar PR #40 (versión 1.2.2), #41 (legal EN), #42 (`@keyflint/wrap` + `.mcpb`). | Arcee / Antigravity | ✓ Hecho (PRs #40, #41, #42 fusionadas) |
 | 3 | `@keyflint/wrap`: crear la org npm `keyflint` y `npm publish` en `sdks/js-wrap`. | Arcee | ✓ Hecho (`@keyflint/wrap` publicado y verificado en npm) |
 | 4 | Botón "Deploy on Railway": quitado de landing y README para evitar despliegues sin volumen persistente. | Antigravity | ✓ Hecho |
@@ -52,7 +52,7 @@ monthly or giving a marketplace a cut of every sale. So I built the piece I
 wanted.
 
 KeyFlint is a license and usage-credit gateway you can self-host (one
-container) or use as a managed instance. Design choices:
+container). Design choices:
 
 - Licenses are Ed25519-signed tokens verified offline: the client never calls
   home to check a key. Tokens carry a `kid`, so you can rotate signing keys and
@@ -79,8 +79,8 @@ container) or use as a managed instance. Design choices:
   go get github.com/ArceeDev/keyflint/sdks/go-verify@v1.2.0
 
 Licensing: gateway BSL 1.1 (Apache 2.0 on 2030-10-31), SDKs MIT.
-Pricing: free Community tier; self-hosted Indie $149 one-time; managed from
-$29/mo. For launch, a Founder license at $199 one-time for the first 100
+Pricing: free Community tier; self-hosted Indie $149 one-time; a managed tier
+is coming. For launch, a Founder license at $199 one-time for the first 100
 buyers (Indie + every v1.x and v2.x update).
 
 Known limits: single node by design, no Rust SDK yet.
@@ -117,7 +117,7 @@ async def search_docs(query): ...
   (-32060..-32063) when a key is invalid or out of credits.
 - SDKs: pip/npm `keyflint-verify`, Go module. MIT.
 
-Self-host it or use the managed gateway. Free Community tier to try it.
+Self-host it. Free Community tier to try it.
 Repo: https://github.com/ArceeDev/keyflint
 
 Happy to help wire it into your server, drop your repo below.
@@ -151,7 +151,7 @@ marketplace cut, so I built a license server I can run myself.
 
 License: BSL 1.1 for the gateway (Apache 2.0 in 2030): self-hosting for your
 own products is allowed; reselling it as a competing hosted service isn't.
-Free Community tier and a one-time paid license; managed is optional.
+Free Community tier and a one-time paid license.
 
 Repo + Quickstart: https://github.com/ArceeDev/keyflint
 ```
@@ -237,7 +237,7 @@ MIT SDKs, 50 shared test vectors. Self-host in one container.
 ```
 KeyFlint v1.2 is live.
 
-Free Community · Indie $149 one-time · Managed from $29/mo
+Free Community · Indie $149 one-time · Agency $349 one-time
 Founder: $199 once, first 100 buyers only (Indie + every v1.x and v2.x update).
 
 On HN today, feedback welcome 👇

@@ -53,3 +53,8 @@ secrets.env
 .env.*
 !.env.example
 !.env.production.example
+
+# Commercial material kept out of the public repo (still in git history before 2026-11-04)
+internal/commercial/*LEADS*
+internal/commercial/*DOSSIER*
+*.docx
