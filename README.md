@@ -324,8 +324,9 @@ Prices in USD, VAT added at checkout. Buy at [keyflint.dev](https://keyflint.dev
 | Indie | $149 one-time | 10,000 | 3 | Perpetual |
 | Agency | $349 one-time | 50,000 | 25 | Perpetual |
 | Founder | $199 one-time (first 100) | 10,000 | 3 | Perpetual, v1.x and v2.x updates |
+| Pro | $29 / month | 500 per cycle | 3 | Commercial use and all updates while subscribed |
 
-Managed plans (Pro Cloud, Studio Cloud) are not on sale yet.
+Every plan is self-hosted: the gateway runs on your machine or in your own Fly.io / Render account, so your data never touches KeyFlint servers. Managed hosting (we run the gateway for you) is not on sale yet.
 
 Refunds within 14 days revoke the license automatically. Support: see [SUPPORT.md](SUPPORT.md).
 
@@ -335,7 +336,7 @@ Refunds within 14 days revoke the license automatically. Support: see [SUPPORT.m
 
 | Feature | KeyFlint (Self-Hosted) | Keygen.sh / Cryptolens | Stripe Metered Billing |
 | :--- | :--- | :--- | :--- |
-| **Pricing Model** | **One-time ($149 / $349)** | Monthly subscription | Per-usage fee |
+| **Pricing Model** | **One-time ($149 / $349) or monthly ($29)** | Monthly subscription | Per-usage fee |
 | **Verification** | **Local Ed25519, ~0.13 ms (OpenSSL)** | HTTP API call (offline mode varies by plan) | N/A (billing only) |
 | **Offline Mode** | **Native (RFC 8032, standard library)** | Cached / leased validation | No |
 | **MCP Integration** | **Native `@metered` & auto-refund** | Manual custom code | Manual custom webhook polling |
@@ -377,7 +378,7 @@ KeyFlint uses two licenses:
 1. **Client SDKs (`sdks/js-verify`, `sdks/python-verify`, `sdks/go-verify`)**: Licensed under the permissive **[MIT License](sdks/js-verify/LICENSE)**. You can freely vendor, bundle, and distribute them with any commercial product.
 2. **Server Gateway (`app/`)**: Licensed under the **[Business Source License 1.1 (BSL 1.1)](LICENSE)**.
    - **Free Use**: You may freely deploy and use the gateway for internal testing, development, education, and non-commercial evaluation.
-   - **Commercial Production Use**: Commercial deployment in production requires a paid plan: **Indie ($149 one-time)**, **Agency ($349 one-time)** or **Founder ($199 one-time)**. See [Pricing](#pricing).
+   - **Commercial Production Use**: Commercial deployment in production requires a paid plan: **Indie ($149 one-time)**, **Agency ($349 one-time)**, **Founder ($199 one-time)** or **Pro ($29/month)**. See [Pricing](#pricing).
    - **Open Source Transition**: Under the BSL 1.1 change date terms, the gateway code automatically converts to the open-source **Apache 2.0 License** on October 31, 2030.
 
 ---
