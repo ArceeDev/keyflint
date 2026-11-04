@@ -24,7 +24,7 @@ python -m app.cli init --env production
 
 # 2. Run the gateway container:
 docker run -d --name keyflint -p 8000:8000 -v keyflint_data:/app/data \
-  --env-file .env ghcr.io/arceedev/keyflint:1.2.0
+  --env-file .env ghcr.io/arceedev/keyflint:1.2.2
 # (Or run natively: python -m app.cli serve --host 0.0.0.0 --port 8000)
 
 # 3. Check readiness probe:
@@ -47,7 +47,7 @@ LEMONSQUEEZY_WEBHOOK_SECRET=$(openssl rand -hex 24)
 EOF
 
 docker run -d --name keyflint -p 8000:8000 -v keyflint_data:/app/data \
-  --env-file .env ghcr.io/arceedev/keyflint:1.2.0
+  --env-file .env ghcr.io/arceedev/keyflint:1.2.2
 ```
 </details>
 
