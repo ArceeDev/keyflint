@@ -56,8 +56,6 @@ def main() -> None:
         print(f"     URL:  {html_url}")
         print("-" * 78)
 
-    print("\nTip: For 20 curated prospects with complete 3-paragraph developer outreach")
-    print("pitches ready to copy and paste, see: MCP_PROSPECT_LEADS.md")
 
 
 if __name__ == "__main__":

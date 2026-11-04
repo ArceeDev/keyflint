@@ -7,7 +7,7 @@
     <title>KeyFlint · Offline Ed25519 licenses &amp; credit metering for MCP servers, CLIs and APIs</title>
     <meta name="description" content="Self-hosted gateway for Ed25519 licenses verified offline and atomic, refundable credit metering for MCP servers, CLIs and APIs.">
     <link rel="canonical" href="https://keyflint.dev/">
-    <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"KeyFlint","applicationCategory":"DeveloperApplication","operatingSystem":"Linux, macOS, Windows (Docker)","url":"https://keyflint.dev/","image":"https://keyflint.dev/og.png","description":"Self-hosted gateway for Ed25519 licenses verified offline and atomic, refundable credit metering for MCP servers, CLIs and APIs.","softwareHelp":"https://keyflint.dev/guides/paid-mcp-server.html","codeRepository":"https://github.com/ArceeDev/keyflint","offers":[{"@type":"Offer","name":"Community","price":"0","priceCurrency":"USD"},{"@type":"Offer","name":"Indie (one-time)","price":"149","priceCurrency":"USD"},{"@type":"Offer","name":"Agency (one-time)","price":"349","priceCurrency":"USD"},{"@type":"Offer","name":"Founder (one-time, 100 units)","price":"199","priceCurrency":"USD"},{"@type":"Offer","name":"Pro (monthly)","price":"29","priceCurrency":"USD"},{"@type":"Offer","name":"Studio (monthly)","price":"89","priceCurrency":"USD"}]}</script>
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"KeyFlint","applicationCategory":"DeveloperApplication","operatingSystem":"Linux, macOS, Windows (Docker)","url":"https://keyflint.dev/","image":"https://keyflint.dev/og.png","description":"Self-hosted gateway for Ed25519 licenses verified offline and atomic, refundable credit metering for MCP servers, CLIs and APIs.","softwareHelp":"https://keyflint.dev/guides/paid-mcp-server.html","codeRepository":"https://github.com/ArceeDev/keyflint","offers":[{"@type":"Offer","name":"Community","price":"0","priceCurrency":"USD"},{"@type":"Offer","name":"Indie (one-time)","price":"149","priceCurrency":"USD"},{"@type":"Offer","name":"Agency (one-time)","price":"349","priceCurrency":"USD"},{"@type":"Offer","name":"Founder (one-time, 100 units)","price":"199","priceCurrency":"USD"}]}</script>
     <meta name="theme-color" content="#0B0D17">
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%230B0D17'/%3E%3Cpath d='M10 7v18M10 16l10-9M14 13l7 12' stroke='%23CCFF00' stroke-width='3.2' fill='none' stroke-linecap='round'/%3E%3C/svg%3E">
     <!-- Social previews (HN, X, Reddit, Slack, Discord). English: launch audiences are English-speaking. -->
@@ -763,7 +763,7 @@ kf = KeyFlint()  <span class="hl-cm"># reads KEYFLINT_LICENSE, KEYFLINT_PUBLIC_K
                     <tbody>
                         <tr>
                             <td>Cost</td>
-                            <td class="kf-col">One-time (Indie, Agency) or monthly (Pro, Studio). No cut per sale.</td>
+                            <td class="kf-col">One-time (Indie, Agency, Founder). No cut per sale.</td>
                             <td>Monthly subscription, usually priced by licenses or validations.</td>
                             <td>Engineering hours and your own maintenance.</td>
                         </tr>
@@ -804,7 +804,7 @@ kf = KeyFlint()  <span class="hl-cm"># reads KEYFLINT_LICENSE, KEYFLINT_PUBLIC_K
 
             <div class="grid">
                 <!-- 1. Indie License ($149 One-time) -->
-                <div class="card col-3 pricing-card">
+                <div class="card col-6 pricing-card">
                     <div>
                         <div class="tier-name">Indie</div>
                         <p class="tier-for">One developer or one product.</p>
@@ -822,7 +822,7 @@ kf = KeyFlint()  <span class="hl-cm"># reads KEYFLINT_LICENSE, KEYFLINT_PUBLIC_K
                 </div>
 
                 <!-- 2. Agency License ($349 One-time - Featured) -->
-                <div class="card col-3 pricing-card featured">
+                <div class="card col-6 pricing-card featured">
                     <div>
                         <div class="tier-name">Agency <span class="tier-flag">Recommended</span></div>
                         <p class="tier-for">Agencies selling to several clients.</p>
@@ -839,40 +839,8 @@ kf = KeyFlint()  <span class="hl-cm"># reads KEYFLINT_LICENSE, KEYFLINT_PUBLIC_K
                     <a href="https://buy.stripe.com/dRmeV578ogwr8EI24rawo02" target="_blank" rel="noopener noreferrer" class="btn js-checkout-link" data-tier="agency">Buy Agency ($349)</a>
                 </div>
 
-                <!-- 3. Pro Cloud ($29/mo Recurring) -->
-                <div class="card col-3 pricing-card">
-                    <div>
-                        <div class="tier-name">Pro Cloud</div>
-                        <p class="tier-for">Managed gateway, no server of your own.</p>
-                        <div class="tier-price">$29 <span>/ month + tax</span></div>
-                        <ul class="tier-specs">
-                            <li><span>Credits / cycle</span><b>500</b></li>
-                            <li><span>Active nodes</span><b>3</b></li>
-                            <li><span>Verification</span><b>Offline + API</b></li>
-                            <li><span>Webhooks</span><b>Stripe included</b></li>
-                            <li><span>Billing</span><b>Monthly, recurring</b></li>
-                            <li><span>Support</span><b>≤ 2 business days</b></li>
-                        </ul>
-                    </div>
-                    <a href="https://buy.stripe.com/8x2eV578o7ZV6wAbF1awo01" target="_blank" rel="noopener noreferrer" class="btn btn-secondary js-checkout-link" data-tier="pro">Subscribe Pro ($29/mo)</a>
-                </div>
-
-                <!-- 4. Studio Cloud ($89/mo Recurring) -->
-                <div class="card col-3 pricing-card">
-                    <div>
-                        <div class="tier-name">Studio Cloud</div>
-                        <p class="tier-for">Teams with more volume and auditing.</p>
-                        <div class="tier-price">$89 <span>/ month + tax</span></div>
-                        <ul class="tier-specs">
-                            <li><span>Credits / cycle</span><b>5,000</b></li>
-                            <li><span>Active nodes</span><b>25</b></li>
-                            <li><span>Telemetry</span><b>Audit log included</b></li>
-                            <li><span>Transactions</span><b>ACID, SQLite</b></li>
-                            <li><span>Support</span><b>≤ 1 business day</b></li>
-                        </ul>
-                    </div>
-                    <a href="https://buy.stripe.com/5kQeV52S8gwrbQUdN9awo00" target="_blank" rel="noopener noreferrer" class="btn btn-secondary js-checkout-link" data-tier="studio">Subscribe Studio ($89/mo)</a>
-                </div>
+                <!-- Managed monthly plans (pro, studio tiers) are hidden until the DPA is reviewed by a
+                     lawyer. Restore their two cards and JSON-LD offers from git history. -->
 
                 <!-- 5. Founder (lifetime tier, $199 one-time, capped at 100 via the Stripe Payment Link) -->
                 <div class="card col-12 community-card founder-card">
