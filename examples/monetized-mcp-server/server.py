@@ -7,7 +7,10 @@ Run this server with FastMCP:
     mcp dev server.py
 """
 
-from mcp.server.fastmcp import FastMCP
+try:  # mcp >= 2
+    from mcp.server.mcpserver import MCPServer as FastMCP
+except ImportError:  # mcp 1.x
+    from mcp.server.fastmcp import FastMCP
 from keyflint_verify.mcp import KeyFlint
 
 # Initialize FastMCP Server
