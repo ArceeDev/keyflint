@@ -62,6 +62,20 @@ def get_mock_checkout_session(
     }
 
 
+@router.get("/checkout/{session_id}/license")
+def reveal_checkout_license(
+    session_id: str,
+    http_request: Request,
+    billing_service: BillingService = Depends(get_billing_service),
+) -> dict[str, Any]:
+    """Success page: the license bought in this Stripe Checkout session (short-lived, see config)."""
+    return {
+        "success": True,
+        "data": billing_service.reveal_checkout_license(session_id),
+        "metadata": build_response_metadata(http_request),
+    }
+
+
 @router.post("/portal")
 def create_portal(
     request: PortalRequest,
