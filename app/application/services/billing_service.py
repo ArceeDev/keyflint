@@ -817,6 +817,7 @@ class BillingService:
                 self._flag_license(license_key, {"product": tier_raw.lower()})
             if provider == "stripe":
                 self._attach_payment_refs(license_key, self._extract_payment_refs(data_obj))
+                self._flag_license(license_key, {"provisioned_at": datetime.now(timezone.utc).isoformat()})
 
             email_delivered: Optional[bool] = None
             if license_key:
@@ -1068,6 +1069,55 @@ class BillingService:
             raise LicenseNotFoundError("No license found for this key.")
         customer = self._customer_repo.get_by_id(lic.customer_id)
         return self._portal_view(customer, [lic])
+
+    _CHECKOUT_SESSION_RE = re.compile(r"^cs_[A-Za-z0-9_]{10,250}$")
+
+    def reveal_checkout_license(self, session_id: str) -> dict[str, Any]:
+        """License bought in a Stripe Checkout session, for the buyer's success page.
+
+        The session id is an unguessable secret Stripe hands only to the buyer's browser, so it
+        works like a short-lived bearer token: it reveals the license for CHECKOUT_REVEAL_TTL_SECONDS
+        after provisioning and never for a revoked or suspended license. 404 PENDING means the
+        webhook has not arrived yet; the page should retry for a few seconds.
+        """
+        sid = (session_id or "").strip()
+        if not self._CHECKOUT_SESSION_RE.match(sid):
+            raise DomainError("Invalid checkout session id.", code="CHECKOUT_SESSION_INVALID", status_code=400)
+        finder = getattr(self._license_repo, "find_by_payment_ref", None)
+        found = finder(sid) if finder is not None else []
+        if not found:
+            raise DomainError("Payment received; the license is still being issued.",
+                              code="CHECKOUT_PENDING", status_code=404)
+        lic = found[0]
+        stamp = lic.metadata.get("provisioned_at")
+        try:
+            issued = datetime.fromisoformat(stamp) if isinstance(stamp, str) else lic.created_at
+        except ValueError:
+            issued = lic.created_at
+        if issued.tzinfo is None:
+            issued = issued.replace(tzinfo=timezone.utc)
+        ttl = get_settings().CHECKOUT_REVEAL_TTL_SECONDS
+        if datetime.now(timezone.utc) - issued > timedelta(seconds=ttl):
+            raise DomainError("This link has expired. Use the license email or the portal sign-in link.",
+                              code="CHECKOUT_REVEAL_EXPIRED", status_code=410)
+        if lic.status in (LicenseStatus.REVOKED, LicenseStatus.SUSPENDED) or self._license_service.is_revoked_id(lic.id):
+            raise DomainError("This license is no longer active.", code="LICENSE_INACTIVE", status_code=410)
+        balance = self._quota_repo.get_balance(lic.id)
+        customer = self._customer_repo.get_by_id(lic.customer_id)
+        email = customer.email if customer else ""
+        if "@" in email and not _PLACEHOLDER_EMAIL.match(email):
+            local, domain = email.split("@", 1)
+            masked = (local[:1] + "***@" + domain) if local else "***@" + domain
+        else:
+            masked = None
+        return {
+            "license_key": lic.license_key,
+            "tier": lic.tier.value,
+            "max_seats": lic.max_seats,
+            "credit_balance": balance.balance,
+            "total_allowance": balance.total_allowance,
+            "email_hint": masked,
+        }
 
     def request_portal_magic_link(self, email: str) -> Optional[tuple[str, str]]:
         """Creates a single-use portal link for a known buyer.
