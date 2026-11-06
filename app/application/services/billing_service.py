@@ -1119,6 +1119,28 @@ class BillingService:
             "email_hint": masked,
         }
 
+    def request_trial_license(self, email: str, source: Optional[str] = None) -> Optional[str]:
+        """Issues one free Community license per email and returns its key, to be emailed (never shown).
+
+        Returns None when the email already has a license (any tier); raises TRIAL_UNAVAILABLE when
+        trials are off. The HTTP layer applies the daily cap. Callers must answer identically in every case (no enumeration, no key in the response).
+        A later purchase upgrades this license in place (see ``_promotable_free_license``).
+        """
+        settings = get_settings()
+        if not settings.TRIAL_ENABLED:
+            raise DomainError("Free trials are not available right now.", code="TRIAL_UNAVAILABLE", status_code=503)
+        email = email.strip()
+        customer = self._customer_repo.get_by_email(email)
+        if customer is not None and self._license_repo.list_by_customer_id(customer.id):
+            return None
+        meta: dict[str, Any] = {"trial": True}
+        if source:
+            meta["source"] = source[:40]
+        issued = self._license_service.issue(
+            LicenseIssueRequest(customer_email=email, tier=Tier.COMMUNITY.value, metadata=meta)
+        )
+        return issued.license_key
+
     def request_portal_magic_link(self, email: str) -> Optional[tuple[str, str]]:
         """Creates a single-use portal link for a known buyer.
 
