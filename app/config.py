@@ -77,6 +77,9 @@ class Settings(BaseSettings):
     # How long a Stripe Checkout session id can reveal its license on the buyer's success page.
     CHECKOUT_REVEAL_TTL_SECONDS: int = 86400
     PORTAL_LINK_MAX_PER_WINDOW: int = 3  # magic links per customer per TTL window (anti email-bombing)
+    # Self-serve free trial: one Community license (Tier.COMMUNITY credits) per email, emailed to that inbox.
+    TRIAL_ENABLED: bool = False
+    TRIAL_DAILY_CAP: int = 100  # trial licenses per process per 24 h (cost ceiling)
     ADMIN_API_KEY: str = "kf_dev_admin_key_change_in_prod"
 
     # Transactional Email Dispatch (Resend / SMTP)

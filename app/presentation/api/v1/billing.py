@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request
@@ -24,6 +25,7 @@ from app.presentation.dependencies import (
 )
 
 router = APIRouter(prefix="/api/v1/billing", tags=["Billing"])
+logger = logging.getLogger("keyflint.billing")
 
 
 @router.post("/checkout")
@@ -181,6 +183,51 @@ def lookup_customer_portal(
     return {
         "success": True,
         "data": res.model_dump(),
+        "metadata": build_response_metadata(http_request),
+    }
+
+
+class TrialRequest(BaseModel):
+    email: str = Field(min_length=3, max_length=254)
+    source: str | None = Field(default=None, max_length=40)
+
+
+@router.post("/trial")
+def request_trial_license(
+    request: TrialRequest,
+    http_request: Request,
+    background_tasks: BackgroundTasks,
+    billing_service: BillingService = Depends(get_billing_service),
+) -> dict[str, Any]:
+    """Self-serve free trial: one Community license per email, sent only to that inbox.
+
+    The response never contains the key and is identical whether a license was issued or the email
+    already had one (no account enumeration, no harvesting keys with fake addresses).
+    """
+    from app.application.dtos.license_dtos import LicenseIssueRequest
+    from app.presentation.middlewares import rate_limiter
+
+    try:
+        email = LicenseIssueRequest(customer_email=request.email, tier="community").customer_email
+    except ValueError:
+        raise HTTPException(status_code=422, detail="Invalid email address.") from None
+    settings = get_settings()
+    if settings.TRIAL_ENABLED:
+        allowed, _, _ = rate_limiter.check("trial:daily", max(0, settings.TRIAL_DAILY_CAP), 86400)
+    else:
+        allowed = True  # the service answers TRIAL_UNAVAILABLE
+    if allowed:
+        key = billing_service.request_trial_license(email, request.source)
+        if key:
+            background_tasks.add_task(billing_service.deliver_license_email, key, email)
+    else:
+        logger.warning("Trial daily cap reached")
+    return {
+        "success": True,
+        "data": {
+            "trial_requested": True,
+            "message": "If this email has no KeyFlint license yet, a free trial license is on its way.",
+        },
         "metadata": build_response_metadata(http_request),
     }
 
