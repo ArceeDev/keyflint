@@ -92,7 +92,6 @@ class Settings(BaseSettings):
     TOPUP_RETURN_ORIGINS: str = "https://mcp.keyflint.dev,https://keyflint.dev"
     TOPUP_DEFAULT_RETURN_URL: str = "https://mcp.keyflint.dev/saldo/"
     TOPUP_PRODUCT_IMAGE_URL: str = "https://mcp.keyflint.dev/assets/brand/stripe-recarga-v1.png"  # Checkout line-item image; "" disables
-    EMAIL_LOGO_URL: str = "https://mcp.keyflint.dev/assets/brand/email-logo-v1.png"  # header logo in HTML emails; "" disables
     ADMIN_API_KEY: str = "kf_dev_admin_key_change_in_prod"
 
     # Transactional Email Dispatch (Resend / SMTP)
