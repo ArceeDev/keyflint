@@ -97,31 +97,30 @@ class TransactionalEmailService(IEmailSender):
         )
         html_body = f"""<!DOCTYPE html>
 <html lang="es">
-<head><meta charset="utf-8"><meta name="color-scheme" content="dark only"><meta name="supported-color-schemes" content="dark only"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Saldo actualizado · Flint</title></head>
-<body style="margin: 0; padding: 24px 8px; background-color: #0B0D17; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif; color: #FFFFFF; -webkit-font-smoothing: antialiased;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #0B0D17;">
+<head>
+  <meta charset="utf-8">
+  <meta name="color-scheme" content="dark only">
+  <meta name="supported-color-schemes" content="dark only">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Saldo actualizado · Flint</title>
+</head>
+<body style="margin: 0; padding: 0; width: 100% !important; background-color: #0B0D17; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif; color: #FFFFFF; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #0B0D17; width: 100%; margin: 0; padding: 24px 0;">
     <tr>
-      <td align="center">
+      <td align="center" style="padding: 0 10px;">
         <table role="presentation" width="100%" style="max-width: 560px; width: 100%; background-color: #111424; border: 1px solid #1E233D; border-radius: 14px;" cellpadding="0" cellspacing="0" border="0">
           <tr>
-            <td style="padding: 32px 20px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 28px;">
-                <tr>
-                  <td align="left" style="vertical-align: middle;">
-                    <a href="https://mcp.keyflint.dev" target="_blank" style="text-decoration: none; display: inline-block;">
-                      <img src="{_BRAND_LOGO_WHITE_URL}" alt="Flint by KeyFlint" width="120" height="auto" style="display: block; border: 0; outline: none; text-decoration: none; max-width: 120px; height: auto;" />
-                    </a>
-                  </td>
-                  <td align="right" style="vertical-align: middle;">
-                    <span style="display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; background-color: rgba(204,255,0,0.12); color: #CCFF00; border: 1px solid rgba(204,255,0,0.35); padding: 4px 8px; border-radius: 5px; white-space: nowrap;">Recarga Confirmada</span>
-                  </td>
-                </tr>
-              </table>
+            <td style="padding: 36px 24px;">
+              <div style="text-align: center; margin-bottom: 28px;">
+                <a href="https://mcp.keyflint.dev" target="_blank" style="text-decoration: none; display: inline-block;">
+                  <img src="{_BRAND_LOGO_WHITE_URL}" alt="Flint" width="144" height="auto" style="display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none; max-width: 144px; height: auto;" />
+                </a>
+              </div>
 
-              <h1 style="margin: 0 0 12px 0; font-size: 22px; font-weight: 700; color: #FFFFFF; letter-spacing: -0.02em; line-height: 1.25;">Saldo de créditos <span style="color: #CCFF00;">actualizado</span></h1>
-              <p style="margin: 0 0 24px 0; font-size: 14px; color: #B2B8D0; line-height: 1.6;">Tus servidores deterministas de Flint ya disponen de los nuevos créditos para seguir procesando tus extractos bancarios y facturas sin interrupciones.</p>
+              <h1 style="margin: 0 0 12px 0; font-size: 24px; font-weight: 700; color: #FFFFFF; letter-spacing: -0.02em; line-height: 1.25; text-align: center;">Saldo de créditos <span style="color: #CCFF00;">actualizado</span></h1>
+              <p style="margin: 0 0 28px 0; font-size: 14px; color: #B2B8D0; line-height: 1.6; text-align: center;">Tus servidores deterministas de Flint ya disponen de los nuevos créditos para seguir procesando tus extractos bancarios y facturas sin interrupciones.</p>
               
-              <div style="background-color: #171B30; border: 1px solid #282F50; border-radius: 10px; padding: 20px; margin-bottom: 24px;">
+              <div style="background-color: #171B30; border: 1px solid #282F50; border-radius: 12px; padding: 22px 20px; margin-bottom: 24px;">
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
                   <tr>
                     <td style="padding-bottom: 12px; border-bottom: 1px solid #232944; color: #8E95AF; font-size: 14px;">Créditos añadidos</td>
@@ -129,30 +128,29 @@ class TransactionalEmailService(IEmailSender):
                   </tr>
                   <tr>
                     <td style="padding-top: 14px; color: #8E95AF; font-size: 14px;">Saldo disponible</td>
-                    <td align="right" style="padding-top: 14px; color: #CCFF00; font-weight: 800; font-size: 20px;">
+                    <td align="right" style="padding-top: 14px; color: #CCFF00; font-weight: 800; font-size: 22px;">
                       {new_balance:,} <span style="font-size: 14px; font-weight: 600; color: #8E95AF;">créditos</span>
+                    </td>
+                  </tr>
+                </table>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: 18px;">
+                  <tr>
+                    <td>
+                      <a href="https://mcp.keyflint.dev/saldo/#licencia={html.escape(license_key)}" style="display: block; text-align: center; background-color: #CCFF00; color: #0B0D17; font-size: 14px; font-weight: 700; text-decoration: none; padding: 13px 20px; border-radius: 8px; letter-spacing: -0.01em;">Ver mi saldo en vivo y copiar clave &rarr;</a>
                     </td>
                   </tr>
                 </table>
               </div>
 
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 16px;">
-                <tr>
-                  <td>
-                    <a href="https://mcp.keyflint.dev/saldo/#licencia={html.escape(license_key)}" style="display: block; text-align: center; background-color: #CCFF00; color: #0B0D17; font-size: 14px; font-weight: 700; text-decoration: none; padding: 13px 20px; border-radius: 8px; letter-spacing: -0.01em;">Ver mi saldo en vivo y copiar clave &rarr;</a>
-                  </td>
-                </tr>
-              </table>
-
               <p style="margin: 0 0 20px 0; font-size: 12px; color: #717791; text-align: center;">Licencia vinculada: <code style="font-family: ui-monospace, Menlo, Consolas, monospace; color: #CCFF00; background: #0B0D17; padding: 4px 8px; border-radius: 5px; border: 1px solid #1E233D; -webkit-user-select: all; user-select: all;">{html.escape(short)}</code></p>
 
               <div style="background-color: #171B30; border-left: 3px solid #CCFF00; padding: 14px 16px; border-radius: 0 8px 8px 0; margin-bottom: 24px;">
                 <p style="margin: 0; font-size: 13px; color: #D1D5E4; line-height: 1.55;">
-                  <strong style="color: #FFFFFF;">Incentivo Flint:</strong> Consulta tu consumo en vivo o automatiza la conciliación bancaria procesando lotes de extractos en <a href="https://mcp.keyflint.dev/lote/" style="color: #CCFF00; text-decoration: underline; font-weight: 600;">nuestro procesador web &rarr;</a>
+                  <strong style="color: #FFFFFF;">Incentivo Flint:</strong> Consulta tu consumo en vivo o automatiza la conciliación bancaria procesando lotes de extractos en <a href="https://mcp.keyflint.dev/lote/" style="color: #CCFF00; text-decoration: underline; font-weight: 600;">nuestro procesador web en el navegador &rarr;</a>
                 </p>
               </div>
 
-              <div style="padding-top: 20px; border-top: 1px solid #1E233D; font-size: 12px; color: #6F7693; line-height: 1.6;">
+              <div style="padding-top: 20px; border-top: 1px solid #1E233D; font-size: 12px; color: #6F7693; line-height: 1.6; text-align: center;">
                 <p style="margin: 0 0 4px 0;"><strong style="color: #FFFFFF;">Flint by KeyFlint</strong> · Servidores MCP deterministas para IA</p>
                 <p style="margin: 0;">Soporte humano directo: <a href="mailto:support@keyflint.dev" style="color: #CCFF00; text-decoration: none; font-weight: 600;">support@keyflint.dev</a></p>
               </div>
@@ -195,58 +193,42 @@ class TransactionalEmailService(IEmailSender):
         u = html.escape(topup_url, quote=True)
         html_body = f"""<!DOCTYPE html>
 <html lang="es">
-<head><meta charset="utf-8"><meta name="color-scheme" content="dark only"><meta name="supported-color-schemes" content="dark only"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Créditos agotados · Flint</title></head>
-<body style="margin: 0; padding: 24px 8px; background-color: #0B0D17; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif; color: #FFFFFF; -webkit-font-smoothing: antialiased;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #0B0D17;">
+<head>
+  <meta charset="utf-8">
+  <meta name="color-scheme" content="dark only">
+  <meta name="supported-color-schemes" content="dark only">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Créditos agotados · Flint</title>
+</head>
+<body style="margin: 0; padding: 0; width: 100% !important; background-color: #0B0D17; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif; color: #FFFFFF; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #0B0D17; width: 100%; margin: 0; padding: 24px 0;">
     <tr>
-      <td align="center">
+      <td align="center" style="padding: 0 10px;">
         <table role="presentation" width="100%" style="max-width: 560px; width: 100%; background-color: #111424; border: 1px solid #1E233D; border-radius: 14px;" cellpadding="0" cellspacing="0" border="0">
           <tr>
-            <td style="padding: 32px 20px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 28px;">
-                <tr>
-                  <td align="left" style="vertical-align: middle;">
-                    <a href="https://mcp.keyflint.dev" target="_blank" style="text-decoration: none; display: inline-block;">
-                      <img src="{_BRAND_LOGO_WHITE_URL}" alt="Flint by KeyFlint" width="120" height="auto" style="display: block; border: 0; outline: none; text-decoration: none; max-width: 120px; height: auto;" />
-                    </a>
-                  </td>
-                  <td align="right" style="vertical-align: middle;">
-                    <span style="display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; background-color: rgba(204,255,0,0.12); color: #CCFF00; border: 1px solid rgba(204,255,0,0.35); padding: 4px 8px; border-radius: 5px; white-space: nowrap;">Recarga Rápida</span>
-                  </td>
-                </tr>
-              </table>
-
-              <h1 style="margin: 0 0 12px 0; font-size: 22px; font-weight: 700; color: #FFFFFF; letter-spacing: -0.02em; line-height: 1.25;">Has completado tus <span style="color: #CCFF00;">créditos de prueba</span></h1>
-              <p style="margin: 0 0 16px 0; font-size: 14px; color: #B2B8D0; line-height: 1.6;">Esperamos que Flint te haya ahorrado tiempo automatizando tus extractos bancarios o facturación contable.</p>
-              <p style="margin: 0 0 24px 0; font-size: 13px; color: #8E95AF; line-height: 1.6;">Tu configuración y tu licencia siguen listas: <strong>no tienes que volver a instalar nada ni cambiar de clave</strong> en Claude Desktop, Cursor ni en el navegador.</p>
-
-              <div style="background-color: #171B30; border: 1px solid #282F50; border-radius: 10px; padding: 20px; margin-bottom: 24px;">
-                <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #8E95AF; margin-bottom: 6px;">Recarga Recomendada</div>
-                <div style="font-size: 20px; font-weight: 800; color: #FFFFFF; margin-bottom: 4px;">{topup_eur} € &rarr; <span style="color: #CCFF00;">{topup_credits:,} créditos</span></div>
-                <div style="font-size: 12px; color: #7B829E;">Sin caducidad · IVA incluido · Pago seguro con Stripe</div>
+            <td style="padding: 36px 24px;">
+              <div style="text-align: center; margin-bottom: 28px;">
+                <a href="https://mcp.keyflint.dev" target="_blank" style="text-decoration: none; display: inline-block;">
+                  <img src="{_BRAND_LOGO_WHITE_URL}" alt="Flint" width="144" height="auto" style="display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none; max-width: 144px; height: auto;" />
+                </a>
               </div>
 
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 14px;">
-                <tr>
-                  <td>
-                    <a href="{u}" style="display: block; text-align: center; background-color: #CCFF00; color: #0B0D17; font-size: 14px; font-weight: 700; text-decoration: none; padding: 13px 20px; border-radius: 8px; letter-spacing: -0.01em;">Recargar {topup_eur} € en 1 clic &rarr;</a>
-                  </td>
-                </tr>
-              </table>
+              <h1 style="margin: 0 0 12px 0; font-size: 24px; font-weight: 700; color: #FFFFFF; letter-spacing: -0.02em; line-height: 1.25; text-align: center;">Has completado tus <span style="color: #CCFF00;">créditos de prueba</span></h1>
+              <p style="margin: 0 0 16px 0; font-size: 14px; color: #B2B8D0; line-height: 1.6; text-align: center;">Esperamos que Flint te haya ahorrado tiempo automatizando tus extractos bancarios o facturación contable.</p>
+              <p style="margin: 0 0 28px 0; font-size: 13px; color: #8E95AF; line-height: 1.6; text-align: center;">Tu configuración y tu licencia siguen listas: <strong>no tienes que volver a instalar nada ni cambiar de clave</strong> en Claude Desktop, Cursor ni en el navegador.</p>
 
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 20px;">
-                <tr>
-                  <td>
-                    <a href="https://mcp.keyflint.dev/saldo/#licencia={html.escape(short)}" style="display: block; text-align: center; background-color: #171B30; color: #B2B8D0; border: 1px solid #282F50; font-size: 12px; font-weight: 600; text-decoration: none; padding: 9px 16px; border-radius: 6px;">Consultar saldo y copiar clave &rarr;</a>
-                  </td>
-                </tr>
-              </table>
+              <div style="background-color: #171B30; border: 1px solid #282F50; border-radius: 12px; padding: 22px 20px; margin-bottom: 24px; text-align: center;">
+                <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #8E95AF; margin-bottom: 6px;">Recarga Recomendada</div>
+                <div style="font-size: 22px; font-weight: 800; color: #FFFFFF; margin-bottom: 4px;">{topup_eur} € &rarr; <span style="color: #CCFF00;">{topup_credits:,} créditos</span></div>
+                <div style="font-size: 12px; color: #7B829E; margin-bottom: 16px;">Sin caducidad · IVA incluido · Pago seguro con Stripe</div>
+                <a href="{u}" style="display: block; text-align: center; background-color: #CCFF00; color: #0B0D17; font-size: 14px; font-weight: 700; text-decoration: none; padding: 13px 20px; border-radius: 8px; letter-spacing: -0.01em;">Recargar {topup_eur} € en 1 clic &rarr;</a>
+              </div>
 
               <p style="margin: 0 0 20px 0; font-size: 12px; color: #717791; text-align: center;">Licencia vinculada: <code style="font-family: ui-monospace, Menlo, Consolas, monospace; color: #CCFF00; background: #0B0D17; padding: 4px 8px; border-radius: 5px; border: 1px solid #1E233D; -webkit-user-select: all; user-select: all;">{html.escape(short)}</code></p>
 
-              <p style="margin: 0 0 24px 0; padding-top: 16px; border-top: 1px solid #1E233D; font-size: 12px; color: #717791; line-height: 1.5;">{html.escape(lead_en)} {html.escape(offer_en)} <a href="{u}" style="color: #CCFF00; text-decoration: none; font-weight: 600;">Top up &rarr;</a></p>
+              <p style="margin: 0 0 24px 0; padding-top: 16px; border-top: 1px solid #1E233D; font-size: 12px; color: #717791; line-height: 1.5; text-align: center;">{html.escape(lead_en)} {html.escape(offer_en)} <a href="{u}" style="color: #CCFF00; text-decoration: none; font-weight: 600;">Top up &rarr;</a></p>
 
-              <div style="padding-top: 20px; border-top: 1px solid #1E233D; font-size: 12px; color: #6F7693; line-height: 1.6;">
+              <div style="padding-top: 20px; border-top: 1px solid #1E233D; font-size: 12px; color: #6F7693; line-height: 1.6; text-align: center;">
                 <p style="margin: 0 0 4px 0;"><strong style="color: #FFFFFF;">Flint by KeyFlint</strong> · Servidores MCP deterministas para IA</p>
                 <p style="margin: 0;">¿Dudas con tu configuración? Escríbenos a <a href="mailto:support@keyflint.dev" style="color: #CCFF00; text-decoration: none; font-weight: 600;">support@keyflint.dev</a></p>
               </div>
@@ -283,27 +265,29 @@ class TransactionalEmailService(IEmailSender):
         )
         html_body = f"""<!doctype html>
 <html lang="es">
-<head><meta charset="utf-8"><meta name="color-scheme" content="dark only"><meta name="supported-color-schemes" content="dark only"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Tu portal de Flint</title></head>
-<body style="margin: 0; padding: 24px 8px; background-color: #0B0D17; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif; color: #FFFFFF; -webkit-font-smoothing: antialiased;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #0B0D17;">
+<head>
+  <meta charset="utf-8">
+  <meta name="color-scheme" content="dark only">
+  <meta name="supported-color-schemes" content="dark only">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tu portal de Flint</title>
+</head>
+<body style="margin: 0; padding: 0; width: 100% !important; background-color: #0B0D17; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif; color: #FFFFFF; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #0B0D17; width: 100%; margin: 0; padding: 24px 0;">
     <tr>
-      <td align="center">
+      <td align="center" style="padding: 0 10px;">
         <table role="presentation" width="100%" style="max-width: 560px; width: 100%; background-color: #111424; border: 1px solid #1E233D; border-radius: 14px;" cellpadding="0" cellspacing="0" border="0">
           <tr>
-            <td style="padding: 32px 20px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 28px;">
-                <tr>
-                  <td align="left">
-                    <a href="https://mcp.keyflint.dev" target="_blank" style="text-decoration: none; display: inline-block;">
-                      <img src="{_BRAND_LOGO_WHITE_URL}" alt="Flint by KeyFlint" width="120" height="auto" style="display: block; border: 0; outline: none; text-decoration: none; max-width: 120px; height: auto;" />
-                    </a>
-                  </td>
-                </tr>
-              </table>
-              <h1 style="margin: 0 0 12px 0; font-size: 22px; font-weight: 700; color: #FFFFFF; letter-spacing: -0.02em; line-height: 1.25;">Acceso al portal de licencias</h1>
-              <p style="margin: 0 0 16px 0; font-size: 14px; color: #B2B8D0; line-height: 1.6;">Alguien (probablemente tú) ha solicitado consultar sus licencias y saldo en Flint.</p>
-              <p style="margin: 0 0 24px 0; font-size: 13px; color: #8E95AF; line-height: 1.6;">Este enlace caduca en {ttl_minutes} minutos y solo funciona una vez para tu seguridad.</p>
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 20px;">
+            <td style="padding: 36px 24px;">
+              <div style="text-align: center; margin-bottom: 28px;">
+                <a href="https://mcp.keyflint.dev" target="_blank" style="text-decoration: none; display: inline-block;">
+                  <img src="{_BRAND_LOGO_WHITE_URL}" alt="Flint" width="144" height="auto" style="display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none; max-width: 144px; height: auto;" />
+                </a>
+              </div>
+              <h1 style="margin: 0 0 12px 0; font-size: 24px; font-weight: 700; color: #FFFFFF; letter-spacing: -0.02em; line-height: 1.25; text-align: center;">Acceso al portal de licencias</h1>
+              <p style="margin: 0 0 16px 0; font-size: 14px; color: #B2B8D0; line-height: 1.6; text-align: center;">Alguien (probablemente tú) ha solicitado consultar sus licencias y saldo en Flint.</p>
+              <p style="margin: 0 0 24px 0; font-size: 13px; color: #8E95AF; line-height: 1.6; text-align: center;">Este enlace caduca en {ttl_minutes} minutos y solo funciona una vez para tu seguridad.</p>
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 24px;">
                 <tr>
                   <td>
                     <a href="{safe_link}" style="display: block; text-align: center; background-color: #CCFF00; color: #0B0D17; font-size: 14px; font-weight: 700; text-decoration: none; padding: 13px 20px; border-radius: 8px; letter-spacing: -0.01em;">Abrir mi portal &rarr;</a>
@@ -311,7 +295,7 @@ class TransactionalEmailService(IEmailSender):
                 </tr>
               </table>
               <p style="font-size: 12px; color: #6F7693; margin: 0 0 20px 0; text-align: center;">Si no lo has pedido tú, ignora este correo: nadie puede ver tus licencias sin este enlace.</p>
-              <div style="padding-top: 20px; border-top: 1px solid #1E233D; font-size: 12px; color: #6F7693;">
+              <div style="padding-top: 20px; border-top: 1px solid #1E233D; font-size: 12px; color: #6F7693; text-align: center;">
                 Flint by KeyFlint · <a href="mailto:support@keyflint.dev" style="color: #CCFF00; text-decoration: none; font-weight: 600;">support@keyflint.dev</a>
               </div>
             </td>
@@ -464,47 +448,46 @@ Questions? Reply to this email or write to support@keyflint.dev.
         )
         return f"""<!DOCTYPE html>
 <html lang="es">
-<head><meta charset="utf-8"><meta name="color-scheme" content="dark only"><meta name="supported-color-schemes" content="dark only"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Tu licencia de Flint</title></head>
-<body style="margin: 0; padding: 24px 8px; background-color: #0B0D17; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif; color: #FFFFFF; -webkit-font-smoothing: antialiased;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #0B0D17;">
+<head>
+  <meta charset="utf-8">
+  <meta name="color-scheme" content="dark only">
+  <meta name="supported-color-schemes" content="dark only">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tu licencia de Flint</title>
+</head>
+<body style="margin: 0; padding: 0; width: 100% !important; background-color: #0B0D17; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif; color: #FFFFFF; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #0B0D17; width: 100%; margin: 0; padding: 24px 0;">
     <tr>
-      <td align="center">
+      <td align="center" style="padding: 0 10px;">
         <table role="presentation" width="100%" style="max-width: 560px; width: 100%; background-color: #111424; border: 1px solid #1E233D; border-radius: 14px;" cellpadding="0" cellspacing="0" border="0">
           <tr>
-            <td style="padding: 32px 20px;">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 28px;">
-                <tr>
-                  <td align="left" style="vertical-align: middle;">
-                    <a href="https://mcp.keyflint.dev" target="_blank" style="text-decoration: none; display: inline-block;">
-                      <img src="{_BRAND_LOGO_WHITE_URL}" alt="Flint by KeyFlint" width="120" height="auto" style="display: block; border: 0; outline: none; text-decoration: none; max-width: 120px; height: auto;" />
-                    </a>
-                  </td>
-                  <td align="right" style="vertical-align: middle;">
-                    <span style="display: inline-block; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; background-color: rgba(204,255,0,0.12); color: #CCFF00; border: 1px solid rgba(204,255,0,0.35); padding: 4px 8px; border-radius: 5px; white-space: nowrap;">Licencia {p.tier.capitalize()}</span>
-                  </td>
-                </tr>
-              </table>
+            <td style="padding: 36px 24px;">
+              <div style="text-align: center; margin-bottom: 28px;">
+                <a href="https://mcp.keyflint.dev" target="_blank" style="text-decoration: none; display: inline-block;">
+                  <img src="{_BRAND_LOGO_WHITE_URL}" alt="Flint" width="144" height="auto" style="display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none; max-width: 144px; height: auto;" />
+                </a>
+              </div>
 
-              <h1 style="margin: 0 0 12px 0; font-size: 22px; font-weight: 700; color: #FFFFFF; letter-spacing: -0.02em; line-height: 1.25;">Tu licencia <span style="color: #CCFF00;">{p.tier.capitalize()}</span> está activa</h1>
-              <p style="margin: 0 0 24px 0; font-size: 14px; color: #B2B8D0; line-height: 1.6;">Tus servidores deterministas para extractos bancarios Norma 43 y facturación Facturae / Veri*factu están listos para usar sin alucinaciones de IA.</p>
+              <h1 style="margin: 0 0 12px 0; font-size: 24px; font-weight: 700; color: #FFFFFF; letter-spacing: -0.02em; line-height: 1.25; text-align: center;">Tu licencia <span style="color: #CCFF00;">{p.tier.capitalize()}</span> está activa</h1>
+              <p style="margin: 0 0 28px 0; font-size: 14px; color: #B2B8D0; line-height: 1.6; text-align: center;">Servidores MCP deterministas para extractos bancarios Norma 43 y facturación Facturae / Veri*factu listos para usar sin alucinaciones de IA.</p>
               
-              <div style="background-color: #171B30; border: 1px solid #282F50; border-radius: 10px; padding: 18px; margin-bottom: 24px;">
+              <div style="background-color: #171B30; border: 1px solid #282F50; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
                 <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #8E95AF; margin-bottom: 8px;">Clave de Licencia</div>
-                <div style="font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; color: #CCFF00; word-break: break-all; line-height: 1.5; background-color: #0B0D17; padding: 12px 14px; border-radius: 6px; border: 1px solid #1E233D; -webkit-user-select: all; user-select: all;">{p.license_key}</div>
-                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: 12px;">
+                <div style="font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; color: #CCFF00; word-break: break-all; line-height: 1.5; background-color: #0B0D17; padding: 12px 14px; border-radius: 8px; border: 1px solid #1E233D; -webkit-user-select: all; user-select: all;">{p.license_key}</div>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: 14px;">
                   <tr>
                     <td>
-                      <a href="https://mcp.keyflint.dev/saldo/" target="_blank" style="display: block; text-align: center; background-color: #CCFF00; color: #0B0D17; font-size: 12px; font-weight: 700; text-decoration: none; padding: 10px 16px; border-radius: 6px; letter-spacing: -0.01em;">Consultar saldo y copiar clave &rarr;</a>
+                      <a href="https://mcp.keyflint.dev/saldo/" target="_blank" style="display: block; text-align: center; background-color: #CCFF00; color: #0B0D17; font-size: 13px; font-weight: 700; text-decoration: none; padding: 12px 16px; border-radius: 8px; letter-spacing: -0.01em;">Consultar saldo y copiar clave &rarr;</a>
                     </td>
                   </tr>
                 </table>
-                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: 16px; font-size: 13px;">{rows}</table>
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top: 18px; font-size: 13px;">{rows}</table>
               </div>
 
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 16px;">
                 <tr>
                   <td>
-                    <a href="{_DOCS_URL}" style="display: block; text-align: center; background-color: #CCFF00; color: #0B0D17; font-size: 14px; font-weight: 700; text-decoration: none; padding: 13px 20px; border-radius: 8px; letter-spacing: -0.01em;">Guía de instalación rápida &rarr;</a>
+                    <a href="{_DOCS_URL}" style="display: block; text-align: center; background-color: #0B0D17; color: #CCFF00; border: 1px solid #282F50; font-size: 14px; font-weight: 700; text-decoration: none; padding: 13px 20px; border-radius: 8px; letter-spacing: -0.01em;">Guía de instalación rápida (Claude, Cursor, VS Code) &rarr;</a>
                   </td>
                 </tr>
               </table>
@@ -515,13 +498,13 @@ Questions? Reply to this email or write to support@keyflint.dev.
 
               <div style="background-color: #171B30; border-left: 3px solid #CCFF00; padding: 14px 16px; border-radius: 0 8px 8px 0; margin-bottom: 24px;">
                 <p style="margin: 0; font-size: 13px; color: #D1D5E4; line-height: 1.55;">
-                  <strong style="color: #FFFFFF;">Incentivo Flint:</strong> Procesa extractos bancarios Norma 43 (.n43, .c43) y facturas electrónicas con precisión matemática directamente desde Claude Desktop, Cursor o en /lote/.
+                  <strong style="color: #FFFFFF;">Incentivo Flint:</strong> Automatiza la conciliación bancaria arrastrando ficheros Norma 43 (.n43, .c43) o facturas electrónicas con descarga inmediata en formato CSV y JSON estructurado.
                 </p>
               </div>
 
-              <div style="padding-top: 20px; border-top: 1px solid #1E233D; font-size: 12px; color: #6F7693; line-height: 1.6;">
+              <div style="padding-top: 20px; border-top: 1px solid #1E233D; font-size: 12px; color: #6F7693; line-height: 1.6; text-align: center;">
                 <p style="margin: 0 0 4px 0;"><strong style="color: #FFFFFF;">Flint by KeyFlint</strong> · Servidores MCP deterministas para IA con rigor contable.</p>
-                <p style="margin: 0;">Soporte humano directo: <a href="mailto:support@keyflint.dev" style="color: #CCFF00; text-decoration: none; font-weight: 600;">support@keyflint.dev</a> · <a href="https://mcp.keyflint.dev/terminos/" style="color: #8E95AF; text-decoration: none;">Términos</a> · <a href="https://mcp.keyflint.dev/reembolsos/" style="color: #8E95AF; text-decoration: none;">Reembolsos</a></p>
+                <p style="margin: 0;">Soporte humano: <a href="mailto:support@keyflint.dev" style="color: #CCFF00; text-decoration: none; font-weight: 600;">support@keyflint.dev</a> · <a href="https://mcp.keyflint.dev/terminos/" style="color: #8E95AF; text-decoration: none;">Términos</a> · <a href="https://mcp.keyflint.dev/reembolsos/" style="color: #8E95AF; text-decoration: none;">Reembolsos</a></p>
               </div>
             </td>
           </tr>
