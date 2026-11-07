@@ -28,8 +28,11 @@ _EXECUTOR = ThreadPoolExecutor(max_workers=2, thread_name_prefix="kf-depletion")
 _LOCK = threading.Lock()
 
 
-def in_scope(metadata: dict[str, Any]) -> bool:
-    return bool(metadata.get("trial")) or metadata.get("source") == "mcp-hub"
+def in_scope(metadata: dict[str, Any], tier: Any = None) -> bool:
+    if metadata.get("demo"):
+        return False
+    tier_val = str(getattr(tier, "value", tier) or "").lower()
+    return bool(metadata.get("trial")) or metadata.get("source") == "mcp-hub" or tier_val == "pro"
 
 
 def topup_link(base: str, license_key: str, eur: int) -> str:
@@ -55,7 +58,7 @@ class DepletionNotifier:
 
     def _maybe_send(self, lic: Any, balance: int, consumed: int) -> bool:
         settings = get_settings()
-        if not settings.DEPLETION_EMAIL_ENABLED or not in_scope(lic.metadata or {}):
+        if not settings.DEPLETION_EMAIL_ENABLED or not in_scope(lic.metadata or {}, getattr(lic, "tier", None)):
             return False
         granted = int(balance) + int(consumed)
         with _LOCK:

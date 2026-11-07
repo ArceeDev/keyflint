@@ -74,6 +74,13 @@ class TestDepletionEmail(BaseKeyFlintTestCase):
         other = self._issue("sdk@acme.io", {})
         _, send = self._deduct(other, 25)
         send.assert_not_called()
+        demo_lic = self._issue("demo@acme.io", {"source": "mcp-hub", "demo": True})
+        _, send = self._deduct(demo_lic, 25)
+        send.assert_not_called()
+        pro_res = self.client.post("/api/v1/licenses/issue", json={"customer_email": "pro@acme.io", "tier": "pro"})
+        pro_key = pro_res.json()["data"]["license_key"]
+        _, send = self._deduct(pro_key, 1000)
+        send.assert_called_once()
         get_settings().DEPLETION_EMAIL_ENABLED = False
         try:
             key = self._issue("off@acme.io", {"trial": True})
