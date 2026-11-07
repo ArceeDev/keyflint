@@ -80,6 +80,16 @@ class Settings(BaseSettings):
     # Self-serve free trial: one Community license (Tier.COMMUNITY credits) per email, emailed to that inbox.
     TRIAL_ENABLED: bool = False
     TRIAL_DAILY_CAP: int = 100  # trial licenses per process per 24 h (cost ceiling)
+
+    # Pay-as-you-go top-ups: credits added to an existing license (same key) via a dynamic Stripe Checkout.
+    TOPUP_ENABLED: bool = True
+    TOPUP_MAX_PER_LICENSE_DAY: int = 3
+    TOPUP_TAX_BEHAVIOR: str = "inclusive"  # "inclusive" (price shown = price paid), "exclusive" or "" (account default)
+    TOPUP_TAX_CODE: str = "txcd_10202003"  # same code as the existing KeyFlint products (Managed Payments eligible)
+    TOPUP_MANAGED_PAYMENTS: bool = True
+    TOPUP_STRIPE_API_VERSION: str = "2025-03-31.basil"  # managed_payments needs basil or later
+    TOPUP_RETURN_ORIGINS: str = "https://mcp.keyflint.dev,https://keyflint.dev"
+    TOPUP_DEFAULT_RETURN_URL: str = "https://mcp.keyflint.dev/saldo/"
     ADMIN_API_KEY: str = "kf_dev_admin_key_change_in_prod"
 
     # Transactional Email Dispatch (Resend / SMTP)

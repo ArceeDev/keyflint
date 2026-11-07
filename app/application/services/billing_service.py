@@ -41,6 +41,11 @@ from app.application.dtos.quota_dtos import (
 )
 from app.application.services.license_service import LicenseService
 from app.application.services.quota_service import QuotaService
+from app.application.services.topup_pricing import (
+    topup_bonus_percent,
+    topup_credits,
+    validate_topup_amount,
+)
 from app.config import get_settings
 from app.domain.entities.license import LicenseStatus, Tier
 from app.domain.entities.webhook import WebhookRecord
@@ -81,12 +86,14 @@ _PLACEHOLDER_EMAIL = re.compile(r"^(buyer_[0-9a-f]{6}@acme\.ai|missing-email-[0-
 
 _TIER_UNIT_AMOUNTS_CENTS: dict[str, int] = {
     "community": 0,
-    "indie": 14900,
-    "agency": 34900,
+    "indie": 24900,
+    "agency": 49900,
     "pro": 2900,
     "studio": 8900,
-    "lifetime": 19900,
+    "lifetime": 29900,
 }
+# Prices of Payment Links sold before the 2026-11 price change: still recognised if metadata is missing.
+_LEGACY_TIER_AMOUNTS_CENTS: dict[int, str] = {14900: "indie", 34900: "agency", 19900: "lifetime"}
 
 
 class WebhookAuthenticationError(Exception):
@@ -411,7 +418,8 @@ class BillingService:
             # Metadata missing: infer only from an EXACT pre-tax, pre-discount USD list price.
             subtotal = data_obj.get("amount_subtotal")
             currency = str(data_obj.get("currency") or "").lower()
-            by_price = {cents: name for name, cents in _TIER_UNIT_AMOUNTS_CENTS.items() if cents}
+            by_price = dict(_LEGACY_TIER_AMOUNTS_CENTS)
+            by_price.update({cents: name for name, cents in _TIER_UNIT_AMOUNTS_CENTS.items() if cents})
             if isinstance(subtotal, int) and currency == "usd" and subtotal in by_price:
                 tier_raw = by_price[subtotal]
         return event_id, raw_event_type, customer_email, _resolve_tier(tier_raw), tier_raw
@@ -759,8 +767,14 @@ class BillingService:
         failure_events = {"invoice.payment_failed", "subscription_payment_failed"}
         reversal_events = {"charge.refunded", "charge.dispute.created", "charge.dispute.closed"}
 
+        topup: Optional[dict[str, Any]] = None
+
         # 2. Lifecycle Handling
-        if event_type in provision_events:
+        if provider == "stripe" and event_type in self._TOPUP_EVENTS and self._is_topup(data_obj):
+            topup = self._apply_topup(event_type, data_obj)
+            license_key = topup.get("license_key")
+
+        elif event_type in provision_events:
             # RFC 2606 reserved domain: obviously not a person, never routable, never emailed.
             resolved_email = customer_email or f"missing-email-{uuid.uuid4().hex[:6]}@keyflint.invalid"
             customer = self._customer_repo.get_by_email(resolved_email)
@@ -858,6 +872,10 @@ class BillingService:
                         elif lic.status == LicenseStatus.GRACE_PERIOD:
                             lic.status = LicenseStatus.ACTIVE
                             self._license_repo.update_status(lic.id, LicenseStatus.ACTIVE)
+                        # Prepaid top-up credits survive the monthly reset (plan credits are spent first).
+                        fresh = self._license_repo.get_by_id(lic.id) or lic
+                        topup_left = int(fresh.metadata.get("topup_credits") or 0)
+                        carry = min(self._quota_repo.get_balance(lic.id).balance, topup_left) if topup_left > 0 else 0
                         replenish_resp = self._quota_service.replenish(
                             QuotaReplenishRequest(
                                 license_key=lic.license_key,
@@ -865,6 +883,14 @@ class BillingService:
                                 reset_cycle=True,
                             )
                         )
+                        if carry > 0:
+                            replenish_resp = self._quota_service.replenish(
+                                QuotaReplenishRequest(license_key=lic.license_key, credits=carry, reset_cycle=False)
+                            )
+                        if topup_left > 0:
+                            fresh = self._license_repo.get_by_id(lic.id) or fresh
+                            fresh.metadata["topup_credits"] = carry
+                            self._license_repo.save(fresh)
                         license_key = lic.license_key
                         if provider == "stripe":
                             self._attach_payment_refs(lic.license_key, self._extract_payment_refs(data_obj))
@@ -880,7 +906,9 @@ class BillingService:
                                 pass
 
         elif provider == "stripe" and event_type in reversal_events:
-            reversal = self._handle_stripe_payment_reversal(event_type, data_obj)
+            reversal = self._reverse_topup(event_type, data_obj) or self._handle_stripe_payment_reversal(
+                event_type, data_obj
+            )
             license_key = reversal["license_key"]
             license_status = reversal["license_status"]
 
@@ -929,9 +957,10 @@ class BillingService:
             "event_type": event_type,
             "license_key": license_key,
             "license_status": license_status,
-            **({"email_delivered": email_delivered} if event_type in provision_events else {}),
+            **({"email_delivered": email_delivered} if event_type in provision_events and topup is None else {}),
             **({"tier_unresolved": unresolved_tier} if unresolved_tier else {}),
             **({"reversal": reversal} if reversal is not None else {}),
+            **({"topup": topup} if topup is not None else {}),
         }
 
     def simulate_webhook(self, request: WebhookSimulationRequest) -> WebhookSimulationResponse:
@@ -1118,6 +1147,364 @@ class BillingService:
             "total_allowance": balance.total_allowance,
             "email_hint": masked,
         }
+
+    # ------------------------------------------------------------------ pay-as-you-go top-ups
+
+    _TOPUP_EVENTS = (
+        "checkout.session.completed",
+        "checkout.session.async_payment_succeeded",
+        "checkout.session.async_payment_failed",
+    )
+
+    @staticmethod
+    def _topup_return_url(return_url: Optional[str]) -> str:
+        """Only our own sites may receive the buyer after paying (no open redirect through Stripe)."""
+        settings = get_settings()
+        url = (return_url or "").strip() or settings.TOPUP_DEFAULT_RETURN_URL
+        origins = [o.strip().rstrip("/") for o in settings.TOPUP_RETURN_ORIGINS.split(",") if o.strip()]
+        if len(url) > 300 or not any(url == o or url.startswith(o + "/") for o in origins):
+            raise DomainError("return_url is not an allowed KeyFlint page.", code="TOPUP_RETURN_URL", status_code=400)
+        if "#" in url or "{" in url:
+            raise DomainError("return_url is not an allowed KeyFlint page.", code="TOPUP_RETURN_URL", status_code=400)
+        return url
+
+    def _topup_target(self, license_key: str) -> Any:
+        """The license a top-up would credit; raises if it cannot receive credits right now."""
+        lic = self._license_repo.get_by_key((license_key or "").strip())
+        if lic is None:
+            raise LicenseNotFoundError("License not found.")
+        if lic.status == LicenseStatus.REVOKED or self._license_service.is_revoked_id(lic.id):
+            raise DomainError("This license is revoked.", code="LICENSE_INACTIVE", status_code=409)
+        if lic.status == LicenseStatus.SUSPENDED:
+            raise DomainError("This license is suspended.", code="LICENSE_INACTIVE", status_code=409)
+        if lic.status == LicenseStatus.EXPIRED or lic.is_expired(datetime.now(timezone.utc)):
+            raise DomainError("This license has expired.", code="LICENSE_EXPIRED", status_code=409)
+        return lic
+
+    @staticmethod
+    def _recent_topups(lic: Any, hours: int = 24) -> int:
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
+        count = 0
+        for entry in lic.metadata.get("topups", []) or []:
+            try:
+                at = datetime.fromisoformat(str(entry.get("at")))
+            except (TypeError, ValueError):
+                continue
+            if at.tzinfo is None:
+                at = at.replace(tzinfo=timezone.utc)
+            if at >= cutoff:
+                count += 1
+        return count
+
+    def create_topup_checkout(
+        self,
+        license_key: str,
+        amount_cents: Any,
+        currency: Any,
+        return_url: Optional[str] = None,
+    ) -> dict[str, Any]:
+        """Stripe Checkout for adding credits to an existing license; the key never changes.
+
+        Stripe only ever sees the license id (metadata), never the key. Credits are fixed here from the
+        amount, signed into the session metadata with the secret key, and recomputed on fulfilment.
+        """
+        settings = get_settings()
+        if not settings.TOPUP_ENABLED:
+            raise DomainError("Top-ups are not available right now.", code="TOPUP_DISABLED", status_code=503)
+        try:
+            amount, cur = validate_topup_amount(amount_cents, currency)
+        except ValueError as exc:
+            raise DomainError(str(exc), code="TOPUP_AMOUNT_INVALID", status_code=400) from None
+        lic = self._topup_target(license_key)
+        if self._recent_topups(lic) >= max(1, settings.TOPUP_MAX_PER_LICENSE_DAY):
+            raise DomainError("Daily top-up limit reached for this license. Try again tomorrow.",
+                              code="TOPUP_DAILY_LIMIT", status_code=429)
+        credits = topup_credits(amount)
+        bonus = topup_bonus_percent(amount)
+        back = self._topup_return_url(return_url)
+        sep = "&" if "?" in back else "?"
+        success_url = f"{back}{sep}recarga={{CHECKOUT_SESSION_ID}}"
+        meta = {
+            "kind": "topup",
+            "license_id": lic.id,
+            "amount_cents": str(amount),
+            "currency": cur,
+            "credits": str(credits),
+            "source": "mcp-hub",
+        }
+        customer = self._customer_repo.get_by_id(lic.customer_id)
+        email = customer.email if customer else None
+
+        if settings.BILLING_MODE.strip().lower() != "live":
+            session_id = f"cs_mock_topup_{uuid.uuid4().hex}"
+            return {
+                "checkout_url": f"/api/v1/billing/checkout/{session_id}",
+                "session_id": session_id,
+                "credits": credits,
+                "bonus_percent": bonus,
+                "amount_cents": amount,
+                "currency": cur,
+                "mode": "mock",
+                "metadata": meta,
+            }
+
+        stripe_key = (settings.STRIPE_SECRET_KEY or "").strip()
+        if not stripe_key:
+            raise DomainError("Live Stripe checkout requires STRIPE_SECRET_KEY.",
+                              code="BILLING_PROVIDER_UNCONFIGURED", status_code=503)
+        name = f"Flint: {credits:,} créditos".replace(",", ".") if cur == "eur" else f"Flint: {credits:,} credits"
+        form: dict[str, str] = {
+            "mode": "payment",
+            "success_url": success_url,
+            "cancel_url": back,
+            "line_items[0][quantity]": "1",
+            "line_items[0][price_data][currency]": cur,
+            "line_items[0][price_data][unit_amount]": str(amount),
+            "line_items[0][price_data][product_data][name]": name,
+            "line_items[0][price_data][product_data][description]": "Recarga de créditos de uso sobre tu licencia actual (misma clave).",
+            "client_reference_id": lic.id,
+        }
+        if settings.TOPUP_TAX_CODE:
+            form["line_items[0][price_data][product_data][tax_code]"] = settings.TOPUP_TAX_CODE
+        if settings.TOPUP_TAX_BEHAVIOR in ("inclusive", "exclusive"):
+            form["line_items[0][price_data][tax_behavior]"] = settings.TOPUP_TAX_BEHAVIOR
+        if settings.TOPUP_MANAGED_PAYMENTS:
+            form["managed_payments[enabled]"] = "true"
+        if email and "@" in email and not _PLACEHOLDER_EMAIL.match(email):
+            form["customer_email"] = email
+        for k, v in meta.items():
+            form[f"metadata[{k}]"] = v
+            form[f"payment_intent_data[metadata][{k}]"] = v
+        headers = {"Idempotency-Key": f"topup-{lic.id}-{uuid.uuid4().hex}"}
+        if settings.TOPUP_STRIPE_API_VERSION:
+            headers["Stripe-Version"] = settings.TOPUP_STRIPE_API_VERSION
+        try:
+            resp = httpx.post("https://api.stripe.com/v1/checkout/sessions", auth=(stripe_key, ""),
+                              data=form, headers=headers, timeout=10.0)
+        except httpx.HTTPError as exc:
+            raise DomainError(f"Stripe checkout API request failed: {exc}",
+                              code="BILLING_UPSTREAM_ERROR", status_code=502) from exc
+        if resp.status_code >= 400:
+            try:
+                detail = str(resp.json().get("error", {}).get("message", ""))[:300]
+            except Exception:
+                detail = ""
+            logger.error("Stripe rejected top-up session (HTTP %s): %s", resp.status_code, detail)
+            self._ops_alert("Stripe rechazó una sesión de recarga", http=resp.status_code, detail=detail,
+                            fix="Revisa TOPUP_TAX_BEHAVIOR / TOPUP_TAX_CODE / TOPUP_MANAGED_PAYMENTS en fly secrets.")
+            raise DomainError("The payment provider rejected the top-up. Try again later.",
+                              code="BILLING_UPSTREAM_ERROR", status_code=502)
+        body = resp.json()
+        return {
+            "checkout_url": str(body.get("url") or ""),
+            "session_id": str(body.get("id") or ""),
+            "credits": credits,
+            "bonus_percent": bonus,
+            "amount_cents": amount,
+            "currency": cur,
+            "mode": "live",
+        }
+
+    def topup_status(self, session_id: str) -> dict[str, Any]:
+        """Outcome of one top-up session, for the hub's return page (no license key in the answer)."""
+        sid = (session_id or "").strip()
+        if not self._CHECKOUT_SESSION_RE.match(sid):
+            raise DomainError("Invalid checkout session id.", code="CHECKOUT_SESSION_INVALID", status_code=400)
+        finder = getattr(self._license_repo, "find_by_topup_ref", None)
+        found = finder(sid) if finder is not None else []
+        if not found:
+            return {"status": "pending"}
+        lic = found[0]
+        entry = next((e for e in lic.metadata.get("topups", []) if e.get("session") == sid), None)
+        if entry is None:
+            return {"status": "pending"}
+        balance = self._quota_repo.get_balance(lic.id)
+        return {
+            "status": entry.get("status", "applied"),
+            "credits": int(entry.get("credits") or 0),
+            "amount_cents": int(entry.get("amount_cents") or 0),
+            "currency": entry.get("currency"),
+            "credit_balance": balance.balance,
+        }
+
+    @staticmethod
+    def _is_topup(data_obj: dict[str, Any]) -> bool:
+        meta = data_obj.get("metadata") if isinstance(data_obj.get("metadata"), dict) else {}
+        return meta.get("kind") == "topup"
+
+    def _apply_topup(self, event_type: str, data_obj: dict[str, Any]) -> dict[str, Any]:
+        """Adds a paid top-up to its license exactly once per Checkout Session."""
+        meta = data_obj.get("metadata") or {}
+        sid = str(data_obj.get("id") or "")
+        outcome: dict[str, Any] = {"session": sid, "license_key": None, "credits": 0}
+        if event_type == "checkout.session.async_payment_failed":
+            outcome["action"] = "payment_failed"
+            return outcome
+        if str(data_obj.get("payment_status") or "") != "paid":
+            outcome["action"] = "awaiting_payment"  # async method: wait for async_payment_succeeded
+            return outcome
+        lic = self._license_repo.get_by_id(str(meta.get("license_id") or ""))
+        if lic is None:
+            outcome["action"] = "license_not_found"
+            self._ops_alert("Recarga pagada sin licencia", session=sid, license_id=meta.get("license_id"),
+                            fix="Reembolsa el pago en Stripe o suma los créditos a mano.")
+            return outcome
+        outcome["license_key"] = lic.license_key
+        topups = lic.metadata.get("topups", [])
+        if not isinstance(topups, list):
+            topups = []
+        if any(e.get("session") == sid for e in topups):
+            outcome["action"] = "already_applied"
+            return outcome
+        try:
+            amount = int(str(meta.get("amount_cents") or "0"))
+        except ValueError:
+            amount = 0
+        credits = topup_credits(amount)
+        if str(meta.get("credits")) != str(credits):
+            logger.warning("Top-up %s: metadata credits %r != recomputed %d; using recomputed",
+                           sid, meta.get("credits"), credits)
+        pi = data_obj.get("payment_intent")
+        if isinstance(pi, dict):
+            pi = pi.get("id")
+        entry: dict[str, Any] = {
+            "session": sid,
+            "payment_intent": pi if isinstance(pi, str) else None,
+            "amount_cents": amount,
+            "currency": str(meta.get("currency") or data_obj.get("currency") or ""),
+            "credits": credits,
+            "reversed": 0,
+            "dispute_hold": 0,
+            "at": datetime.now(timezone.utc).isoformat(),
+        }
+        new_balance: Optional[int] = None
+        if credits <= 0:
+            entry["status"] = "failed"
+            entry["error"] = "amount_below_minimum"
+        else:
+            try:
+                resp = self._quota_service.replenish(
+                    QuotaReplenishRequest(license_key=lic.license_key, credits=credits, reset_cycle=False)
+                )
+                new_balance = resp.balance
+                entry["status"] = "applied"
+            except DomainError as exc:
+                entry["status"] = "failed"
+                entry["error"] = type(exc).__name__
+        if entry["status"] != "applied":
+            self._ops_alert("Recarga pagada pero NO aplicada", session=sid, license_key=lic.license_key,
+                            reason=entry.get("error"), fix="Reembolsa el pago en Stripe o reactiva la licencia y suma los créditos.")
+        lic = self._license_repo.get_by_id(lic.id) or lic
+        topups = [e for e in lic.metadata.get("topups", []) if isinstance(e, dict)] if isinstance(lic.metadata.get("topups"), list) else []
+        topups.append(entry)
+        lic.metadata["topups"] = topups[-200:]
+        refs = lic.metadata.get("topup_refs", [])
+        refs = refs if isinstance(refs, list) else []
+        for ref in (sid, entry["payment_intent"]):
+            if ref and ref not in refs:
+                refs.append(ref)
+        lic.metadata["topup_refs"] = refs[-400:]
+        if entry["status"] == "applied":
+            lic.metadata["topup_credits"] = int(lic.metadata.get("topup_credits") or 0) + credits
+        self._license_repo.save(lic)
+        outcome.update(action=entry["status"], credits=credits if entry["status"] == "applied" else 0,
+                       credit_balance=new_balance)
+        if entry["status"] == "applied" and self._email_sender:
+            customer = self._customer_repo.get_by_id(lic.customer_id)
+            to = customer.email if customer else None
+            if to and not _PLACEHOLDER_EMAIL.match(to):
+                try:
+                    self._email_sender.send_quota_replenished(
+                        recipient_email=to, license_key=lic.license_key,
+                        added_credits=credits, new_balance=int(new_balance or 0),
+                    )
+                except Exception:
+                    logger.warning("Top-up email failed for %s", sid)
+        return outcome
+
+    def _adjust_topup_credits(self, lic: Any, delta: int) -> int:
+        """Removes (delta<0) or restores (delta>0) top-up credits. Returns the uncovered deficit."""
+        ledger = self._quota_repo.get_by_license_id(lic.id)
+        if ledger is None or delta == 0:
+            return 0
+        deficit = 0
+        if delta < 0:
+            remove = -delta
+            taken = min(remove, max(0, ledger.balance))
+            deficit = remove - taken
+            ledger.balance -= taken
+            ledger.total_allowance = max(0, ledger.total_allowance - remove)
+        else:
+            ledger.balance += delta
+            ledger.total_allowance += delta
+        ledger.updated_at = datetime.now(timezone.utc)
+        self._quota_repo.save(ledger)
+        lic.metadata["topup_credits"] = max(0, int(lic.metadata.get("topup_credits") or 0) + delta)
+        return deficit
+
+    def _reverse_topup(self, event_type: str, data_obj: dict[str, Any]) -> Optional[dict[str, Any]]:
+        """Refund/dispute of a top-up: adjusts that top-up's credits only. None if not a top-up."""
+        finder = getattr(self._license_repo, "find_by_topup_ref", None)
+        if finder is None:
+            return None
+        refs = self._extract_payment_refs(data_obj)
+        lic, entry = None, None
+        for ref in refs:
+            for cand in finder(ref):
+                hit = next((e for e in cand.metadata.get("topups", [])
+                            if ref in (e.get("session"), e.get("payment_intent"))), None)
+                if hit is not None:
+                    lic, entry = cand, hit
+                    break
+            if lic is not None:
+                break
+        if lic is None or entry is None:
+            return None
+        outcome: dict[str, Any] = {"matched_by": "topup", "license_key": lic.license_key,
+                                   "license_status": lic.status.value, "session": entry.get("session")}
+        if entry.get("status") != "applied":
+            outcome["action"] = "topup_not_applied"
+            return outcome
+        credits = int(entry.get("credits") or 0)
+        reversed_ = int(entry.get("reversed") or 0)
+        hold = int(entry.get("dispute_hold") or 0)
+        delta = 0
+        if event_type == "charge.refunded":
+            amount = int(data_obj.get("amount") or 0)
+            refunded = int(data_obj.get("amount_refunded") or 0)
+            target = credits if (data_obj.get("refunded") or (amount and refunded >= amount)) else (
+                credits * refunded // amount if amount > 0 else 0)
+            delta = -max(0, min(target - reversed_, credits - reversed_ - hold))
+            entry["reversed"] = reversed_ - delta
+            outcome["action"] = "topup_refunded"
+        elif event_type == "charge.dispute.created":
+            delta = -max(0, credits - reversed_ - hold)
+            entry["dispute_hold"] = hold - delta
+            outcome["action"] = "topup_dispute_hold"
+        else:  # charge.dispute.closed
+            status = str(data_obj.get("status") or "")
+            if status in ("won", "warning_closed"):
+                delta = hold
+                outcome["action"] = "topup_dispute_won"
+            elif status == "lost":
+                entry["reversed"] = reversed_ + hold
+                outcome["action"] = "topup_dispute_lost"
+            else:
+                outcome["action"] = f"topup_dispute_{status or 'unknown'}_ignored"
+                return outcome
+            entry["dispute_hold"] = 0
+        deficit = self._adjust_topup_credits(lic, delta)
+        outcome["credits_delta"] = delta
+        if deficit > 0 and lic.status not in (LicenseStatus.SUSPENDED, LicenseStatus.REVOKED):
+            lic.suspend()
+            lic.metadata["suspension_reason"] = "topup_reversal_deficit"
+            lic.metadata["topup_deficit"] = int(lic.metadata.get("topup_deficit") or 0) + deficit
+            self._ops_alert("Recarga devuelta con créditos ya gastados: licencia suspendida",
+                            license_key=lic.license_key, deficit=deficit,
+                            fix="Reactívala cuando el cliente pague la diferencia, o revócala.")
+        self._license_repo.save(lic)
+        outcome["license_status"] = lic.status.value
+        return outcome
 
     def request_trial_license(self, email: str, source: Optional[str] = None) -> Optional[str]:
         """Issues one free Community license per email and returns its key, to be emailed (never shown).

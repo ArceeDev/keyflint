@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import logging
 from typing import Any
 
@@ -190,6 +191,46 @@ def lookup_customer_portal(
 class TrialRequest(BaseModel):
     email: str = Field(min_length=3, max_length=254)
     source: str | None = Field(default=None, max_length=40)
+
+
+class TopupRequest(BaseModel):
+    license_key: str = Field(min_length=20, max_length=1024)
+    amount_cents: int
+    currency: str = Field(default="eur", max_length=3)
+    return_url: str | None = Field(default=None, max_length=300)
+
+
+@router.post("/topup")
+def create_topup_checkout(
+    request: TopupRequest,
+    http_request: Request,
+    billing_service: BillingService = Depends(get_billing_service),
+) -> dict[str, Any]:
+    """Pay-as-you-go: Stripe Checkout that adds credits to this same license (the key does not change)."""
+    from app.presentation.middlewares import rate_limiter
+
+    tag = hashlib.sha256(request.license_key.strip().encode()).hexdigest()[:16]
+    allowed, _, _ = rate_limiter.check(f"topup:{tag}", 10, 3600)
+    if not allowed:
+        raise HTTPException(status_code=429, detail="Too many top-up attempts. Try again in an hour.")
+    res = billing_service.create_topup_checkout(
+        request.license_key, request.amount_cents, request.currency, request.return_url
+    )
+    return {"success": True, "data": res, "metadata": build_response_metadata(http_request)}
+
+
+@router.get("/topup/{session_id}")
+def get_topup_status(
+    session_id: str,
+    http_request: Request,
+    billing_service: BillingService = Depends(get_billing_service),
+) -> dict[str, Any]:
+    """Return page: pending until the Stripe webhook applies the credits, then the new balance."""
+    return {
+        "success": True,
+        "data": billing_service.topup_status(session_id),
+        "metadata": build_response_metadata(http_request),
+    }
 
 
 @router.post("/trial")

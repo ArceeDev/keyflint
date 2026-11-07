@@ -135,19 +135,19 @@ class TestMeteredRefund(BaseKeyFlintTestCase):
         key = self.issue_license_api(customer_email="refund@acme.ai", tier="pro")["license_key"]
         idem = str(uuid.uuid4())
         self.assertEqual(self.deduct_quota_api(key, credits=7, idempotency_key=idem).status_code, 200)
-        self.assertEqual(self._balance(key), 493)
+        self.assertEqual(self._balance(key), 993)
 
         body = {"license_key": key, "idempotency_key": idem, "reason": "tool_failed"}
         first = self.client.post("/api/v1/quota/refund", json=body)
         self.assertEqual(first.status_code, 200, first.text)
         self.assertEqual(first.json()["data"]["refunded"], 7)
         self.assertFalse(first.json()["data"]["is_cached"])
-        self.assertEqual(self._balance(key), 500)
+        self.assertEqual(self._balance(key), 1000)
 
         replay = self.client.post("/api/v1/quota/refund", json=body)
         self.assertEqual(replay.status_code, 200)
         self.assertTrue(replay.json()["data"]["is_cached"])
-        self.assertEqual(self._balance(key), 500)
+        self.assertEqual(self._balance(key), 1000)
 
     def test_deduct_replay_after_refund_is_rejected(self):
         key = self.issue_license_api(customer_email="replay@acme.ai", tier="pro")["license_key"]

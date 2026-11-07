@@ -32,7 +32,7 @@ class TestWebhookIngestion(BaseKeyFlintTestCase):
     """E2E Verification for FEAT-WH-01: Multi-Provider Webhook Ingestion."""
 
     def test_feat4_checkout_completed_provisions_pro_account(self):
-        """Ingesting checkout.session.completed provisions Pro license with 3 seats and 500 credits."""
+        """Ingesting checkout.session.completed provisions Pro license with 3 seats and 1000 credits."""
         self.require_app()
         customer_email = f"buyer_{uuid.uuid4().hex[:6]}@acme.ai"
         event_payload = {
@@ -62,7 +62,7 @@ class TestWebhookIngestion(BaseKeyFlintTestCase):
         self.assertEqual(status_res.status_code, 200)
         st = status_res.json()["data"]
         self.assertEqual(st["tier"], "pro")
-        self.assertEqual(st["credit_balance"], 500)
+        self.assertEqual(st["credit_balance"], 1000)
 
     def test_feat4_checkout_completed_issues_signed_license_key(self):
         """Checkout webhook automatically generates and stores valid Ed25519-signed license key."""
@@ -84,7 +84,7 @@ class TestWebhookIngestion(BaseKeyFlintTestCase):
         self.assertTrue(verify_payload_ed25519(tok_payload, sig_b64, TEST_ED25519_PUBLIC_KEY_HEX))
 
     def test_feat4_subscription_renewed_replenishes_quota(self):
-        """invoice.payment_succeeded resets monthly balance to 500 without inflating total_allowance to 1000."""
+        """invoice.payment_succeeded resets monthly balance to 1000 without inflating total_allowance to 2000."""
         self.require_app()
         customer_email = f"renew_{uuid.uuid4().hex[:6]}@acme.ai"
         prov_res = self.simulate_webhook_api(
@@ -97,7 +97,7 @@ class TestWebhookIngestion(BaseKeyFlintTestCase):
         # Consume 120 credits -> remaining 380
         ded = self.deduct_quota_api(license_key=license_key, credits=120)
         self.assertEqual(ded.status_code, 200)
-        self.assertEqual(ded.json()["data"]["remaining_balance"], 380)
+        self.assertEqual(ded.json()["data"]["remaining_balance"], 880)
 
         # Trigger billing cycle renewal
         res = self.simulate_webhook_api(
@@ -108,8 +108,8 @@ class TestWebhookIngestion(BaseKeyFlintTestCase):
         self.assertEqual(res.status_code, 200)
 
         bal = self.client.get(f"/api/v1/quota/balance?license_key={license_key}").json()["data"]
-        self.assertEqual(bal["credit_balance"], 500, "Cycle renewal must reset balance to 500 (not 880 or 1000)")
-        self.assertEqual(bal["total_allowance"], 500, "total_allowance must stay 500 on cycle reset")
+        self.assertEqual(bal["credit_balance"], 1000, "Cycle renewal must reset balance to 1000 (not 880 or 2000)")
+        self.assertEqual(bal["total_allowance"], 1000, "total_allowance must stay 1000 on cycle reset")
         self.assertEqual(bal["consumed"], 0, "Cycle consumed counter must reset to 0")
 
     def test_feat4_subscription_deleted_downgrades_to_community(self):
@@ -286,7 +286,7 @@ class TestWebhookIngestion(BaseKeyFlintTestCase):
         self.assertFalse(ver_sp["valid"])
         self.assertEqual(ver_sp["status"], "suspended")
         bal_sp = self.client.get(f"/api/v1/quota/balance?license_key={sp_key}").json()["data"]
-        self.assertEqual(bal_sp["credit_balance"], 400)
+        self.assertEqual(bal_sp["credit_balance"], 900)
 
         # 4. Expired status sync in /billing/status and /telemetry/events
         email_exp = f"exp_sync_{uuid.uuid4().hex[:6]}@acme.ai"
