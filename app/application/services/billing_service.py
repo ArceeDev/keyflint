@@ -1264,6 +1264,9 @@ class BillingService:
             "line_items[0][price_data][product_data][description]": "Recarga de créditos de uso sobre tu licencia actual (misma clave).",
             "client_reference_id": lic.id,
         }
+        img = (getattr(settings, "TOPUP_PRODUCT_IMAGE_URL", "") or "").strip()
+        if img.startswith("https://"):
+            form["line_items[0][price_data][product_data][images][0]"] = img
         if getattr(settings, "TOPUP_REQUIRE_TOS_CONSENT", False):
             form["consent_collection[terms_of_service]"] = "required"
         if settings.TOPUP_TAX_CODE:

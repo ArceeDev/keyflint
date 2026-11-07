@@ -16,6 +16,15 @@ import httpx
 from app.config import get_settings
 from app.domain.interfaces.email_sender import IEmailSender, LicenseEmailPayload
 
+
+def _brand_header() -> str:
+    """Flint logo row for HTML emails (EMAIL_LOGO_URL; empty disables it)."""
+    url = (getattr(get_settings(), "EMAIL_LOGO_URL", "") or "").strip()
+    if not url.startswith("https://"):
+        return ""
+    return (f'<p style="margin:0 0 24px 0;"><img src="{html.escape(url)}" width="120" height="32" '
+            'alt="Flint" style="display:block;border:0;outline:none;height:32px;width:120px;"></p>')
+
 logger = logging.getLogger("keyflint.email")
 
 _DOCS_URL = "https://github.com/ArceeDev/keyflint#client-sdks"
@@ -102,7 +111,7 @@ class TransactionalEmailService(IEmailSender):
         <table role="presentation" width="100%" style="max-width: 620px; background-color: #0B0D17; border: 1px solid #1F2438; border-radius: 8px;" cellpadding="0" cellspacing="0" border="0">
           <tr>
             <td style="padding: 32px;">
-              <h1 style="margin: 0 0 12px 0; font-size: 22px; font-weight: 600; color: #FFFFFF;">Quota <span style="color: #CCFF00;">replenished</span></h1>
+              {_brand_header()}<h1 style="margin: 0 0 12px 0; font-size: 22px; font-weight: 600; color: #FFFFFF;">Quota <span style="color: #CCFF00;">replenished</span></h1>
               <p style="margin: 0 0 20px 0; font-size: 14px; color: #FFFFFF; line-height: 1.5;">Your license <code style="font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;">{license_key[:12]}...</code> has been refilled for the new billing cycle.</p>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size: 14px;">
                 <tr>
@@ -158,7 +167,7 @@ class TransactionalEmailService(IEmailSender):
 <body style="margin:0;padding:32px 16px;background-color:#0B0D17;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#FFFFFF;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0B0D17;"><tr><td align="center">
     <table role="presentation" width="100%" style="max-width:560px;border:1px solid #1F2438;border-radius:8px;" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding:32px;">
-      <h1 style="margin:0 0 12px 0;font-size:22px;font-weight:600;">{html.escape(lead)}</h1>
+      {_brand_header()}<h1 style="margin:0 0 12px 0;font-size:22px;font-weight:600;">{html.escape(lead)}</h1>
       <p style="margin:0 0 8px 0;font-size:15px;line-height:1.5;">¿Te ha ahorrado tiempo? {html.escape(offer)}</p>
       <p style="margin:24px 0;"><a href="{u}" style="display:inline-block;background:#CCFF00;color:#0B0D17;font-weight:700;text-decoration:none;padding:12px 22px;border-radius:6px;">Recargar {topup_eur} €</a></p>
       <p style="margin:0 0 4px 0;font-size:13px;color:#C9CCD6;">Licencia <code style="font-family:ui-monospace,Menlo,Consolas,monospace;">{html.escape(short)}</code></p>
@@ -193,7 +202,7 @@ class TransactionalEmailService(IEmailSender):
         )
         html_body = f"""<!doctype html>
 <html><body style="margin:0;padding:24px;background:#0B0D17;color:#FFFFFF;font-family:Arial,Helvetica,sans-serif">
-<p style="font-size:16px;margin:0 0 16px">Alguien (probablemente tú) ha pedido ver sus licencias de KeyFlint.</p>
+{_brand_header()}<p style="font-size:16px;margin:0 0 16px">Alguien (probablemente tú) ha pedido ver sus licencias de KeyFlint.</p>
 <p style="margin:0 0 24px">Este enlace caduca en {ttl_minutes} minutos y solo funciona una vez.</p>
 <p style="margin:0 0 24px"><a href="{safe_link}" style="display:inline-block;background:#CCFF00;color:#0B0D17;padding:12px 20px;border-radius:6px;font-weight:bold;text-decoration:none">Abrir mi portal</a></p>
 <p style="font-size:13px;margin:0 0 8px">Si no lo has pedido tú, ignora este correo: nadie puede ver tus licencias sin este enlace.</p>
@@ -349,7 +358,7 @@ Questions? Reply to this email or write to support@keyflint.dev.
         <table role="presentation" width="100%" style="max-width: 620px; background-color: #0B0D17; border: 1px solid #1F2438; border-radius: 8px;" cellpadding="0" cellspacing="0" border="0">
           <tr>
             <td style="padding: 32px;">
-              <h1 style="margin: 0 0 12px 0; font-size: 22px; font-weight: 600; color: #FFFFFF;">Your <span style="color: #CCFF00;">{p.tier.capitalize()}</span> license is active</h1>
+              {_brand_header()}<h1 style="margin: 0 0 12px 0; font-size: 22px; font-weight: 600; color: #FFFFFF;">Your <span style="color: #CCFF00;">{p.tier.capitalize()}</span> license is active</h1>
               <p style="margin: 0 0 8px 0; font-size: 14px; color: #FFFFFF;">License key:</p>
               <p style="margin: 0 0 24px 0; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; color: #FFFFFF; word-break: break-all; line-height: 1.5;">{p.license_key}</p>
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size: 14px;">{rows}</table>
