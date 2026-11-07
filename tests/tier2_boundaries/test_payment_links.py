@@ -11,7 +11,7 @@ LINK_RE = re.compile(
     r'<a href="(https://buy\.stripe\.com/[^"]+)"[^>]*data-tier="([a-z]+)">([^<]*)</a>'
 )
 # Pro is sold self-hosted; managed studio ($89/mo) stays hidden until the DPA is reviewed.
-EXPECTED = {"indie": "($149)", "agency": "($349)", "pro": "($29/mo)", "lifetime": "($199)"}
+EXPECTED = {"indie": "($249)", "agency": "($499)", "pro": "($29/mo)", "lifetime": "($299)"}
 
 
 def _links(page: Path) -> dict[str, tuple[str, str]]:

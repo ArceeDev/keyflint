@@ -91,8 +91,11 @@ class TestPortalMagicLink(BaseKeyFlintTestCase):
         from app.infrastructure.database.connection import create_connection
 
         conn = create_connection()
-        conn.execute("UPDATE portal_login_tokens SET expires_at = '2000-01-01T00:00:00+00:00'")
-        conn.commit()
+        try:
+            conn.execute("UPDATE portal_login_tokens SET expires_at = '2000-01-01T00:00:00+00:00'")
+            conn.commit()
+        finally:
+            conn.close()
         self.assertEqual(self._redeem(token).status_code, 401)
 
     def test_only_token_hash_is_stored(self):
@@ -102,7 +105,11 @@ class TestPortalMagicLink(BaseKeyFlintTestCase):
         token = self._token(send)
         from app.infrastructure.database.connection import create_connection
 
-        rows = create_connection().execute("SELECT token_hash FROM portal_login_tokens").fetchall()
+        conn = create_connection()
+        try:
+            rows = conn.execute("SELECT token_hash FROM portal_login_tokens").fetchall()
+        finally:
+            conn.close()
         self.assertEqual(len(rows), 1)
         self.assertNotEqual(rows[0]["token_hash"], token)
         self.assertNotIn(token, rows[0]["token_hash"])
