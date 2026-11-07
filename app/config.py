@@ -103,6 +103,10 @@ class Settings(BaseSettings):
     SMTP_USE_TLS: bool = True
     EMAIL_RETRY_INTERVAL_SECONDS: int = 300  # 0 disables the automatic retry loop
     OPS_ALERT_EMAIL: Optional[str] = None  # operator inbox for billing incidents; unset = log only
+    # "Credits ran out" retention email (trial / MCP-hub licenses only; once per depletion episode)
+    DEPLETION_EMAIL_ENABLED: bool = True
+    DEPLETION_EMAIL_COOLDOWN_DAYS: int = 25  # same episode (no credits added) never re-sends before this
+    DEPLETION_EMAIL_TOPUP_EUR: int = 5  # amount preselected by the email's one-click link
 
     # Backup verification: restore the Litestream replica to a temp file and compare row counts.
     BACKUP_CHECK_INTERVAL_SECONDS: int = 3600  # 0 disables it

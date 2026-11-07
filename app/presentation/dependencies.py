@@ -11,6 +11,7 @@ from fastapi import Depends, Header, HTTPException, Request
 
 from app.application.dtos.common import ResponseMetadata
 from app.application.services.billing_service import BillingService
+from app.application.services.depletion_notifier import DepletionNotifier
 from app.application.services.license_service import LicenseService
 from app.application.services.quota_service import QuotaService
 from app.config import get_settings
@@ -106,19 +107,23 @@ def get_license_service(
     )
 
 
+def get_email_sender() -> TransactionalEmailService:
+    """Returns singleton transactional email service adapter."""
+    return TransactionalEmailService()
+
+
 def get_quota_service(
     quota_repo: SqliteQuotaRepo = Depends(get_quota_repo),
     license_repo: SqliteLicenseRepo = Depends(get_license_repo),
+    customer_repo: SqliteCustomerRepo = Depends(get_customer_repo),
+    conn: sqlite3.Connection = Depends(get_db),
+    email_sender: TransactionalEmailService = Depends(get_email_sender),
 ) -> QuotaService:
     return QuotaService(
         quota_repo=quota_repo,
         license_repo=license_repo,
+        depletion_notifier=DepletionNotifier(conn, customer_repo, email_sender),
     )
-
-
-def get_email_sender() -> TransactionalEmailService:
-    """Returns singleton transactional email service adapter."""
-    return TransactionalEmailService()
 
 
 def get_billing_service(

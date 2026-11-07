@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 import logging
+from typing import Any, Callable, Optional
 
 from app.application.dtos.quota_dtos import (
     QuotaBalanceRequest,
@@ -25,6 +26,7 @@ from app.domain.exceptions import (
     LicenseNotFoundError,
     LicenseRevokedError,
     LicenseSuspendedError,
+    QuotaExceededError,
 )
 from app.domain.interfaces.license_repository import ILicenseRepository
 from app.domain.interfaces.quota_repository import IQuotaRepository
@@ -39,9 +41,11 @@ class QuotaService:
         self,
         quota_repo: IQuotaRepository,
         license_repo: ILicenseRepository,
+        depletion_notifier: Optional[Callable[[Any, int, int], Any]] = None,
     ) -> None:
         self._quota_repo = quota_repo
         self._license_repo = license_repo
+        self._depletion_notifier = depletion_notifier
 
     def deduct(self, request: QuotaDeductRequest) -> QuotaDeductResponse:
         """Atomically decrements usage credits with paywall protection and idempotency caching."""
@@ -66,13 +70,21 @@ class QuotaService:
                 self._license_repo.update_status(license_entity.id, LicenseStatus.EXPIRED)
             raise LicenseExpiredError("Cannot consume quota for an expired license.")
 
-        result = self._quota_repo.atomic_deduct(
-            license_id=license_entity.id,
-            credits=request.credits,
-            idempotency_key=request.idempotency_key,
-            event_type=request.event_type,
-            metadata=request.metadata,
-        )
+        try:
+            result = self._quota_repo.atomic_deduct(
+                license_id=license_entity.id,
+                credits=request.credits,
+                idempotency_key=request.idempotency_key,
+                event_type=request.event_type,
+                metadata=request.metadata,
+            )
+        except QuotaExceededError:
+            if self._depletion_notifier is not None:
+                bal = self._quota_repo.get_balance(license_entity.id)
+                self._depletion_notifier(license_entity, bal.balance, bal.consumed)
+            raise
+        if self._depletion_notifier is not None and not result.is_cached and result.remaining_balance <= 0:
+            self._depletion_notifier(license_entity, result.remaining_balance, result.consumed_total)
 
         return QuotaDeductResponse(
             success=result.success,

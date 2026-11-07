@@ -47,3 +47,8 @@ class IEmailSender(ABC):
     def send_portal_magic_link(self, recipient_email: str, link: str, ttl_minutes: int) -> bool:
         """Single-use customer portal sign-in link. Optional for implementations."""
         return False
+
+    def send_credits_depleted(self, recipient_email: str, license_key: str, *, trial: bool, topup_url: str,
+                              topup_eur: int, topup_credits: int) -> bool:
+        """Retention email when the credits run out with a one-click top-up link. Optional."""
+        return False

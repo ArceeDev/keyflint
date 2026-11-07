@@ -130,6 +130,46 @@ class TransactionalEmailService(IEmailSender):
             html_body=html_body,
         )
 
+    def send_credits_depleted(self, recipient_email: str, license_key: str, *, trial: bool, topup_url: str,
+                              topup_eur: int, topup_credits: int) -> bool:
+        """Retention email when an MCP license runs out of credits (ES first, short EN line)."""
+        short = f"{license_key[:12]}..."
+        if trial:
+            subject = "Has usado tus 25 créditos de prueba de Flint"
+            lead = "Has gastado los 25 créditos de la prueba gratuita."
+            lead_en = "You've used the 25 free trial credits."
+        else:
+            subject = "Te has quedado sin créditos en Flint"
+            lead = "Tu licencia se ha quedado sin créditos."
+            lead_en = "Your license is out of credits."
+        offer = (f"Recarga desde {topup_eur} € y suma {topup_credits:,} créditos a la misma licencia: "
+                 "no tienes que tocar tu configuración.").replace(",", ".")
+        offer_en = f"Top up from {topup_eur} EUR for {topup_credits:,} credits on the same key. No config changes."
+        text_body = (
+            f"Hola,\n\n{lead} ¿Te ha ahorrado tiempo?\n{offer}\n\n"
+            f"Recargar ahora (1 clic): {topup_url}\n\n"
+            f"Licencia: {short}\nDudas: support@keyflint.dev\n\n"
+            f"--\n{lead_en} {offer_en}\nTop up: {topup_url}\n"
+        )
+        u = html.escape(topup_url, quote=True)
+        html_body = f"""<!DOCTYPE html>
+<html lang="es">
+<head><meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark"></head>
+<body style="margin:0;padding:32px 16px;background-color:#0B0D17;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#FFFFFF;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0B0D17;"><tr><td align="center">
+    <table role="presentation" width="100%" style="max-width:560px;border:1px solid #1F2438;border-radius:8px;" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding:32px;">
+      <h1 style="margin:0 0 12px 0;font-size:22px;font-weight:600;">{html.escape(lead)}</h1>
+      <p style="margin:0 0 8px 0;font-size:15px;line-height:1.5;">¿Te ha ahorrado tiempo? {html.escape(offer)}</p>
+      <p style="margin:24px 0;"><a href="{u}" style="display:inline-block;background:#CCFF00;color:#0B0D17;font-weight:700;text-decoration:none;padding:12px 22px;border-radius:6px;">Recargar {topup_eur} €</a></p>
+      <p style="margin:0 0 4px 0;font-size:13px;color:#C9CCD6;">Licencia <code style="font-family:ui-monospace,Menlo,Consolas,monospace;">{html.escape(short)}</code></p>
+      <p style="margin:20px 0 0 0;font-size:12px;color:#8A8FA3;">{html.escape(lead_en)} {html.escape(offer_en)} <a href="{u}" style="color:#CCFF00;">Top up</a></p>
+      <p style="margin:16px 0 0 0;font-size:12px;color:#8A8FA3;">Dudas: <a href="mailto:support@keyflint.dev" style="color:#FFFFFF;">support@keyflint.dev</a></p>
+    </td></tr></table>
+  </td></tr></table>
+</body>
+</html>"""
+        return self._dispatch(recipient=recipient_email, subject=subject, text_body=text_body, html_body=html_body)
+
     def send_ops_alert(self, recipient_email: str, subject: str, text_body: str) -> bool:
         """Plain-text operator alert (billing incidents). Never raises."""
         safe = html.escape(text_body)
