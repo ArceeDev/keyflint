@@ -84,6 +84,7 @@ class Settings(BaseSettings):
     # Pay-as-you-go top-ups: credits added to an existing license (same key) via a dynamic Stripe Checkout.
     TOPUP_ENABLED: bool = True
     TOPUP_MAX_PER_LICENSE_DAY: int = 3
+    TOPUP_REQUIRE_TOS_CONSENT: bool = False  # Enabled in Stripe Dashboard under Public Details
     TOPUP_TAX_BEHAVIOR: str = "inclusive"  # "inclusive" (price shown = price paid), "exclusive" or "" (account default)
     TOPUP_TAX_CODE: str = "txcd_10202003"  # same code as the existing KeyFlint products (Managed Payments eligible)
     TOPUP_MANAGED_PAYMENTS: bool = True
