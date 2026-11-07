@@ -14,6 +14,7 @@ primary_region = "cdg"
   PORT = "8000"
   DATABASE_URL = "sqlite:////app/data/keyforge.db"
   TRUSTED_PROXY_MODE = "fly"
+  RATE_LIMIT_REQUESTS = "300"
   BILLING_MODE = "mock"
 
 [mounts]
