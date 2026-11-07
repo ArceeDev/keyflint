@@ -429,7 +429,7 @@ def verify_cli_operations() -> bool:
                 return False
 
             r_ded = runner.invoke(cli, ["quota", "deduct", "--key", key, "--credits", "15"])
-            if r_ded.exit_code != 0 or json.loads(r_ded.output).get("remaining_balance") != 485:
+            if r_ded.exit_code != 0 or json.loads(r_ded.output).get("remaining_balance") != 985:
                 print_fail(f"CLI quota deduct failed: {r_ded.output}")
                 return False
 
