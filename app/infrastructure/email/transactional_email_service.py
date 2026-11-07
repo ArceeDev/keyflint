@@ -84,37 +84,53 @@ class TransactionalEmailService(IEmailSender):
         new_balance: int,
     ) -> bool:
         """Dispatches quota cycle replenishment notification."""
-        subject = f"KeyFlint Quota Replenished: +{added_credits:,} Credits"
+        subject = f"KeyFlint: +{added_credits:,} créditos sumados a tu licencia"
+        short = f"{license_key[:12]}..."
         text_body = (
-            f"Hello,\n\n"
-            f"Your KeyFlint license ({license_key[:12]}...) has been replenished.\n"
-            f"- Added credits: +{added_credits:,}\n"
-            f"- Current total balance: {new_balance:,} credits\n\n"
-            f"Thank you for using KeyFlint.\n"
+            f"Hola,\n\n"
+            f"Se han añadido +{added_credits:,} créditos a tu licencia de Flint ({short}).\n"
+            f"Saldo disponible: {new_balance:,} créditos.\n\n"
+            f"Consultar mi saldo: https://mcp.keyflint.dev/saldo/\n\n"
+            f"Dudas o soporte: support@keyflint.dev\n"
         )
         html_body = f"""<!DOCTYPE html>
-<html lang="en">
-<head><meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark"></head>
-<body style="margin: 0; padding: 32px 16px; background-color: #0B0D17; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #FFFFFF;">
+<html lang="es">
+<head><meta charset="utf-8"><meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Saldo actualizado · Flint</title></head>
+<body style="margin: 0; padding: 36px 16px; background-color: #0B0D17; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif; color: #FFFFFF; -webkit-font-smoothing: antialiased;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #0B0D17;">
     <tr>
       <td align="center">
-        <table role="presentation" width="100%" style="max-width: 620px; background-color: #0B0D17; border: 1px solid #1F2438; border-radius: 8px;" cellpadding="0" cellspacing="0" border="0">
+        <table role="presentation" width="100%" style="max-width: 580px; background-color: #111424; border: 1px solid #1E233D; border-radius: 12px;" cellpadding="0" cellspacing="0" border="0">
           <tr>
-            <td style="padding: 32px;">
-              <h1 style="margin: 0 0 12px 0; font-size: 22px; font-weight: 600; color: #FFFFFF;">Quota <span style="color: #CCFF00;">replenished</span></h1>
-              <p style="margin: 0 0 20px 0; font-size: 14px; color: #FFFFFF; line-height: 1.5;">Your license <code style="font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;">{license_key[:12]}...</code> has been refilled for the new billing cycle.</p>
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size: 14px;">
+            <td style="padding: 36px 32px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 24px;">
                 <tr>
-                  <td style="padding: 8px 0; color: #FFFFFF; border-bottom: 1px solid #1F2438;">Added credits</td>
-                  <td align="right" style="padding: 8px 0; color: #FFFFFF; font-weight: 600; border-bottom: 1px solid #1F2438;">+{added_credits:,}</td>
-                </tr>
-                <tr>
-                  <td style="padding: 8px 0; color: #FFFFFF;">New balance</td>
-                  <td align="right" style="padding: 8px 0; color: #CCFF00; font-weight: 600;">{new_balance:,} credits</td>
+                  <td>
+                    <span style="display: inline-block; width: 8px; height: 8px; background-color: #CCFF00; border-radius: 50%; vertical-align: middle; margin-right: 8px;"></span>
+                    <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.12em; color: #FFFFFF; text-transform: uppercase; vertical-align: middle;">FLINT</span>
+                    <span style="font-size: 11px; font-weight: 500; letter-spacing: 0.05em; color: #6F7693; text-transform: uppercase; margin-left: 6px; vertical-align: middle;">BY KEYFLINT</span>
+                  </td>
                 </tr>
               </table>
-              <p style="margin: 24px 0 0 0; font-size: 12px; color: #FFFFFF;">Support: <a href="mailto:support@keyflint.dev" style="color: #FFFFFF;">support@keyflint.dev</a></p>
+              <h1 style="margin: 0 0 12px 0; font-size: 22px; font-weight: 600; color: #FFFFFF; letter-spacing: -0.02em; line-height: 1.25;">Saldo de créditos <span style="color: #CCFF00;">actualizado</span></h1>
+              <p style="margin: 0 0 24px 0; font-size: 15px; color: #D1D5E4; line-height: 1.6;">Tus herramientas MCP ya tienen disponibles los nuevos créditos para seguir procesando tus extractos bancarios y facturas sin interrupciones.</p>
+              <div style="background-color: #171B30; border: 1px solid #282F50; border-radius: 8px; padding: 20px; margin-bottom: 28px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+                  <tr>
+                    <td style="padding-bottom: 12px; border-bottom: 1px solid #232944; color: #8E95AF; font-size: 14px;">Créditos sumados</td>
+                    <td align="right" style="padding-bottom: 12px; border-bottom: 1px solid #232944; color: #FFFFFF; font-weight: 700; font-size: 15px;">+{added_credits:,}</td>
+                  </tr>
+                  <tr>
+                    <td style="padding-top: 12px; color: #8E95AF; font-size: 14px;">Saldo disponible</td>
+                    <td align="right" style="padding-top: 12px; color: #CCFF00; font-weight: 700; font-size: 18px;">{new_balance:,} créditos</td>
+                  </tr>
+                </table>
+              </div>
+              <p style="margin: 0 0 24px 0;">
+                <a href="https://mcp.keyflint.dev/saldo/" style="display: inline-block; background-color: #CCFF00; color: #0B0D17; font-size: 14px; font-weight: 700; text-decoration: none; padding: 12px 24px; border-radius: 6px; letter-spacing: -0.01em;">Ver mi saldo en vivo</a>
+              </p>
+              <p style="margin: 0 0 24px 0; font-size: 12px; color: #717791;">Licencia vinculada: <code style="font-family: ui-monospace, Menlo, Consolas, monospace; color: #B2B8D0; background: #171B30; padding: 3px 6px; border-radius: 4px;">{html.escape(short)}</code></p>
+              <p style="margin: 0; padding-top: 20px; border-top: 1px solid #1E233D; font-size: 12px; color: #555A70; line-height: 1.5;">Flint by KeyFlint · Servidores MCP deterministas para IA<br>Soporte: <a href="mailto:support@keyflint.dev" style="color: #8E95AF; text-decoration: none;">support@keyflint.dev</a></p>
             </td>
           </tr>
         </table>
@@ -154,18 +170,43 @@ class TransactionalEmailService(IEmailSender):
         u = html.escape(topup_url, quote=True)
         html_body = f"""<!DOCTYPE html>
 <html lang="es">
-<head><meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark"></head>
-<body style="margin:0;padding:32px 16px;background-color:#0B0D17;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#FFFFFF;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#0B0D17;"><tr><td align="center">
-    <table role="presentation" width="100%" style="max-width:560px;border:1px solid #1F2438;border-radius:8px;" cellpadding="0" cellspacing="0" border="0"><tr><td style="padding:32px;">
-      <h1 style="margin:0 0 12px 0;font-size:22px;font-weight:600;">{html.escape(lead)}</h1>
-      <p style="margin:0 0 8px 0;font-size:15px;line-height:1.5;">¿Te ha ahorrado tiempo? {html.escape(offer)}</p>
-      <p style="margin:24px 0;"><a href="{u}" style="display:inline-block;background:#CCFF00;color:#0B0D17;font-weight:700;text-decoration:none;padding:12px 22px;border-radius:6px;">Recargar {topup_eur} €</a></p>
-      <p style="margin:0 0 4px 0;font-size:13px;color:#C9CCD6;">Licencia <code style="font-family:ui-monospace,Menlo,Consolas,monospace;">{html.escape(short)}</code></p>
-      <p style="margin:20px 0 0 0;font-size:12px;color:#8A8FA3;">{html.escape(lead_en)} {html.escape(offer_en)} <a href="{u}" style="color:#CCFF00;">Top up</a></p>
-      <p style="margin:16px 0 0 0;font-size:12px;color:#8A8FA3;">Dudas: <a href="mailto:support@keyflint.dev" style="color:#FFFFFF;">support@keyflint.dev</a></p>
-    </td></tr></table>
-  </td></tr></table>
+<head><meta charset="utf-8"><meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Créditos agotados · Flint</title></head>
+<body style="margin: 0; padding: 36px 16px; background-color: #0B0D17; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif; color: #FFFFFF; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #0B0D17;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" style="max-width: 580px; background-color: #111424; border: 1px solid #1E233D; border-radius: 12px;" cellpadding="0" cellspacing="0" border="0">
+          <tr>
+            <td style="padding: 36px 32px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 24px;">
+                <tr>
+                  <td>
+                    <span style="display: inline-block; width: 8px; height: 8px; background-color: #CCFF00; border-radius: 50%; vertical-align: middle; margin-right: 8px;"></span>
+                    <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.12em; color: #FFFFFF; text-transform: uppercase; vertical-align: middle;">FLINT</span>
+                    <span style="font-size: 11px; font-weight: 500; letter-spacing: 0.05em; color: #6F7693; text-transform: uppercase; margin-left: 6px; vertical-align: middle;">BY KEYFLINT</span>
+                  </td>
+                </tr>
+              </table>
+              <h1 style="margin: 0 0 12px 0; font-size: 22px; font-weight: 600; color: #FFFFFF; letter-spacing: -0.02em; line-height: 1.25;">Has completado tus <span style="color: #CCFF00;">créditos de prueba</span></h1>
+              <p style="margin: 0 0 16px 0; font-size: 15px; color: #D1D5E4; line-height: 1.6;">Esperamos que Flint te haya ahorrado tiempo automatizando tus extractos bancarios, facturas o datos.</p>
+              <p style="margin: 0 0 24px 0; font-size: 14px; color: #949BB2; line-height: 1.5;">Tu configuración y tu licencia siguen listas: no tienes que volver a instalar nada ni cambiar de clave en tu cliente de IA.</p>
+              <div style="background-color: #171B30; border: 1px solid #282F50; border-radius: 8px; padding: 20px; margin-bottom: 28px;">
+                <div style="font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #8E95AF; margin-bottom: 6px;">Recarga recomendada</div>
+                <div style="font-size: 19px; font-weight: 700; color: #FFFFFF; margin-bottom: 4px;">{topup_eur} € &rarr; <span style="color: #CCFF00;">{topup_credits:,} créditos</span></div>
+                <div style="font-size: 12px; color: #7B829E;">Sin caducidad · IVA incluido · Pago seguro con Stripe</div>
+              </div>
+              <p style="margin: 0 0 24px 0;">
+                <a href="{u}" style="display: inline-block; background-color: #CCFF00; color: #0B0D17; font-size: 15px; font-weight: 700; text-decoration: none; padding: 13px 26px; border-radius: 6px; letter-spacing: -0.01em;">Recargar {topup_eur} € en 1 clic</a>
+              </p>
+              <p style="margin: 0 0 24px 0; font-size: 12px; color: #717791;">Licencia vinculada: <code style="font-family: ui-monospace, Menlo, Consolas, monospace; color: #B2B8D0; background: #171B30; padding: 3px 6px; border-radius: 4px;">{html.escape(short)}</code></p>
+              <p style="margin: 0 0 24px 0; padding-top: 16px; border-top: 1px solid #1E233D; font-size: 12px; color: #717791; line-height: 1.5;">{html.escape(lead_en)} {html.escape(offer_en)} <a href="{u}" style="color: #CCFF00; text-decoration: none; font-weight: 600;">Top up &rarr;</a></p>
+              <p style="margin: 0; padding-top: 16px; border-top: 1px solid #1E233D; font-size: 12px; color: #555A70; line-height: 1.5;">Flint by KeyFlint · Servidores MCP deterministas para IA<br>¿Dudas con tu configuración? Escríbenos a <a href="mailto:support@keyflint.dev" style="color: #8E95AF; text-decoration: none;">support@keyflint.dev</a></p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
 </body>
 </html>"""
         return self._dispatch(recipient=recipient_email, subject=subject, text_body=text_body, html_body=html_body)
@@ -329,33 +370,49 @@ Questions? Reply to this email or write to support@keyflint.dev.
 """
 
     def _render_license_html(self, p: LicenseEmailPayload) -> str:
-        cell = "padding: 8px 0; color: #FFFFFF; border-bottom: 1px solid #1F2438;"
+        cell = "padding: 10px 0; color: #8E95AF; border-bottom: 1px solid #232944; font-size: 14px;"
+        val_cell = "padding: 10px 0; color: #FFFFFF; border-bottom: 1px solid #232944; font-size: 14px; font-weight: 600;"
         rows = "".join(
-            f'<tr><td style="{cell}">{label}</td><td align="right" style="{cell} font-weight: 600;">{value}</td></tr>'
+            f'<tr><td style="{cell}">{label}</td><td align="right" style="{val_cell}">{value}</td></tr>'
             for label, value in (
-                ("Tier", p.tier.capitalize()),
-                ("Seats", p.seats),
-                ("Included credits", f"{p.credits:,}"),
-                ("Expires", (p.expires_at or "")[:10] or "Never (perpetual)"),
+                ("Plan", p.tier.capitalize()),
+                ("Equipos permitidos", p.seats),
+                ("Créditos incluidos", f"{p.credits:,}"),
+                ("Validez", (p.expires_at or "")[:10] or "Permanente (sin caducidad)"),
             )
         )
         return f"""<!DOCTYPE html>
-<html lang="en">
-<head><meta charset="utf-8"><meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Your KeyFlint license</title></head>
-<body style="margin: 0; padding: 32px 16px; background-color: #0B0D17; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #FFFFFF;">
+<html lang="es">
+<head><meta charset="utf-8"><meta name="color-scheme" content="dark"><meta name="supported-color-schemes" content="dark"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Tu licencia de Flint</title></head>
+<body style="margin: 0; padding: 36px 16px; background-color: #0B0D17; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif; color: #FFFFFF; -webkit-font-smoothing: antialiased;">
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #0B0D17;">
     <tr>
       <td align="center">
-        <table role="presentation" width="100%" style="max-width: 620px; background-color: #0B0D17; border: 1px solid #1F2438; border-radius: 8px;" cellpadding="0" cellspacing="0" border="0">
+        <table role="presentation" width="100%" style="max-width: 580px; background-color: #111424; border: 1px solid #1E233D; border-radius: 12px;" cellpadding="0" cellspacing="0" border="0">
           <tr>
-            <td style="padding: 32px;">
-              <h1 style="margin: 0 0 12px 0; font-size: 22px; font-weight: 600; color: #FFFFFF;">Your <span style="color: #CCFF00;">{p.tier.capitalize()}</span> license is active</h1>
-              <p style="margin: 0 0 8px 0; font-size: 14px; color: #FFFFFF;">License key:</p>
-              <p style="margin: 0 0 24px 0; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; color: #FFFFFF; word-break: break-all; line-height: 1.5;">{p.license_key}</p>
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size: 14px;">{rows}</table>
-              <p style="margin: 24px 0 0 0; font-size: 14px; color: #FFFFFF; line-height: 1.5;">Set it up with the Python, JS or Go SDK: <a href="{_DOCS_URL}" style="color: #CCFF00;">setup guide</a>.</p>
-              <p style="margin: 8px 0 0 0; font-size: 12px; color: #FFFFFF; word-break: break-all;">Gateway public key: {p.public_key_hex}</p>
-              <p style="margin: 24px 0 0 0; font-size: 12px; color: #FFFFFF;">Questions? Reply to this email or write to <a href="mailto:support@keyflint.dev" style="color: #FFFFFF;">support@keyflint.dev</a>.</p>
+            <td style="padding: 36px 32px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom: 24px;">
+                <tr>
+                  <td>
+                    <span style="display: inline-block; width: 8px; height: 8px; background-color: #CCFF00; border-radius: 50%; vertical-align: middle; margin-right: 8px;"></span>
+                    <span style="font-size: 13px; font-weight: 700; letter-spacing: 0.12em; color: #FFFFFF; text-transform: uppercase; vertical-align: middle;">FLINT</span>
+                    <span style="font-size: 11px; font-weight: 500; letter-spacing: 0.05em; color: #6F7693; text-transform: uppercase; margin-left: 6px; vertical-align: middle;">BY KEYFLINT</span>
+                  </td>
+                </tr>
+              </table>
+              <h1 style="margin: 0 0 12px 0; font-size: 22px; font-weight: 600; color: #FFFFFF; letter-spacing: -0.02em; line-height: 1.25;">Tu licencia <span style="color: #CCFF00;">{p.tier.capitalize()}</span> está activa</h1>
+              <p style="margin: 0 0 16px 0; font-size: 15px; color: #D1D5E4; line-height: 1.6;">Ya puedes usar tus servidores MCP deterministas en Claude Desktop, Cursor, VS Code o terminal.</p>
+              <div style="background-color: #171B30; border: 1px solid #282F50; border-radius: 8px; padding: 20px; margin-bottom: 24px;">
+                <div style="font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #8E95AF; margin-bottom: 6px;">Clave de licencia</div>
+                <div style="font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 12px; color: #FFFFFF; word-break: break-all; line-height: 1.5; background: #0B0D17; padding: 10px 12px; border-radius: 6px; border: 1px solid #232944;">{p.license_key}</div>
+              </div>
+              <div style="background-color: #171B30; border: 1px solid #282F50; border-radius: 8px; padding: 16px 20px; margin-bottom: 28px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="font-size: 14px;">{rows}</table>
+              </div>
+              <p style="margin: 0 0 24px 0;">
+                <a href="{_DOCS_URL}" style="display: inline-block; background-color: #CCFF00; color: #0B0D17; font-size: 14px; font-weight: 700; text-decoration: none; padding: 12px 24px; border-radius: 6px; letter-spacing: -0.01em;">Guía de instalación rápida</a>
+              </p>
+              <p style="margin: 0; padding-top: 20px; border-top: 1px solid #1E233D; font-size: 12px; color: #555A70; line-height: 1.5;">Flint by KeyFlint · Servidores MCP deterministas para IA<br>Soporte: <a href="mailto:support@keyflint.dev" style="color: #8E95AF; text-decoration: none;">support@keyflint.dev</a></p>
             </td>
           </tr>
         </table>
