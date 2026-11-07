@@ -130,7 +130,7 @@ class TestSimulationAndCheckout(BaseKeyFlintTestCase):
                 issued = json.loads(issue_res.output)
                 key = issued["license_key"]
                 self.assertEqual(issued["max_seats"], 3)
-                self.assertEqual(issued["quota_credits"], 500)
+                self.assertEqual(issued["quota_credits"], 1000)
 
                 # 2. Issue Lifetime license -> perpetual (expires_at is None, 3 seats)
                 life_res = runner.invoke(
@@ -171,13 +171,13 @@ class TestSimulationAndCheckout(BaseKeyFlintTestCase):
                     ["quota", "deduct", key, "--credits", "20", "--idempotency-key", "cli-op-1"],
                 )
                 self.assertEqual(ded_res.exit_code, 0, ded_res.output)
-                self.assertEqual(json.loads(ded_res.output)["remaining_balance"], 480)
+                self.assertEqual(json.loads(ded_res.output)["remaining_balance"], 980)
 
                 rep_res = runner.invoke(
                     cli, ["quota", "replenish", key, "--credits", "50"]
                 )
                 self.assertEqual(rep_res.exit_code, 0, rep_res.output)
-                self.assertEqual(json.loads(rep_res.output)["balance"], 530)
+                self.assertEqual(json.loads(rep_res.output)["balance"], 1030)
 
                 rst_res = runner.invoke(
                     cli, ["quota", "replenish", key, "--credits", "500", "--reset-cycle"]

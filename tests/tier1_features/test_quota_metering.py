@@ -33,7 +33,7 @@ class TestQuotaMetering(BaseKeyFlintTestCase):
         pro_res = self.client.get(f"/api/v1/quota/balance?license_key={pro_data['license_key']}")
         self.assertEqual(pro_res.status_code, 200)
         pro_payload = pro_res.json().get("data", {})
-        self.assertEqual(pro_payload.get("credit_balance"), 500)
+        self.assertEqual(pro_payload.get("credit_balance"), 1000)
 
     def test_feat3_atomic_deduct_reduces_balance_accurately(self):
         """Sequential deductions drop balance accurately and report cumulative consumed_total."""

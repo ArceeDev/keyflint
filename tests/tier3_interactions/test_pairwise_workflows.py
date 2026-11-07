@@ -97,7 +97,7 @@ class TestPairwiseWorkflows(BaseKeyFlintTestCase):
         # 5. Retrying original 5-credit action immediately succeeds
         deduct3 = self.deduct_quota_api(license_key=license_key, credits=5)
         self.assertEqual(deduct3.status_code, 200, "Operation must succeed after tier upgrade")
-        self.assertEqual(deduct3.json()["data"]["remaining_balance"], 495)
+        self.assertEqual(deduct3.json()["data"]["remaining_balance"], 995)
 
     def test_pair3_concurrent_atomic_debit_integrity(self):
         """Account initialized with 15 credits. 10 concurrent requests for 5 credits.

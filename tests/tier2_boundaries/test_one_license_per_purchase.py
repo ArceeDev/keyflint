@@ -56,7 +56,7 @@ class TestOneLicensePerPurchase(BaseKeyFlintTestCase):
         self.assertTrue(paid.startswith("LIC-PRO-"))
         # Same license, re-signed: the key already shipped keeps working with the Pro allowance.
         bal = self.client.get(f"/api/v1/quota/balance?license_key={free['license_key']}").json()["data"]
-        self.assertEqual(bal["credit_balance"], 500)
+        self.assertEqual(bal["credit_balance"], 1000)
 
     def test_refund_revokes_only_that_purchase(self):
         self.require_app()

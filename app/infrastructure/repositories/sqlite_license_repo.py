@@ -163,6 +163,23 @@ class SqliteLicenseRepo(ILicenseRepository):
                 result.append(entity)
         return result
 
+    def find_by_topup_ref(self, ref: str) -> list[License]:
+        """Finds licenses whose metadata.topup_refs contains the exact Stripe reference (cs_/pi_)."""
+        if not ref:
+            return []
+        escaped = ref.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        cur = self._conn.execute(
+            "SELECT * FROM licenses WHERE metadata_json LIKE ? ESCAPE '\\' ORDER BY created_at DESC",
+            (f"%{escaped}%",),
+        )
+        result: list[License] = []
+        for row in cur.fetchall():
+            entity = self._row_to_entity(row)
+            refs = entity.metadata.get("topup_refs", [])
+            if isinstance(refs, list) and ref in refs:
+                result.append(entity)
+        return result
+
     def update(self, license_entity: License) -> None:
         self.save(license_entity)
 

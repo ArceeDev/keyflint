@@ -70,8 +70,8 @@ You shouldn't have to pay $600/year to Keygen or give up 10% of your revenue to 
 8. **152 Deterministic Tests**: 7-gate automated production verification suite ensuring cryptographic compliance, schema integrity, and ACID debit guarantees.
 
 ### Pricing Options:
-- **Indie Developer License ($149)**: Use KeyFlint for unlimited personal products and commercial projects you own. Free updates to v1.x.
-- **Agency / Studio License ($349)**: Use KeyFlint for client projects, multi-tenant setups, and commercial distributions. Priority support included.
+- **Indie Developer License ($249)**: Use KeyFlint for unlimited personal products and commercial projects you own. Free updates to v1.x.
+- **Agency / Studio License ($499)**: Use KeyFlint for client projects, multi-tenant setups, and commercial distributions. Priority support included.
 
 ### Why Buy This Instead of Building It Yourself?
 Building proper RFC 8032 signature verification, hardware seat limits, replay-resistant webhook handlers, and race-condition-free SQLite transactions takes at least 40-60 hours of senior engineering time. KeyFlint is fully built, tested, and ready to deploy in under 5 minutes.
@@ -158,8 +158,9 @@ Feedback and questions on the crypto implementation or architecture are very wel
 
 | Nivel / Producto | Payment Link ID | Precio / Tipo | Enlace de Pago Real (Live) | Metadata |
 | :--- | :--- | :--- | :--- | :--- |
-| **KeyFlint Indie License** | `plink_1UXIly0g6p4KL4GWrF1MVWWA` | $149 USD (Pago único) | [Comprar Indie ($149)](https://buy.stripe.com/eVq6oz64kbc7g7abF1awo03) | `tier: indie` |
-| **KeyFlint Agency License** | `plink_1UXIly0g6p4KL4GWk653Uhab` | $349 USD (Pago único) | [Comprar Agency ($349)](https://buy.stripe.com/dRmeV578ogwr8EI24rawo02) | `tier: agency` |
+| **KeyFlint Indie License** | `plink_1UZ5ok0g6p4KL4GWyDdMsR2N` | $249 USD (Pago único, desde 2026-11-07) | [Comprar Indie ($249)](https://buy.stripe.com/6oU3cnfEU93ZdZ2bF1awo0b) | `tier: indie` |
+| **KeyFlint Agency License** | `plink_1UZ5oy0g6p4KL4GW6KO8shtT` | $499 USD (Pago único, desde 2026-11-07) | [Comprar Agency ($499)](https://buy.stripe.com/28E14f3Wc5RN9IM5gDawo0c) | `tier: agency` |
+| **KeyFlint Founder (lifetime)** | `plink_1UZ5oz0g6p4KL4GWRuOh5A5W` | $299 USD (Pago único, máx. 50) | [Founder ($299)](https://buy.stripe.com/14A7sD2S8fsn1cg7oLawo0d) | `tier: lifetime` |
 | **KeyFlint Pro (Monthly)** | `plink_1UXIlx0g6p4KL4GWB074NlVf` | $29 USD / mes (Recurrente) | [Suscribir Pro ($29/mo)](https://buy.stripe.com/8x2eV578o7ZV6wAbF1awo01) | `tier: pro` |
 | **KeyFlint Studio (Monthly)** | `plink_1UXIlx0g6p4KL4GWryiAZxbe` | $89 USD / mes (Recurrente) | [Suscribir Studio ($89/mo)](https://buy.stripe.com/5kQeV52S8gwrbQUdN9awo00) | `tier: studio` |
 

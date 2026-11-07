@@ -38,7 +38,7 @@ class Tier(StrEnum):
             case Tier.AGENCY:
                 return 50_000
             case Tier.PRO:
-                return 500
+                return 1_000
             case Tier.STUDIO:
                 return 5_000
             case Tier.LIFETIME:
@@ -79,9 +79,10 @@ class Tier(StrEnum):
     @property
     def default_expires_in_days(self) -> Optional[int]:
         match self:
-            case Tier.COMMUNITY | Tier.PRO | Tier.STUDIO:
+            case Tier.PRO | Tier.STUDIO:
                 return 365
-            case Tier.INDIE | Tier.AGENCY | Tier.LIFETIME:
+            case Tier.COMMUNITY | Tier.INDIE | Tier.AGENCY | Tier.LIFETIME:
+                # Community never expires: prepaid top-ups land on the trial key and must not die with it.
                 return None
 
 

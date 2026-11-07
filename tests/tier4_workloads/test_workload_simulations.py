@@ -64,7 +64,7 @@ class TestWorkloadSimulations(BaseKeyFlintTestCase):
 
         pro_bal_res = self.client.get(f"/api/v1/quota/balance?license_key={pro_key}")
         pro_bal = pro_bal_res.json().get("data", pro_bal_res.json()).get("credit_balance")
-        self.assertEqual(pro_bal, 500, "Pro account must have 500 credits")
+        self.assertEqual(pro_bal, 1000, "Pro account must have 1000 credits")
 
         # Days 7-29: Executes offline validations
         tier, payload, sig = decode_license_token(pro_key)
@@ -134,7 +134,7 @@ class TestWorkloadSimulations(BaseKeyFlintTestCase):
         ded_res = self.deduct_quota_api(license_key=license_key, credits=10)
         self.assertEqual(ded_res.status_code, 200)
         self.assertIn("X-Subscription-Warning", ded_res.headers)
-        self.assertEqual(ded_res.json()["data"]["remaining_balance"], 490)
+        self.assertEqual(ded_res.json()["data"]["remaining_balance"], 990)
 
         # 3. Customer updates card -> Payment succeeds -> Cycle resets to 500 without inflation
         rec_res = self.simulate_webhook_api(
@@ -153,7 +153,7 @@ class TestWorkloadSimulations(BaseKeyFlintTestCase):
         self.assertNotIn("X-Subscription-Warning", ver_res2.headers)
 
         bal_res = self.client.get(f"/api/v1/quota/balance?license_key={license_key}")
-        self.assertEqual(bal_res.json()["data"]["credit_balance"], 500)
+        self.assertEqual(bal_res.json()["data"]["credit_balance"], 1000)
 
 
     def test_workload4_adversarial_security_audit(self):
