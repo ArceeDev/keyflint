@@ -20,7 +20,7 @@ logger = logging.getLogger("keyflint.email")
 
 _DOCS_URL = "https://github.com/ArceeDev/keyflint#client-sdks"
 _BRAND_LOGO_URL = "https://mcp.keyflint.dev/assets/flint-brand.png"
-_BRAND_LOGO_WHITE_URL = "https://mcp.keyflint.dev/assets/flint-logo-light.png"
+_BRAND_LOGO_WHITE_URL = "https://mcp.keyflint.dev/assets/flint-brand-badge.png"
 _RESEND_RETRY_STATUSES = {429, 500, 502, 503, 504}
 _RESEND_HINTS = {
     401: "RESEND_API_KEY is invalid or revoked.",
@@ -104,16 +104,16 @@ class TransactionalEmailService(IEmailSender):
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Saldo actualizado · Flint</title>
 </head>
-<body style="margin: 0; padding: 0; width: 100% !important; background-color: #0B0D17; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif; color: #FFFFFF; -webkit-font-smoothing: antialiased;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #0B0D17; width: 100%; margin: 0; padding: 24px 0;">
+<body bgcolor="#0B0D17" style="margin: 0; padding: 0; width: 100% !important; background-color: #0B0D17; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif; color: #FFFFFF; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#0B0D17" style="background-color: #0B0D17; width: 100%; margin: 0; padding: 24px 0;">
     <tr>
       <td align="center" style="padding: 0 10px;">
-        <table role="presentation" width="100%" style="max-width: 560px; width: 100%; background-color: #111424; border: 1px solid #1E233D; border-radius: 14px;" cellpadding="0" cellspacing="0" border="0">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#111424" style="max-width: 560px; width: 100%; background-color: #111424; border: 1px solid #1E233D; border-radius: 14px;">
           <tr>
-            <td style="padding: 36px 24px;">
+            <td bgcolor="#111424" style="padding: 36px 24px; background-color: #111424;">
               <div style="text-align: center; margin-bottom: 28px;">
                 <a href="https://mcp.keyflint.dev" target="_blank" style="text-decoration: none; display: inline-block;">
-                  <img src="{_BRAND_LOGO_WHITE_URL}" alt="Flint" width="144" height="auto" style="display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none; max-width: 144px; height: auto;" />
+                  <img src="{_BRAND_LOGO_WHITE_URL}" alt="Flint" width="156" height="auto" style="display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none; max-width: 144px; height: auto;" />
                 </a>
               </div>
 
@@ -200,16 +200,16 @@ class TransactionalEmailService(IEmailSender):
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Créditos agotados · Flint</title>
 </head>
-<body style="margin: 0; padding: 0; width: 100% !important; background-color: #0B0D17; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif; color: #FFFFFF; -webkit-font-smoothing: antialiased;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #0B0D17; width: 100%; margin: 0; padding: 24px 0;">
+<body bgcolor="#0B0D17" style="margin: 0; padding: 0; width: 100% !important; background-color: #0B0D17; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif; color: #FFFFFF; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#0B0D17" style="background-color: #0B0D17; width: 100%; margin: 0; padding: 24px 0;">
     <tr>
       <td align="center" style="padding: 0 10px;">
-        <table role="presentation" width="100%" style="max-width: 560px; width: 100%; background-color: #111424; border: 1px solid #1E233D; border-radius: 14px;" cellpadding="0" cellspacing="0" border="0">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#111424" style="max-width: 560px; width: 100%; background-color: #111424; border: 1px solid #1E233D; border-radius: 14px;">
           <tr>
-            <td style="padding: 36px 24px;">
+            <td bgcolor="#111424" style="padding: 36px 24px; background-color: #111424;">
               <div style="text-align: center; margin-bottom: 28px;">
                 <a href="https://mcp.keyflint.dev" target="_blank" style="text-decoration: none; display: inline-block;">
-                  <img src="{_BRAND_LOGO_WHITE_URL}" alt="Flint" width="144" height="auto" style="display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none; max-width: 144px; height: auto;" />
+                  <img src="{_BRAND_LOGO_WHITE_URL}" alt="Flint" width="156" height="auto" style="display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none; max-width: 144px; height: auto;" />
                 </a>
               </div>
 
@@ -272,16 +272,16 @@ class TransactionalEmailService(IEmailSender):
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tu portal de Flint</title>
 </head>
-<body style="margin: 0; padding: 0; width: 100% !important; background-color: #0B0D17; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif; color: #FFFFFF; -webkit-font-smoothing: antialiased;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #0B0D17; width: 100%; margin: 0; padding: 24px 0;">
+<body bgcolor="#0B0D17" style="margin: 0; padding: 0; width: 100% !important; background-color: #0B0D17; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif; color: #FFFFFF; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#0B0D17" style="background-color: #0B0D17; width: 100%; margin: 0; padding: 24px 0;">
     <tr>
       <td align="center" style="padding: 0 10px;">
-        <table role="presentation" width="100%" style="max-width: 560px; width: 100%; background-color: #111424; border: 1px solid #1E233D; border-radius: 14px;" cellpadding="0" cellspacing="0" border="0">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#111424" style="max-width: 560px; width: 100%; background-color: #111424; border: 1px solid #1E233D; border-radius: 14px;">
           <tr>
-            <td style="padding: 36px 24px;">
+            <td bgcolor="#111424" style="padding: 36px 24px; background-color: #111424;">
               <div style="text-align: center; margin-bottom: 28px;">
                 <a href="https://mcp.keyflint.dev" target="_blank" style="text-decoration: none; display: inline-block;">
-                  <img src="{_BRAND_LOGO_WHITE_URL}" alt="Flint" width="144" height="auto" style="display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none; max-width: 144px; height: auto;" />
+                  <img src="{_BRAND_LOGO_WHITE_URL}" alt="Flint" width="156" height="auto" style="display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none; max-width: 144px; height: auto;" />
                 </a>
               </div>
               <h1 style="margin: 0 0 12px 0; font-size: 24px; font-weight: 700; color: #FFFFFF; letter-spacing: -0.02em; line-height: 1.25; text-align: center;">Acceso al portal de licencias</h1>
@@ -455,16 +455,16 @@ Questions? Reply to this email or write to support@keyflint.dev.
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Tu licencia de Flint</title>
 </head>
-<body style="margin: 0; padding: 0; width: 100% !important; background-color: #0B0D17; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif; color: #FFFFFF; -webkit-font-smoothing: antialiased;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #0B0D17; width: 100%; margin: 0; padding: 24px 0;">
+<body bgcolor="#0B0D17" style="margin: 0; padding: 0; width: 100% !important; background-color: #0B0D17; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif; color: #FFFFFF; -webkit-font-smoothing: antialiased;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#0B0D17" style="background-color: #0B0D17; width: 100%; margin: 0; padding: 24px 0;">
     <tr>
       <td align="center" style="padding: 0 10px;">
-        <table role="presentation" width="100%" style="max-width: 560px; width: 100%; background-color: #111424; border: 1px solid #1E233D; border-radius: 14px;" cellpadding="0" cellspacing="0" border="0">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#111424" style="max-width: 560px; width: 100%; background-color: #111424; border: 1px solid #1E233D; border-radius: 14px;">
           <tr>
-            <td style="padding: 36px 24px;">
+            <td bgcolor="#111424" style="padding: 36px 24px; background-color: #111424;">
               <div style="text-align: center; margin-bottom: 28px;">
                 <a href="https://mcp.keyflint.dev" target="_blank" style="text-decoration: none; display: inline-block;">
-                  <img src="{_BRAND_LOGO_WHITE_URL}" alt="Flint" width="144" height="auto" style="display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none; max-width: 144px; height: auto;" />
+                  <img src="{_BRAND_LOGO_WHITE_URL}" alt="Flint" width="156" height="auto" style="display: block; margin: 0 auto; border: 0; outline: none; text-decoration: none; max-width: 144px; height: auto;" />
                 </a>
               </div>
 
