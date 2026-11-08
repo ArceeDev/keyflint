@@ -107,3 +107,16 @@ class TestTrialNurture(BaseKeyFlintTestCase):
             self.assertIn("Darme de baja", kw["html_body"])
             self.assertIn("https://u/x?l=1&t=2", kw["text_body"])
             self.assertIn("mcp.keyflint.dev", kw["text_body"])
+
+    def test_english_trials_are_skipped(self):
+        self.require_app()
+        key = self._trial("en@company.com")
+        conn = create_connection()
+        try:
+            conn.execute("UPDATE licenses SET metadata_json = json_set(metadata_json, '$.lang', 'en') WHERE license_key = ?", (key,))
+            conn.commit()
+        finally:
+            conn.close()
+        s = FakeSender()
+        self._run(1.1, s)
+        self.assertEqual(s.calls, [])

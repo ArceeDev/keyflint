@@ -76,7 +76,7 @@ def run_trial_nurture(conn: Any, email_sender: Any, now: Optional[datetime] = No
     for r in rows:
         try:
             meta = json.loads(r["metadata_json"] or "{}")
-            if not meta.get("trial") or meta.get("demo") or not r["email"]:
+            if not meta.get("trial") or meta.get("demo") or meta.get("lang") == "en" or not r["email"]:  # emails are Spanish-only
                 continue
             events = conn.execute(
                 "SELECT event_type, details_json FROM license_events WHERE license_id = ? AND event_type IN (?, ?)",
