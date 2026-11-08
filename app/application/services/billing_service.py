@@ -67,17 +67,33 @@ _TIER_ALIASES: dict[str, Tier] = {
     "managed": Tier.PRO,
     "studio": Tier.STUDIO,
     "lifetime": Tier.LIFETIME,
+    "despacho-basico": Tier.DESPACHO_BASICO,
+    "despacho_basico": Tier.DESPACHO_BASICO,
+    "despacho basico": Tier.DESPACHO_BASICO,
+    "despacho-pro": Tier.DESPACHO_PRO,
+    "despacho_pro": Tier.DESPACHO_PRO,
+    "despacho pro": Tier.DESPACHO_PRO,
+    "despacho-empresa": Tier.DESPACHO_EMPRESA,
+    "despacho_empresa": Tier.DESPACHO_EMPRESA,
+    "despacho empresa": Tier.DESPACHO_EMPRESA,
 }
 
 
 def _resolve_tier(raw: Optional[str]) -> Optional[Tier]:
-    """Exact alias first, then a single keyword inside a product name ("Indie License"). None if unknown."""
+    """Exact alias first, then multi-word / hyphenated phrase, then single keyword. None if unknown."""
     if not raw:
         return None
     norm = raw.strip().lower()
     if norm in _TIER_ALIASES:
         return _TIER_ALIASES[norm]
-    hits = {tier for word, tier in _TIER_ALIASES.items() if re.search(rf"\b{word}\b", norm)}
+    # Check multi-word or hyphenated / underscored aliases first (e.g. 'despacho pro')
+    for word, tier in sorted(_TIER_ALIASES.items(), key=lambda item: len(item[0]), reverse=True):
+        if " " in word or "-" in word or "_" in word:
+            pattern = rf"\b{re.escape(word)}\b" if "-" not in word else rf"(?:\b|_){re.escape(word)}(?:\b|_)"
+            if re.search(pattern, norm):
+                return tier
+    # Single-word keyword inside a product name ("Indie License")
+    hits = {tier for word, tier in _TIER_ALIASES.items() if " " not in word and "-" not in word and "_" not in word and re.search(rf"\b{word}\b", norm)}
     return hits.pop() if len(hits) == 1 else None
 
 
@@ -91,9 +107,12 @@ _TIER_UNIT_AMOUNTS_CENTS: dict[str, int] = {
     "pro": 2900,
     "studio": 8900,
     "lifetime": 29900,
+    "despacho_basico": 4900,
+    "despacho_pro": 9900,
+    "despacho_empresa": 14900,
 }
 # Prices of Payment Links sold before the 2026-11 price change: still recognised if metadata is missing.
-_LEGACY_TIER_AMOUNTS_CENTS: dict[int, str] = {14900: "indie", 34900: "agency", 19900: "lifetime"}
+_LEGACY_TIER_AMOUNTS_CENTS: dict[int, str] = {14900: "indie", 34900: "agency", 19900: "lifetime", 4900: "despacho_basico", 9900: "despacho_pro"}
 
 
 class WebhookAuthenticationError(Exception):

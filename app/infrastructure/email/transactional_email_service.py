@@ -20,7 +20,7 @@ logger = logging.getLogger("keyflint.email")
 
 _DOCS_URL = "https://github.com/ArceeDev/keyflint#client-sdks"
 _BRAND_LOGO_URL = "https://mcp.keyflint.dev/assets/flint-brand.png"
-_BRAND_LOGO_WHITE_URL = "https://mcp.keyflint.dev/assets/flint-brand-badge.png"
+_BRAND_LOGO_WHITE_URL = "https://mcp.keyflint.dev/assets/flint-brand-white-clean.png"
 _RESEND_RETRY_STATUSES = {429, 500, 502, 503, 504}
 _RESEND_HINTS = {
     401: "RESEND_API_KEY is invalid or revoked.",
@@ -418,12 +418,13 @@ class TransactionalEmailService(IEmailSender):
     # Plain and short on purpose: iCloud Mail silently drops mail that looks like credential
     # phishing (repeated opaque tokens, code blocks), even when Resend reports "delivered".
     def _render_license_text(self, p: LicenseEmailPayload) -> str:
-        return f"""Your KeyFlint {p.tier.capitalize()} license is active.
+        tier_title = p.tier.replace("_", " ").replace("-", " ").title()
+        return f"""Your KeyFlint {tier_title} license is active.
 
 License key:
 {p.license_key}
 
-Tier: {p.tier.capitalize()}
+Tier: {tier_title}
 Seats: {p.seats}
 Included credits: {p.credits:,}
 Expires: {(p.expires_at or '')[:10] or 'Never (perpetual)'}
@@ -440,7 +441,7 @@ Questions? Reply to this email or write to support@keyflint.dev.
         rows = "".join(
             f'<tr><td style="{cell}">{label}</td><td align="right" style="{val_cell}">{value}</td></tr>'
             for label, value in (
-                ("Plan", p.tier.capitalize()),
+                ("Plan", p.tier.replace("_", " ").replace("-", " ").title()),
                 ("Equipos permitidos", p.seats),
                 ("Créditos incluidos", f"{p.credits:,}"),
                 ("Validez", (p.expires_at or "")[:10] or "Permanente (sin caducidad)"),
@@ -468,7 +469,7 @@ Questions? Reply to this email or write to support@keyflint.dev.
                 </a>
               </div>
 
-              <h1 style="margin: 0 0 12px 0; font-size: 24px; font-weight: 700; color: #FFFFFF; letter-spacing: -0.02em; line-height: 1.25; text-align: center;">Tu licencia <span style="color: #CCFF00;">{p.tier.capitalize()}</span> está activa</h1>
+              <h1 style="margin: 0 0 12px 0; font-size: 24px; font-weight: 700; color: #FFFFFF; letter-spacing: -0.02em; line-height: 1.25; text-align: center;">Tu licencia <span style="color: #CCFF00;">{p.tier.replace("_", " ").replace("-", " ").title()}</span> está activa</h1>
               <p style="margin: 0 0 28px 0; font-size: 14px; color: #B2B8D0; line-height: 1.6; text-align: center;">Servidores MCP deterministas para extractos bancarios Norma 43 y facturación Facturae / Veri*factu listos para usar sin alucinaciones de IA.</p>
               
               <div style="background-color: #171B30; border: 1px solid #282F50; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
