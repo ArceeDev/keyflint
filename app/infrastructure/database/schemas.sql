@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS licenses (
     id TEXT PRIMARY KEY,
     customer_id TEXT NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
     license_key TEXT UNIQUE NOT NULL,
-    tier TEXT NOT NULL CHECK(tier IN ('community', 'indie', 'agency', 'pro', 'studio', 'lifetime')),
+    tier TEXT NOT NULL CHECK(tier IN ('community', 'indie', 'agency', 'pro', 'studio', 'lifetime', 'despacho_basico', 'despacho_pro', 'despacho_empresa')),
     status TEXT NOT NULL CHECK(status IN ('active', 'suspended', 'expired', 'revoked', 'grace_period')),
     max_seats INTEGER NOT NULL DEFAULT 1,
     current_activations INTEGER NOT NULL DEFAULT 0,

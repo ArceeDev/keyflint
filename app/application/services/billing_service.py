@@ -112,6 +112,7 @@ _TIER_UNIT_AMOUNTS_CENTS: dict[str, int] = {
     "despacho_empresa": 14900,
 }
 # Prices of Payment Links sold before the 2026-11 price change: still recognised if metadata is missing.
+_DESPACHO_EUR_AMOUNTS_CENTS: dict[int, str] = {4900: "despacho_basico", 9900: "despacho_pro", 14900: "despacho_empresa"}
 _LEGACY_TIER_AMOUNTS_CENTS: dict[int, str] = {14900: "indie", 34900: "agency", 19900: "lifetime", 4900: "despacho_basico", 9900: "despacho_pro"}
 
 
@@ -441,6 +442,14 @@ class BillingService:
             by_price.update({cents: name for name, cents in _TIER_UNIT_AMOUNTS_CENTS.items() if cents})
             if isinstance(subtotal, int) and currency == "usd" and subtotal in by_price:
                 tier_raw = by_price[subtotal]
+            elif (
+                isinstance(subtotal, int)
+                and currency == "eur"
+                and data_obj.get("mode") == "subscription"
+                and subtotal in _DESPACHO_EUR_AMOUNTS_CENTS
+            ):
+                # Plan Despacho: suscripción mensual en EUR (49/99/149 €/mes). Pagos únicos en EUR no se infieren.
+                tier_raw = _DESPACHO_EUR_AMOUNTS_CENTS[subtotal]
         return event_id, raw_event_type, customer_email, _resolve_tier(tier_raw), tier_raw
 
     # Stripe object reference prefixes used to link a payment back to its license.
@@ -525,7 +534,7 @@ class BillingService:
                 return found, "email"
         return [], "none"
 
-    _RECURRING_TIERS = (Tier.PRO, Tier.STUDIO)
+    _RECURRING_TIERS = (Tier.PRO, Tier.STUDIO, Tier.DESPACHO_BASICO, Tier.DESPACHO_PRO, Tier.DESPACHO_EMPRESA)
 
     def _promotable_free_license(self, customer: Any) -> Optional[Any]:
         """A free Community license that was never billed: the only kind a purchase may upgrade in place."""

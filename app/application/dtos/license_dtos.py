@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from app.domain.entities.license import normalize_domain_host
 
-_VALID_TIERS = ("community", "indie", "agency", "pro", "studio", "lifetime")
+_VALID_TIERS = ("community", "indie", "agency", "pro", "studio", "lifetime", "despacho_basico", "despacho_pro", "despacho_empresa")
 _VALID_ALGOS = ("ed25519", "hmac-sha256", "hmac")
 _EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
