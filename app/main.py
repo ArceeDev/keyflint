@@ -76,13 +76,24 @@ def _maintenance_once() -> dict:
     from app.infrastructure.database.connection import create_connection
     from app.infrastructure.maintenance import litestream_active, run_maintenance
 
+    from app.application.services.trial_nurture import run_trial_nurture
+    from app.infrastructure.email.transactional_email_service import TransactionalEmailService
+
     conn = create_connection()
     try:
-        return run_maintenance(
+        summary = run_maintenance(
             conn,
             retention_days=get_settings().USAGE_EVENTS_RETENTION_DAYS,
             checkpoint=not litestream_active(LITESTREAM_CONFIG),
         )
+        try:
+            nurture = run_trial_nurture(conn, TransactionalEmailService())
+            if any(nurture.values()):
+                summary["trial_nurture"] = nurture
+                logger.info(f"Trial nurture: {nurture}")
+        except Exception as exc:  # follow-up emails must never stop maintenance
+            logger.error(f"Trial nurture failed: {exc}")
+        return summary
     finally:
         conn.close()
 

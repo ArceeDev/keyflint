@@ -20,6 +20,7 @@ from app.config import get_settings
 from pydantic import BaseModel, Field
 
 from app.presentation.dependencies import (
+    get_db,
     build_response_metadata,
     get_billing_service,
     require_admin_access,
@@ -319,3 +320,21 @@ def retry_failed_license_emails(
         "data": billing_service.retry_failed_license_emails(),
         "metadata": build_response_metadata(http_request),
     }
+
+
+@router.get("/unsubscribe", include_in_schema=False)
+def unsubscribe(l: str = Query("", max_length=64), t: str = Query("", max_length=64), conn=Depends(get_db)):
+    """One-click opt-out from trial follow-up emails (link in every email). Idempotent."""
+    from fastapi.responses import HTMLResponse
+
+    from app.application.services.trial_nurture import record_opt_out, verify_unsubscribe
+
+    ok = verify_unsubscribe(l, t) and record_opt_out(conn, l)
+    msg = ("Listo: no te enviaremos más correos de seguimiento. Tu licencia sigue funcionando igual."
+           if ok else "Este enlace de baja no es válido. Escríbenos a support@keyflint.dev y te damos de baja.")
+    return HTMLResponse(
+        f'<!doctype html><html lang="es"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+        f'<title>Baja · Flint</title><body style="font-family:system-ui,sans-serif;background:#0B0D17;color:#fff;'
+        f'display:grid;place-items:center;min-height:90vh;margin:0;padding:16px"><p style="max-width:480px;font-size:17px;line-height:1.5">{msg}</p></body></html>',
+        status_code=200 if ok else 400,
+    )

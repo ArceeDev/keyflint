@@ -242,6 +242,66 @@ class TransactionalEmailService(IEmailSender):
 </html>"""
         return self._dispatch(recipient=recipient_email, subject=subject, text_body=text_body, html_body=html_body)
 
+    def send_trial_nurture(self, recipient_email: str, *, step: int, consumed: int, balance: int,
+                           unsubscribe_url: str) -> bool:
+        """Follow-up of the free trial (days 1, 3 and 7). Spanish, one action per email, unsubscribe link."""
+        hub = "https://mcp.keyflint.dev"
+        if step == 1 and consumed == 0:
+            subject = "Tu primer extracto con Flint, en 1 minuto"
+            title = "Prueba Flint con un extracto real"
+            paras = ["Tu licencia de prueba aún no ha procesado nada. La forma más rápida de verlo:",
+                     "Abre el procesador, arrastra un extracto Norma 43 (.n43 o .c43) que hayas descargado del banco "
+                     "y pega tu licencia. En segundos tienes movimientos, saldos comprobados y un resumen para Excel.",
+                     "No hay que instalar nada. Si el fichero falla, no se cobra."]
+            cta, url = "Abrir el procesador", f"{hub}/lote/"
+        elif step == 1:
+            subject = "Siguiente paso: que los extractos se procesen solos"
+            title = "Deja una carpeta vigilada"
+            paras = [f"Ya has usado {consumed} créditos. Para no repetirlo cada mes:",
+                     "Con un comando, Flint crea la carpeta «Flint Extractos». Cada extracto que dejes en la "
+                     "subcarpeta de un cliente se procesa solo y genera su informe y su resumen para Excel, "
+                     "también después de reiniciar el ordenador."]
+            cta, url = "Activar la carpeta vigilada", f"{hub}/asesorias/#alta"
+        elif step == 3:
+            subject = "Norma 43 directo a A3, Sage o ContaSol"
+            title = "Del extracto al programa contable, sin picar"
+            paras = ["Además de leer y conciliar, Flint convierte el extracto en un fichero que importas en tu "
+                     "programa de contabilidad. Los importes y las fechas salen del fichero del banco: Flint nunca "
+                     "se los inventa, y lo que no encaja se marca para revisarlo.",
+                     "Con la instalación local, los ficheros de tus clientes no salen del despacho. "
+                     f"Te lo explicamos en {hub}/confianza/."]
+            cta, url = "Ver la conversión a ContaSol", f"{hub}/norma43-a-contasol/"
+        else:
+            subject = "Plan Despacho: una cuota fija para todo el despacho"
+            title = "Cuando quieras pasar del piloto al día a día"
+            paras = [f"Te quedan {balance} créditos de prueba.",
+                     "El Plan Despacho Básico cuesta 49 €/mes y trae 2.500 créditos cada mes: unos 625 extractos "
+                     "leídos y conciliados, 3 puestos y factura con NIF. Sin permanencia.",
+                     "Si contratas con este mismo correo, tu licencia actual se convierte en la del plan: "
+                     "no tienes que cambiar nada en tu ordenador."]
+            cta, url = "Ver el Plan Despacho", f"{hub}/precios/#despacho"
+        text_body = (f"Hola,\n\n" + "\n\n".join(paras) + f"\n\n{cta}: {url}\n\n"
+                     "Dudas: responde a este correo o escribe a support@keyflint.dev\n\n"
+                     f"--\nRecibes este correo porque pediste una licencia de prueba de Flint. "
+                     f"Darte de baja: {unsubscribe_url}\n")
+        esc = html.escape
+        body = "".join(f'<p style="margin: 0 0 14px 0; font-size: 14px; color: #B2B8D0; line-height: 1.6;">{esc(x)}</p>'
+                       for x in paras)
+        html_body = f"""<!DOCTYPE html>
+<html lang="es"><head><meta charset="utf-8"><meta name="color-scheme" content="dark only">
+<meta name="viewport" content="width=device-width, initial-scale=1.0"><title>{esc(subject)}</title></head>
+<body bgcolor="#0B0D17" style="margin: 0; padding: 0; background-color: #0B0D17; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Roboto, Helvetica, Arial, sans-serif; color: #FFFFFF;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#0B0D17" style="padding: 24px 0;"><tr><td align="center" style="padding: 0 10px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#111424" style="max-width: 560px; background-color: #111424; border: 1px solid #1E233D; border-radius: 14px;"><tr><td style="padding: 36px 24px;">
+<div style="margin-bottom: 24px;"><img src="{_BRAND_LOGO_WHITE_URL}" alt="Flint" width="144" style="display: block; border: 0; max-width: 144px; height: auto;" /></div>
+<h1 style="margin: 0 0 16px 0; font-size: 22px; font-weight: 700; color: #FFFFFF; line-height: 1.3;">{esc(title)}</h1>
+{body}
+<a href="{esc(url, quote=True)}" style="display: inline-block; margin: 8px 0 24px 0; background-color: #CCFF00; color: #0B0D17; font-size: 14px; font-weight: 700; text-decoration: none; padding: 12px 20px; border-radius: 8px;">{esc(cta)}</a>
+<p style="margin: 0; padding-top: 16px; border-top: 1px solid #1E233D; font-size: 12px; color: #6F7693; line-height: 1.6;">¿Dudas? Responde a este correo o escribe a <a href="mailto:support@keyflint.dev" style="color: #CCFF00; text-decoration: none;">support@keyflint.dev</a>.<br>
+Recibes este correo porque pediste una licencia de prueba de Flint. <a href="{esc(unsubscribe_url, quote=True)}" style="color: #8E95AF;">Darme de baja</a></p>
+</td></tr></table></td></tr></table></body></html>"""
+        return self._dispatch(recipient=recipient_email, subject=subject, text_body=text_body, html_body=html_body)
+
     def send_ops_alert(self, recipient_email: str, subject: str, text_body: str) -> bool:
         """Plain-text operator alert (billing incidents). Never raises."""
         safe = html.escape(text_body)
