@@ -53,6 +53,14 @@ jobs:
       - name: "@keyflint/wrap tests + .mcpb template manifest"
         working-directory: sdks/js-wrap
         run: npm ci && npm test && npm pack --dry-run && npx -y @anthropic-ai/mcpb@2.1.2 validate ../../examples/mcpb-template/manifest.json
+      - name: "keyflint CLI tests + scaffolded .mcpb manifests"
+        working-directory: sdks/cli
+        run: |
+          npm test && npm pack --dry-run
+          for lang in python node; do
+            node bin/keyflint.js init "$RUNNER_TEMP/kf-$lang" --lang "$lang" --yes
+            npx -y @anthropic-ai/mcpb@2.1.2 validate "$RUNNER_TEMP/kf-$lang/manifest.json"
+          done
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
