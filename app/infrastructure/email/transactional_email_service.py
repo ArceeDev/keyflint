@@ -118,7 +118,7 @@ class TransactionalEmailService(IEmailSender):
               </div>
 
               <h1 style="margin: 0 0 12px 0; font-size: 24px; font-weight: 700; color: #FFFFFF; letter-spacing: -0.02em; line-height: 1.25; text-align: center;">Saldo de créditos <span style="color: #CCFF00;">actualizado</span></h1>
-              <p style="margin: 0 0 28px 0; font-size: 14px; color: #B2B8D0; line-height: 1.6; text-align: center;">Tus servidores deterministas de Flint ya disponen de los nuevos créditos para seguir procesando tus extractos bancarios y facturas sin interrupciones.</p>
+              <p style="margin: 0 0 28px 0; font-size: 14px; color: #B2B8D0; line-height: 1.6; text-align: center;">Tu cuenta de Flint ya dispone de los nuevos créditos para seguir procesando extractos bancarios Norma 43 y facturación contable sin interrupciones.</p>
               
               <div style="background-color: #171B30; border: 1px solid #282F50; border-radius: 12px; padding: 22px 20px; margin-bottom: 24px;">
                 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
@@ -151,7 +151,7 @@ class TransactionalEmailService(IEmailSender):
               </div>
 
               <div style="padding-top: 20px; border-top: 1px solid #1E233D; font-size: 12px; color: #6F7693; line-height: 1.6; text-align: center;">
-                <p style="margin: 0 0 4px 0;"><strong style="color: #FFFFFF;">Flint by KeyFlint</strong> · Servidores MCP deterministas para IA</p>
+                <p style="margin: 0 0 4px 0;"><strong style="color: #FFFFFF;">Flint by KeyFlint</strong> · Herramientas contables y bancarias verificadas para IA</p>
                 <p style="margin: 0;">Soporte humano directo: <a href="mailto:support@keyflint.dev" style="color: #CCFF00; text-decoration: none; font-weight: 600;">support@keyflint.dev</a></p>
               </div>
             </td>
@@ -229,7 +229,7 @@ class TransactionalEmailService(IEmailSender):
               <p style="margin: 0 0 24px 0; padding-top: 16px; border-top: 1px solid #1E233D; font-size: 12px; color: #717791; line-height: 1.5; text-align: center;">{html.escape(lead_en)} {html.escape(offer_en)} <a href="{u}" style="color: #CCFF00; text-decoration: none; font-weight: 600;">Top up &rarr;</a></p>
 
               <div style="padding-top: 20px; border-top: 1px solid #1E233D; font-size: 12px; color: #6F7693; line-height: 1.6; text-align: center;">
-                <p style="margin: 0 0 4px 0;"><strong style="color: #FFFFFF;">Flint by KeyFlint</strong> · Servidores MCP deterministas para IA</p>
+                <p style="margin: 0 0 4px 0;"><strong style="color: #FFFFFF;">Flint by KeyFlint</strong> · Herramientas contables y bancarias verificadas para IA</p>
                 <p style="margin: 0;">¿Dudas con tu configuración? Escríbenos a <a href="mailto:support@keyflint.dev" style="color: #CCFF00; text-decoration: none; font-weight: 600;">support@keyflint.dev</a></p>
               </div>
             </td>
@@ -470,7 +470,7 @@ Questions? Reply to this email or write to support@keyflint.dev.
               </div>
 
               <h1 style="margin: 0 0 12px 0; font-size: 24px; font-weight: 700; color: #FFFFFF; letter-spacing: -0.02em; line-height: 1.25; text-align: center;">Tu licencia <span style="color: #CCFF00;">{p.tier.replace("_", " ").replace("-", " ").title()}</span> está activa</h1>
-              <p style="margin: 0 0 28px 0; font-size: 14px; color: #B2B8D0; line-height: 1.6; text-align: center;">Servidores MCP deterministas para extractos bancarios Norma 43 y facturación Facturae / Veri*factu listos para usar sin alucinaciones de IA.</p>
+              <p style="margin: 0 0 28px 0; font-size: 14px; color: #B2B8D0; line-height: 1.6; text-align: center;">Herramientas para extractos bancarios Norma 43 y facturación electrónica Facturae / Veri*factu listas para conciliar con cuadre exacto y sin alucinaciones.</p>
               
               <div style="background-color: #171B30; border: 1px solid #282F50; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
                 <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #8E95AF; margin-bottom: 8px;">Clave de Licencia</div>
@@ -504,7 +504,7 @@ Questions? Reply to this email or write to support@keyflint.dev.
               </div>
 
               <div style="padding-top: 20px; border-top: 1px solid #1E233D; font-size: 12px; color: #6F7693; line-height: 1.6; text-align: center;">
-                <p style="margin: 0 0 4px 0;"><strong style="color: #FFFFFF;">Flint by KeyFlint</strong> · Servidores MCP deterministas para IA con rigor contable.</p>
+                <p style="margin: 0 0 4px 0;"><strong style="color: #FFFFFF;">Flint by KeyFlint</strong> · Cuadre bancario certificado y rigor contable para despachos y empresas.</p>
                 <p style="margin: 0;">Soporte humano: <a href="mailto:support@keyflint.dev" style="color: #CCFF00; text-decoration: none; font-weight: 600;">support@keyflint.dev</a> · <a href="https://mcp.keyflint.dev/terminos/" style="color: #8E95AF; text-decoration: none;">Términos</a> · <a href="https://mcp.keyflint.dev/reembolsos/" style="color: #8E95AF; text-decoration: none;">Reembolsos</a></p>
               </div>
             </td>
