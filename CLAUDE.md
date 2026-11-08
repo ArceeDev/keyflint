@@ -38,4 +38,4 @@ Estándar: producción militar, determinismo matemático (SHA-256), seguridad LS
 2. **No-Fault Quota Deduction**:
    - Nunca cobrar doble ni perder créditos por reintentos de red.
 3. **Verificación Obligatoria**:
-   - `python run_tests.py` debe pasar al 100 % (239/239) antes de cualquier `fly deploy`.
+   - `python run_tests.py` debe pasar al 100 % (243/243) antes de cualquier `fly deploy`.
