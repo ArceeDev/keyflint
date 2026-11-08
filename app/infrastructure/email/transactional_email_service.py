@@ -20,7 +20,7 @@ logger = logging.getLogger("keyflint.email")
 
 _DOCS_URL = "https://github.com/ArceeDev/keyflint#client-sdks"
 _BRAND_LOGO_URL = "https://mcp.keyflint.dev/assets/flint-brand.png"
-_BRAND_LOGO_WHITE_URL = "https://mcp.keyflint.dev/assets/flint-brand-white-clean.png"
+_BRAND_LOGO_WHITE_URL = "https://mcp.keyflint.dev/assets/flint-brand-badge.png"
 _RESEND_RETRY_STATUSES = {429, 500, 502, 503, 504}
 _RESEND_HINTS = {
     401: "RESEND_API_KEY is invalid or revoked.",
