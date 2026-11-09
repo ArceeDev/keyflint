@@ -49,13 +49,13 @@
 <main>
     <article>
         <h1>How to Monetize MCP Servers in 2026</h1>
-        <p class="lead">Whether you ship a local <code>stdio</code> MCP server via PyPI/npm or a remote Streamable HTTP endpoint on Cloudflare Workers, choosing the wrong billing layer either adds 150 ms of latency to every call or costs 15–30% in platform fees.</p>
+        <p class="lead">Whether you ship a local <code>stdio</code> MCP server via PyPI/npm or a remote Streamable HTTP endpoint on Cloudflare Workers, choosing the wrong billing layer either adds a network round-trip to every call or a platform fee on every sale.</p>
 
         <h2>Comparing the 3 Architectures</h2>
         <table>
             <tr><th>Requirement</th><th>KeyFlint (Ed25519 + SQLite WAL)</th><th>Hosted MCP Marketplaces</th><th>Raw Stripe API per Call</th></tr>
-            <tr><td><strong>Platform cut</strong></td><td><span class="kw">0%</span> (direct Stripe / LemonSqueezy webhooks)</td><td>10% to 30% marketplace fee</td><td>Stripe fee only, but rate-limited</td></tr>
-            <tr><td><strong>Feature-gate latency</strong></td><td><span class="kw">0.12 ms offline</span> (Ed25519 public key)</td><td>80–250 ms proxy hop</td><td>150–400 ms HTTP call</td></tr>
+            <tr><td><strong>Platform cut</strong></td><td><span class="kw">0%</span> (direct Stripe / LemonSqueezy webhooks)</td><td>Marketplace fee (varies by platform)</td><td>Stripe fee only, plus API rate limits</td></tr>
+            <tr><td><strong>Feature-gate latency</strong></td><td><span class="kw">0.12 ms offline</span> (Ed25519 public key)</td><td>Network hop to the proxy</td><td>Network call per check</td></tr>
             <tr><td><strong>Per-call credit debit</strong></td><td>Atomic SQLite WAL + idempotency key</td><td>Varies by proxy</td><td>Not designed for synchronous sub-cent debits</td></tr>
             <tr><td><strong>Refund on tool error</strong></td><td>Automatic via <code>/api/v1/quota/refund</code> + circuit breaker</td><td>Rarely supported</td><td>Manual</td></tr>
             <tr><td><strong>Works for local <code>stdio</code></strong></td><td>Yes (<code>@keyflint/wrap</code> + <code>keyflint-verify</code>)</td><td>No (remote proxy only)</td><td>Requires embedding secrets or proxy</td></tr>
@@ -64,11 +64,10 @@
         <h2>Pattern 1: Wrapping Any Existing MCP Server in 30 Seconds</h2>
         <p>If you already have an MCP server in any language and want to gate tools without rewriting its source code, wrap it with <code>@keyflint/wrap</code>:</p>
         <pre><code>npx @keyflint/wrap \
-  --public-key 8f4e... \
-  --gateway https://licenses.your-domain.com \
-  --cost parse_statement=2,export_journal=5 \
+  --tool parse_statement=2 --tool export_journal=5 \
   -- npx -y @your-org/your-mcp-server</code></pre>
-        <p>When a user runs out of credits, the wrapper intercepts the call before your server executes and returns JSON-RPC error <code>-32062</code> with a 1-click Stripe top-up link that adds credits to the <em>same</em> license key.</p>
+        <p>The license, your public keys and the gateway URL come from <code>KEYFLINT_LICENSE</code>, <code>KEYFLINT_PUBLIC_KEYS</code> and <code>KEYFLINT_URL</code>.</p>
+        <p>When a user runs out of credits, the wrapper intercepts the call before your server executes and returns JSON-RPC error <code>-32062</code> pointing to your top-up link (<code>KEYFLINT_CHECKOUT_URL</code>), which can add credits to the <em>same</em> license key.</p>
 
         <h2>Pattern 2: Decorator-Based Metering in Python &amp; TypeScript</h2>
         <p>For fine-grained control inside FastMCP or the official MCP SDK, use <code>keyflint-verify</code>:</p>
@@ -80,7 +79,7 @@ kf = KeyFlint()
 @kf.metered(credits=4)
 def audit_invoice_xml(xml_payload: str) -&gt; dict:
     # Automatically refunded if an exception is raised or isError=True is returned
-    return verify_facturae_signature(xml_payload)</code></pre>
+    return audit(xml_payload)  # your own tool logic</code></pre>
 
         <h2>Pattern 3: Dual-Surface Monetization (MCP + Browser Batch UI)</h2>
         <p>Many B2B buyers discover your tool through Google Search before they ever install an MCP client. By exposing the same KeyFlint-metered container tools behind a browser drag-and-drop UI (like <a href="https://mcp.keyflint.dev/lote/">mcp.keyflint.dev/lote</a>), the exact same <code>LIC-...</code> token and credit balance work across Claude Desktop, Cursor, REST APIs, and the web browser.</p>
