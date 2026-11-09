@@ -1,0 +1,48 @@
+name: Daily Ecosystem Growth & IndexNow Pulse
+
+on:
+  schedule:
+    # Runs every day at 08:15 UTC (10:15 Madrid)
+    - cron: "15 8 * * *"
+  workflow_dispatch:
+
+jobs:
+  daily-growth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping IndexNow for keyflint.dev Ecosystem URLs
+        run: |
+          curl -sS -X POST "https://api.indexnow.org/indexnow" \
+            -H "Content-Type: application/json; charset=utf-8" \
+            -d '{
+              "host": "keyflint.dev",
+              "key": "8f4e2a9c1b7d3e5f6a0c8b2d4e6f1a3b",
+              "keyLocation": "https://keyflint.dev/8f4e2a9c1b7d3e5f6a0c8b2d4e6f1a3b.txt",
+              "urlList": [
+                "https://keyflint.dev/",
+                "https://keyflint.dev/llms.txt",
+                "https://keyflint.dev/guides/paid-mcp-server.html",
+                "https://keyflint.dev/guides/oauth-mcp-server.html",
+                "https://keyflint.dev/guides/mcp-monetization-stripe-x402.html",
+                "https://keyflint.dev/guides/migrate-from-smithery.html"
+              ]
+            }' -w "\nIndexNow HTTP status: %{http_code}\n"
+
+      - name: Warm Up Ecosystem Endpoints & Verify Health
+        run: |
+          curl -fsS "https://keyflint.dev/" >/dev/null
+          curl -fsS "https://licenses.keyflint.dev/readyz"
+          curl -fsS "https://mcp.keyflint.dev/api/estado" | head -c 400
+          echo ""
+
+      - name: Trigger Gateway Daily Mobile Digest (if ADMIN_API_KEY secret is set)
+        env:
+          ADMIN_API_KEY: ${{ secrets.ADMIN_API_KEY }}
+        run: |
+          if [ -n "$ADMIN_API_KEY" ]; then
+            curl -fsS -X POST "https://licenses.keyflint.dev/api/v1/licenses/admin-daily-digest?force=false" \
+              -H "X-Admin-Key: $ADMIN_API_KEY"
+          else
+            echo "Gateway runs its own internal daily pulse loop via Fly secrets; skipping external trigger."
+          fi

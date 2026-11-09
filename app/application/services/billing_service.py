@@ -876,6 +876,20 @@ class BillingService:
                         event_type,
                     )
                 email_delivered = self.deliver_license_email(license_key, recipient=resolved_email)
+                try:
+                    from app.application.services.daily_growth import send_owner_activity_alert
+
+                    send_owner_activity_alert(
+                        self._email_sender,
+                        "Venta",
+                        f"Nueva licencia {target_tier.value.upper()} activada",
+                        correo=resolved_email,
+                        plan=target_tier.value,
+                        proveedor=provider,
+                        evento=event_type,
+                    )
+                except Exception:
+                    pass
 
         elif event_type in renewal_events and data_obj.get("billing_reason", "subscription_cycle") != "subscription_cycle":
             # One-time Payment Link invoices ("manual") and first subscription invoices are already
@@ -1450,6 +1464,20 @@ class BillingService:
                     )
                 except Exception:
                     logger.warning("Top-up email failed for %s", sid)
+            try:
+                from app.application.services.daily_growth import send_owner_activity_alert
+
+                send_owner_activity_alert(
+                    self._email_sender,
+                    "Recarga",
+                    f"Recarga pagada: +{credits:,} créditos ({amount / 100:.2f} {entry['currency'].upper()})",
+                    correo=to or "desconocido",
+                    creditos=credits,
+                    saldo_nuevo=new_balance,
+                    sesion=sid,
+                )
+            except Exception:
+                pass
         return outcome
 
     def _adjust_topup_credits(self, lic: Any, delta: int) -> int:
@@ -1556,6 +1584,19 @@ class BillingService:
         issued = self._license_service.issue(
             LicenseIssueRequest(customer_email=email, tier=Tier.COMMUNITY.value, metadata=meta)
         )
+        try:
+            from app.application.services.daily_growth import send_owner_activity_alert
+
+            send_owner_activity_alert(
+                self._email_sender,
+                "Solicitud",
+                f"Nueva prueba solicitada: {email}",
+                correo=email,
+                origen=source or "web / oauth",
+                creditos=Tier.COMMUNITY.default_allowance,
+            )
+        except Exception:
+            pass
         return issued.license_key
 
     def request_portal_magic_link(self, email: str) -> Optional[tuple[str, str]]:

@@ -104,6 +104,12 @@ class Settings(BaseSettings):
     SMTP_USE_TLS: bool = True
     EMAIL_RETRY_INTERVAL_SECONDS: int = 300  # 0 disables the automatic retry loop
     OPS_ALERT_EMAIL: Optional[str] = None  # operator inbox for billing incidents; unset = log only
+    LEAD_ALERT_ENABLED: bool = True  # instant mobile alert to OPS_ALERT_EMAIL on new trial, purchase or top-up
+    DAILY_PULSE_ENABLED: bool = True  # daily 24h metrics + 1-tap social post pack to OPS_ALERT_EMAIL
+    DAILY_PULSE_HOUR_UTC: int = 8  # 08:00 UTC (10:00 CET)
+    NTFY_TOPIC: Optional[str] = None  # optional ntfy.sh topic for instant mobile lockscreen push notifications
+    DEVTO_API_KEY: Optional[str] = None  # optional Dev.to API key for automated technical article syndication
+    SOCIAL_WEBHOOK_URL: Optional[str] = None  # optional webhook (Make/Zapier/n8n/Discord/Telegram) for daily post syndication
     # "Credits ran out" retention email (trial / MCP-hub licenses only; once per depletion episode)
     DEPLETION_EMAIL_ENABLED: bool = True
     DEPLETION_EMAIL_COOLDOWN_DAYS: int = 25  # same episode (no credits added) never re-sends before this
