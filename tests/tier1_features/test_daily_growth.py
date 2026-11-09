@@ -1,6 +1,7 @@
 """Tier 1 tests for Automated Daily Growth Engine, Mobile Pulse & Real-Time Lead Alerts."""
 
 from __future__ import annotations
+import unittest
 
 from datetime import datetime, timezone
 from unittest.mock import patch
@@ -116,3 +117,19 @@ def test_admin_pulse_endpoint_requires_admin_and_returns_metrics(tmp_path, monke
         assert "daily_post" in body["data"]
     finally:
         get_settings.cache_clear()
+
+
+class TestNtfyPrivacy(unittest.TestCase):
+    def test_push_never_carries_customer_email(self):
+        from unittest import mock
+
+        from app.application.services import daily_growth
+
+        settings = mock.Mock(LEAD_ALERT_ENABLED=True, OPS_ALERT_EMAIL="", NTFY_TOPIC="t")
+        with mock.patch.object(daily_growth, "get_settings", return_value=settings), \
+                mock.patch.object(daily_growth.httpx, "post") as post:
+            post.return_value.status_code = 200
+            daily_growth.send_owner_activity_alert(None, "Solicitud", "Nueva prueba solicitada", correo="cliente@despacho.es")
+        sent = repr(post.call_args)
+        self.assertNotIn("cliente@despacho.es", sent)
+        self.assertIn("json", post.call_args.kwargs)

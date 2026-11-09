@@ -64,7 +64,7 @@ DAILY_POST_QUEUE: list[dict[str, str]] = [
             "configs kills conversion. We solved it by combining OAuth 2.1 (RFC 8414 + PKCE) with a 6-digit email OTP "
             "and an Ed25519 token gateway (KeyFlint).\n\n"
             "Full technical write-up: https://keyflint.dev/guides/oauth-mcp-server.html\n"
-            "Live hub running 6 production MCP servers: https://mcp.keyflint.dev"
+            "Live hub with 5 production MCP servers + one unified connector: https://mcp.keyflint.dev"
         ),
     },
     {
@@ -137,7 +137,7 @@ DAILY_POST_QUEUE: list[dict[str, str]] = [
         ),
         "x_en": (
             "Monetizing MCP servers in 2026: Stripe Checkout vs HTTP 402 vs Offline Ed25519 Licenses.\n\n"
-            "We wrote a complete engineering comparison based on running 6 production MCP servers on Cloudflare + Fly.io:\n"
+            "We wrote a complete engineering comparison based on running 5 production MCP servers on Cloudflare + Fly.io:\n"
             "https://keyflint.dev/guides/mcp-monetization-stripe-x402.html"
         ),
         "linkedin_es": (
@@ -181,8 +181,8 @@ DAILY_POST_QUEUE: list[dict[str, str]] = [
         "reddit_title": "Deterministic financial MCP servers: why the tool must own Decimal math and balance assertions",
         "reddit_body": (
             "When we built Flint (https://mcp.keyflint.dev) for Spanish accounting firms, our core design rule was "
-            "zero arithmetic inside the LLM prompt. Every Norma 43 bank statement and Facturae XML is verified with "
-            "Python `Decimal` and cryptographic hashes inside the MCP tool before returning structured output."
+            "zero arithmetic inside the LLM prompt. Every Norma 43 bank statement is checked with "
+            "integer-cent arithmetic and balance assertions inside the MCP tool before returning structured output."
         ),
     },
 ]
@@ -320,24 +320,23 @@ def collect_pulse_metrics(conn: Any, now: Optional[datetime] = None) -> dict[str
 
 
 def notify_ntfy(title: str, message: str, click_url: str = "https://mcp.keyflint.dev/estado/") -> bool:
-    """Sends an instant mobile lockscreen push notification via ntfy.sh if NTFY_TOPIC is set."""
+    """Sends a lockscreen push via ntfy.sh if NTFY_TOPIC is set.
+
+    ntfy.sh topics are public to anyone who knows the name: never pass personal data (emails, keys) here.
+    JSON publish keeps UTF-8 titles intact (HTTP headers are latin-1 only).
+    """
     topic = (get_settings().NTFY_TOPIC or "").strip()
     if not topic:
         return False
     try:
         resp = httpx.post(
-            f"https://ntfy.sh/{topic}",
-            content=message.encode("utf-8"),
-            headers={
-                "Title": title[:120],
-                "Click": click_url,
-                "Priority": "default",
-            },
+            "https://ntfy.sh/",
+            json={"topic": topic, "title": title[:120], "message": message[:1000], "click": click_url},
             timeout=5.0,
         )
         return resp.status_code < 300
     except Exception as exc:
-        logger.warning("ntfy push failed: %s", exc)
+        logger.warning("ntfy push failed: %s", type(exc).__name__)
         return False
 
 
@@ -353,7 +352,8 @@ def send_owner_activity_alert(
         return False
     lines = [f"{k}: {v}" for k, v in details.items() if v is not None]
     text_body = f"{title}\n\n" + "\n".join(lines) + "\n\nEstado en vivo: https://mcp.keyflint.dev/estado/\n"
-    notify_ntfy(f"[{kind}] {title}", "\n".join(lines))
+    # Push sin datos personales: el detalle (correo, sesión) solo va al correo del propietario.
+    notify_ntfy(f"[{kind}] KeyFlint", title if "@" not in title else kind)
 
     to = (settings.OPS_ALERT_EMAIL or "").strip()
     if not to or email_sender is None:

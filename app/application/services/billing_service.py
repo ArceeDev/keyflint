@@ -1590,7 +1590,7 @@ class BillingService:
             send_owner_activity_alert(
                 self._email_sender,
                 "Solicitud",
-                f"Nueva prueba solicitada: {email}",
+                "Nueva prueba solicitada",
                 correo=email,
                 origen=source or "web / oauth",
                 creditos=Tier.COMMUNITY.default_allowance,

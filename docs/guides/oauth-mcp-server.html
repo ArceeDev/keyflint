@@ -58,9 +58,9 @@
             <tr><th>Step</th><th>Protocol Endpoint</th><th>What happens</th></tr>
             <tr><td>1. Challenge</td><td><code>POST /&lt;slug&gt;/mcp</code> &rarr; <code>401</code></td><td>Returns <code>WWW-Authenticate: Bearer resource_metadata=".../.well-known/oauth-protected-resource"</code>.</td></tr>
             <tr><td>2. Discovery &amp; DCR</td><td><code>/.well-known/oauth-authorization-server</code>, <code>/oauth/register</code></td><td>MCP client registers dynamically and starts PKCE authorization (<code>S256</code>).</td></tr>
-            <tr><td>3. 6-Digit Email OTP</td><td><code>GET /oauth/authorize</code></td><td>User enters their email and a 6-digit code sent via Resend.</td></tr>
-            <tr><td>4. License Resolution</td><td><code>GET /api/v1/licenses/by-customer</code></td><td>Gateway returns active paid licenses for that email (or auto-provisions a 25-credit Community trial).</td></tr>
-            <tr><td>5. Token Exchange</td><td><code>POST /oauth/token</code></td><td>Issues the <code>LIC-...</code> token as the OAuth access token. Every subsequent tool call is metered atomically.</td></tr>
+            <tr><td>3. 6-Digit Email OTP</td><td><code>GET /authorize</code></td><td>User enters their email and a 6-digit code sent via Resend.</td></tr>
+            <tr><td>4. License Resolution</td><td><code>GET /api/v1/licenses/by-customer</code></td><td>Gateway returns the active licenses for that email. If there are none, the hub issues a 25-credit Community trial via <code>POST /api/v1/licenses/issue</code>.</td></tr>
+            <tr><td>5. Token Exchange</td><td>Token endpoint</td><td>Issues a short-lived OAuth access token bound to that <code>LIC-...</code> license. Every subsequent tool call is metered atomically against it.</td></tr>
         </table>
 
         <h2>Querying Active Licenses by Email</h2>
@@ -91,7 +91,7 @@ X-Admin-Key: &lt;YOUR_ADMIN_API_KEY&gt;</code></pre>
         </ul>
 
         <h2>See It Live in Production</h2>
-        <p>This exact architecture powers <a href="https://mcp.keyflint.dev">Flint by KeyFlint</a> across 6 remote MCP servers, including our unified 17-tool accounting connector at <code>https://mcp.keyflint.dev/despacho/mcp</code>.</p>
+        <p>This exact architecture powers <a href="https://mcp.keyflint.dev">Flint by KeyFlint</a> across 5 remote MCP servers, including our unified 17-tool accounting connector at <code>https://mcp.keyflint.dev/despacho/mcp</code>.</p>
 
         <a class="cta" href="/#pricing-section">Get KeyFlint Gateway</a>
         <a class="cta" style="background:transparent;color:var(--fg);border:1px solid var(--line)" href="/guides/paid-mcp-server.html">Guide: Paid MCP Server</a>

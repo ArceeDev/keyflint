@@ -17,7 +17,7 @@
 ## Live Production MCP Servers (Flint by KeyFlint · https://mcp.keyflint.dev)
 - **Despacho Unified Connector** (`https://mcp.keyflint.dev/despacho/mcp`): Single OAuth 2.1 URL uniting 17 banking (AEB Norma 43) and accounting (ContaBridge) tools for Spanish accounting firms.
 - **Norma 43 MCP** (`https://mcp.keyflint.dev/norma43/mcp`): Deterministic parser and balance validator for Spanish bank statements (`.n43`, `.c43`, CaixaBank, BBVA, Santander, Sabadell, Bankinter, Abanca).
-- **ContaBridge MCP** (`https://mcp.keyflint.dev/contabridge/mcp`): Converts bank CSV / Norma 43 and Facturae XML into import-ready journal files for ContaSol, A3, Sage 50, and ContaPlus.
+- **ContaBridge MCP** (`https://mcp.keyflint.dev/contabridge/mcp`): Converts bank CSV / Norma 43 statements and invoice lists (figures read by the assistant) into import-ready journal files for ContaSol, A3, Sage 50, and ContaPlus.
 - **Veri*factu MCP** (`https://mcp.keyflint.dev/verifactu/mcp`): AEAT RD 1007/2023 SHA-256 invoice hash-chain verifier, Facturae 3.2.2 auditor, NIF/CIF/IBAN validator, and QR generator.
 - **DataClean MCP** (`https://mcp.keyflint.dev/dataclean/mcp`): Deterministic CSV/JSON normalization, deduplication, and schema validation.
 - **Web-Intel MCP** (`https://mcp.keyflint.dev/web-intel/mcp`): Clean Markdown extraction, structured table parsing, and metadata inspection for AI agents.
