@@ -90,17 +90,25 @@ def list_customer_licenses(
     now_dt = datetime.now(timezone.utc)
     active = []
     for lic in licenses:
-        if lic.status in (LicenseStatus.ACTIVE, LicenseStatus.GRACE_PERIOD) and not lic.is_expired(now_dt):
-            tier_display = lic.tier.value.upper()
+        if (
+            lic.status in (LicenseStatus.ACTIVE, LicenseStatus.GRACE_PERIOD)
+            and not lic.is_expired(now_dt)
+            and not license_service.is_revoked_id(lic.id)
+        ):
+            quota = license_service._quota_repo.get_by_license_id(lic.id)
+            credits = int(quota.balance) if quota is not None else 0
+            tier_display = lic.tier.value.replace("_", " ").upper()
             seats_suffix = f" ({lic.max_seats} puestos)" if lic.max_seats > 1 else ""
             active.append({
                 "key": lic.license_key,
                 "tier": lic.tier.value,
                 "status": lic.status.value,
                 "name": f"Licencia {tier_display}{seats_suffix}",
+                "credits": credits,
                 "max_seats": lic.max_seats,
                 "expires_at": lic.expires_at.isoformat() if lic.expires_at else None,
             })
+    active.sort(key=lambda item: (item["tier"] == Tier.COMMUNITY.value, -item["credits"]))
     return {
         "success": True,
         "data": active,
