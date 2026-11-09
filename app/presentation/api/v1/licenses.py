@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 import time
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 
 from app.application.dtos.license_dtos import (
     LicenseActivateRequest,
@@ -66,6 +66,44 @@ def issue_license(
     return {
         "success": True,
         "data": res.model_dump(),
+        "metadata": build_response_metadata(http_request),
+    }
+
+
+@router.get("/by-customer", dependencies=[Depends(require_admin_access)])
+def list_customer_licenses(
+    http_request: Request,
+    email: str = Query(..., min_length=3),
+    license_service: LicenseService = Depends(get_license_service),
+) -> dict[str, Any]:
+    """Returns active licenses belonging to a customer by email (admin only)."""
+    cleaned = email.strip().lower()
+    customer = license_service._customer_repo.get_by_email(cleaned)
+    if not customer:
+        return {
+            "success": True,
+            "data": [],
+            "metadata": build_response_metadata(http_request),
+        }
+
+    licenses = license_service._license_repo.list_by_customer_id(customer.id)
+    now_dt = datetime.now(timezone.utc)
+    active = []
+    for lic in licenses:
+        if lic.status in (LicenseStatus.ACTIVE, LicenseStatus.GRACE_PERIOD) and not lic.is_expired(now_dt):
+            tier_display = lic.tier.value.upper()
+            seats_suffix = f" ({lic.max_seats} puestos)" if lic.max_seats > 1 else ""
+            active.append({
+                "key": lic.license_key,
+                "tier": lic.tier.value,
+                "status": lic.status.value,
+                "name": f"Licencia {tier_display}{seats_suffix}",
+                "max_seats": lic.max_seats,
+                "expires_at": lic.expires_at.isoformat() if lic.expires_at else None,
+            })
+    return {
+        "success": True,
+        "data": active,
         "metadata": build_response_metadata(http_request),
     }
 
