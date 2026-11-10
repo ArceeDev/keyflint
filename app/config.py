@@ -91,6 +91,7 @@ class Settings(BaseSettings):
     TOPUP_STRIPE_API_VERSION: str = "2025-03-31.basil"  # managed_payments needs basil or later
     TOPUP_RETURN_ORIGINS: str = "https://mcp.keyflint.dev,https://keyflint.dev"
     TOPUP_DEFAULT_RETURN_URL: str = "https://mcp.keyflint.dev/saldo/"
+    TOPUP_PRODUCT_IMAGE_URL: str = "https://mcp.keyflint.dev/assets/brand/stripe-recarga-v1.png"  # Checkout line-item image; "" disables
     ADMIN_API_KEY: str = "kf_dev_admin_key_change_in_prod"
 
     # Transactional Email Dispatch (Resend / SMTP)
