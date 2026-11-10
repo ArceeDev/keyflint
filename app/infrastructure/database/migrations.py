@@ -76,11 +76,11 @@ def run_migrations(conn: sqlite3.Connection, schema_path: Optional[Path] = None)
     if "metadata_json" not in lic_cols:
         conn.execute("ALTER TABLE licenses ADD COLUMN metadata_json TEXT NOT NULL DEFAULT '{}';")
 
-    # 3c. Ensure licenses table CHECK constraint supports indie and agency tiers
+    # 3c. Ensure licenses table CHECK constraint supports every Tier (indie, agency, despacho_*)
     cur = conn.execute("SELECT sql FROM sqlite_master WHERE type='table' AND name='licenses'")
     row = cur.fetchone()
-    if row and row[0] and "'indie'" not in row[0]:
-        logger.info("Migrating licenses table schema to include 'indie' and 'agency' tiers...")
+    if row and row[0] and "'despacho_empresa'" not in row[0]:
+        logger.info("Migrating licenses table schema to the expanded tier list (indie/agency/despacho_*)...")
         # Table rebuild: FKs off (must be set outside a transaction) so DROP TABLE does not
         # cascade-delete activations/quotas/usage_events; all DDL in one transaction so a crash
         # leaves the old table intact.
@@ -93,7 +93,7 @@ def run_migrations(conn: sqlite3.Connection, schema_path: Optional[Path] = None)
                     id TEXT PRIMARY KEY,
                     customer_id TEXT NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
                     license_key TEXT UNIQUE NOT NULL,
-                    tier TEXT NOT NULL CHECK(tier IN ('community', 'indie', 'agency', 'pro', 'studio', 'lifetime')),
+                    tier TEXT NOT NULL CHECK(tier IN ('community', 'indie', 'agency', 'pro', 'studio', 'lifetime', 'despacho_basico', 'despacho_pro', 'despacho_empresa')),
                     status TEXT NOT NULL CHECK(status IN ('active', 'suspended', 'expired', 'revoked', 'grace_period')),
                     max_seats INTEGER NOT NULL DEFAULT 1,
                     current_activations INTEGER NOT NULL DEFAULT 0,

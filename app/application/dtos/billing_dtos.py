@@ -6,7 +6,7 @@ from typing import Any, Optional
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 
-VALID_TIERS = ("community", "indie", "agency", "pro", "studio", "lifetime")
+VALID_TIERS = ("community", "indie", "agency", "pro", "studio", "lifetime", "despacho_basico", "despacho_pro", "despacho_empresa")
 VALID_PROVIDERS = ("stripe", "lemonsqueezy")
 
 

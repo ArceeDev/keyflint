@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Passwordless OAuth 2.1 (6-Digit OTP) &amp; Credit Metering for Remote MCP Servers · KeyFlint</title>
+    <meta name="description" content="Architecture guide: how to add RFC 8414 OAuth 2.1 with PKCE, 6-digit email OTP verification, and atomic Ed25519 credit metering to remote MCP servers for Claude and Cursor.">
+    <link rel="canonical" href="https://keyflint.dev/guides/oauth-mcp-server.html">
+    <meta name="theme-color" content="#0B0D17">
+    <meta property="og:type" content="article">
+    <meta property="og:site_name" content="KeyFlint">
+    <meta property="og:url" content="https://keyflint.dev/guides/oauth-mcp-server.html">
+    <meta property="og:title" content="Passwordless OAuth 2.1 (6-Digit OTP) & Credit Metering for Remote MCP Servers">
+    <meta property="og:description" content="Let non-technical users connect your remote MCP server in Claude with one URL and a 6-digit email code, backed by Ed25519 licenses and atomic credit metering.">
+    <meta property="og:image" content="https://keyflint.dev/og.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <link rel="icon" href="/favicon.svg?v=2" type="image/svg+xml">
+    <script type="application/ld+json">{"@context":"https://schema.org","@type":"TechArticle","headline":"Passwordless OAuth 2.1 (6-Digit OTP) & Credit Metering for Remote MCP Servers","datePublished":"2026-11-09","author":{"@type":"Organization","name":"KeyFlint","url":"https://keyflint.dev/"},"image":"https://keyflint.dev/og.png","mainEntityOfPage":"https://keyflint.dev/guides/oauth-mcp-server.html"}</script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg: #0B0D17; --fg: #FFFFFF; --muted: #A3A8B8; --line: #232738; --accent: #CCFF00; --code: #12151F;
+                --font: "IBM Plex Sans", system-ui, sans-serif; --mono: "IBM Plex Mono", ui-monospace, monospace; }
+        * { box-sizing: border-box; }
+        body { margin: 0; background: var(--bg); color: var(--fg); font: 400 17px/1.65 var(--font); }
+        main { max-width: 760px; margin: 0 auto; padding: 32px 16px 80px; }
+        header.top { max-width: 760px; margin: 0 auto; padding: 20px 16px 0; display: flex; justify-content: space-between; gap: 12px; }
+        header.top a { color: var(--fg); text-decoration: none; font-weight: 600; }
+        h1 { font-size: clamp(28px, 5vw, 40px); line-height: 1.15; letter-spacing: -0.02em; margin: 24px 0 12px; }
+        h2 { font-size: 24px; margin: 44px 0 8px; letter-spacing: -0.01em; }
+        p, li { color: #E6E8EF; }
+        .lead { color: var(--muted); font-size: 19px; }
+        .kw { color: var(--accent); }
+        a { color: var(--fg); text-underline-offset: 3px; }
+        pre { background: var(--code); border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; overflow-x: auto; font: 400 14px/1.55 var(--mono); }
+        code { font-family: var(--mono); font-size: 0.92em; }
+        table { width: 100%; border-collapse: collapse; font-size: 15px; display: block; overflow-x: auto; }
+        th, td { border-bottom: 1px solid var(--line); padding: 8px 10px; text-align: left; vertical-align: top; }
+        .cta { display: inline-block; margin-top: 12px; padding: 12px 18px; border-radius: 8px; background: var(--accent); color: var(--bg); font-weight: 600; text-decoration: none; }
+        footer { border-top: 1px solid var(--line); margin-top: 56px; padding-top: 20px; color: var(--muted); font-size: 14px; }
+    </style>
+</head>
+<body>
+<header class="top">
+    <a href="/">KeyFlint</a>
+    <a href="https://github.com/ArceeDev/keyflint" rel="noopener">GitHub</a>
+</header>
+<main>
+    <article>
+        <h1>Passwordless OAuth 2.1 (6-Digit OTP) for Remote MCP Servers</h1>
+        <p class="lead">Asking non-technical users to copy a 140-character <code>LIC-...</code> bearer token into <code>claude_desktop_config.json</code> kills conversion. Here is how to let users connect a remote MCP server with one URL and a 6-digit email code.</p>
+
+        <h2>Why OAuth 2.1 + KeyFlint?</h2>
+        <p>Modern MCP clients (Claude Desktop, Claude.ai Connectors, Cursor) support remote Streamable HTTP MCP servers protected by <span class="kw">OAuth 2.1 with PKCE</span> (RFC 8414 + RFC 9728). Instead of building a full user-password identity provider, your MCP edge router can map verified email addresses directly to KeyFlint Ed25519 licenses.</p>
+
+        <table>
+            <tr><th>Step</th><th>Protocol Endpoint</th><th>What happens</th></tr>
+            <tr><td>1. Challenge</td><td><code>POST /&lt;slug&gt;/mcp</code> &rarr; <code>401</code></td><td>Returns <code>WWW-Authenticate: Bearer resource_metadata=".../.well-known/oauth-protected-resource"</code>.</td></tr>
+            <tr><td>2. Discovery &amp; DCR</td><td><code>/.well-known/oauth-authorization-server</code>, <code>/oauth/register</code></td><td>MCP client registers dynamically and starts PKCE authorization (<code>S256</code>).</td></tr>
+            <tr><td>3. 6-Digit Email OTP</td><td><code>GET /authorize</code></td><td>User enters their email and a 6-digit code sent via Resend.</td></tr>
+            <tr><td>4. License Resolution</td><td><code>GET /api/v1/licenses/by-customer</code></td><td>Gateway returns the active licenses for that email. If there are none, the hub issues a 25-credit Community trial via <code>POST /api/v1/licenses/issue</code>.</td></tr>
+            <tr><td>5. Token Exchange</td><td>Token endpoint</td><td>Issues a short-lived OAuth access token bound to that <code>LIC-...</code> license. Every subsequent tool call is metered atomically against it.</td></tr>
+        </table>
+
+        <h2>Querying Active Licenses by Email</h2>
+        <p>KeyFlint v1.2+ includes an admin-protected endpoint that resolves all active, non-expired, non-revoked licenses for a verified email address, sorted with paid tiers first and highest credit balance first:</p>
+        <pre><code>GET https://licenses.your-domain.com/api/v1/licenses/by-customer?email=user%40company.com
+X-Admin-Key: &lt;YOUR_ADMIN_API_KEY&gt;</code></pre>
+        <p>Response:</p>
+        <pre><code>{
+  "success": true,
+  "data": [
+    {
+      "key": "LIC-PRO-eyJ...",
+      "tier": "pro",
+      "status": "active",
+      "name": "Licencia PRO (3 puestos)",
+      "credits": 980,
+      "max_seats": 3,
+      "expires_at": "2027-11-09T00:00:00+00:00"
+    }
+  ]
+}</code></pre>
+
+        <h2>Zero-Click Trial Fallback</h2>
+        <p>If <code>/api/v1/licenses/by-customer</code> returns an empty list, your OAuth authorize handler can either:</p>
+        <ul>
+            <li>Offer a 1-click <strong>25 free credits</strong> button that calls <code>POST /api/v1/licenses/issue</code> with <code>tier: "community"</code> and immediately completes the OAuth redirect.</li>
+            <li>If the user has a single active paid license, skip the selection screen and redirect back to Claude immediately after the 6-digit OTP verification.</li>
+        </ul>
+
+        <h2>See It Live in Production</h2>
+        <p>This exact architecture powers <a href="https://mcp.keyflint.dev">Flint by KeyFlint</a> across 5 remote MCP servers, including our unified 17-tool accounting connector at <code>https://mcp.keyflint.dev/despacho/mcp</code>.</p>
+
+        <a class="cta" href="/#pricing-section">Get KeyFlint Gateway</a>
+        <a class="cta" style="background:transparent;color:var(--fg);border:1px solid var(--line)" href="/guides/paid-mcp-server.html">Guide: Paid MCP Server</a>
+    </article>
+    <footer>&copy; 2026 KeyFlint &middot; <a href="/">Home</a> &middot; <a href="/guides/mcp-monetization-stripe-x402.html">Monetization Comparison</a> &middot; <a href="mailto:support@keyflint.dev">support@keyflint.dev</a></footer>
+</main>
+</body>
+</html>

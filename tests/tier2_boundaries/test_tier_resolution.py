@@ -16,6 +16,8 @@ class TestTierResolution(BaseKeyFlintTestCase):
         cases = {
             "indie": Tier.INDIE, "Agency": Tier.AGENCY, "pro": Tier.PRO, "studio": Tier.STUDIO,
             "lifetime": Tier.LIFETIME, "Indie License": Tier.INDIE, "KeyFlint Agency (one-time)": Tier.AGENCY,
+            "despacho-basico": Tier.DESPACHO_BASICO, "despacho_pro": Tier.DESPACHO_PRO,
+            "Flint Despacho Empresa": Tier.DESPACHO_EMPRESA,
             None: None, "": None, "gold": None, "indie or studio": None, "independent": None,
         }
         for raw, expected in cases.items():

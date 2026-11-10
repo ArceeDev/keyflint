@@ -1,0 +1,30 @@
+# KeyFlint & Flint MCP Ecosystem
+
+> KeyFlint (https://keyflint.dev) is a self-hosted cryptographic licensing and atomic credit-metering gateway for Model Context Protocol (MCP) servers, CLIs, and APIs. It powers the Flint production MCP hub (https://mcp.keyflint.dev).
+
+## Core Capabilities
+- **Offline Ed25519 License Verification (< 1 ms)**: Issue signed `LIC-<TIER>-<payload>.<signature>` tokens with `kid` key rotation, node locking, and domain locking. MIT SDKs for Python (`pip install keyflint-verify`), TypeScript (`npm i keyflint-verify`), and Go.
+- **Atomic SQLite WAL Credit Metering**: Per-call `@metered(credits=N)` decorator and `@keyflint/wrap` zero-code stdio wrapper with idempotency keys and automatic refunds (`/api/v1/quota/refund`) when a tool fails or returns `isError: true`.
+- **Passwordless OAuth 2.1 (6-Digit OTP)**: Remote Streamable HTTP MCP authentication (`/.well-known/oauth-authorization-server`) resolving verified email addresses directly to active Ed25519 licenses via `/api/v1/licenses/by-customer`.
+- **Direct Stripe & LemonSqueezy Webhooks**: Zero platform cut; automatic provisioning, top-ups on the same key, and dispute/refund revocation.
+
+## Engineering Guides
+- [How to Sell a Paid MCP Server](https://keyflint.dev/guides/paid-mcp-server.html)
+- [Passwordless OAuth 2.1 (6-Digit OTP) for Remote MCP Servers](https://keyflint.dev/guides/oauth-mcp-server.html)
+- [How to Monetize MCP Servers in 2026: Stripe vs HTTP 402 vs Ed25519](https://keyflint.dev/guides/mcp-monetization-stripe-x402.html)
+- [Migrate from Hosted MCP Proxies to Self-Hosted KeyFlint](https://keyflint.dev/guides/migrate-from-smithery.html)
+
+## Live Production MCP Servers (Flint by KeyFlint · https://mcp.keyflint.dev)
+- **Despacho Unified Connector** (`https://mcp.keyflint.dev/despacho/mcp`): Single OAuth 2.1 URL uniting 17 banking (AEB Norma 43) and accounting (ContaBridge) tools for Spanish accounting firms.
+- **Norma 43 MCP** (`https://mcp.keyflint.dev/norma43/mcp`): Deterministic parser and balance validator for Spanish bank statements (`.n43`, `.c43`, CaixaBank, BBVA, Santander, Sabadell, Bankinter, Abanca).
+- **ContaBridge MCP** (`https://mcp.keyflint.dev/contabridge/mcp`): Converts bank CSV / Norma 43 statements and invoice lists (figures read by the assistant) into import-ready journal files for ContaSol, A3, Sage 50, and ContaPlus.
+- **Veri*factu MCP** (`https://mcp.keyflint.dev/verifactu/mcp`): AEAT RD 1007/2023 SHA-256 invoice hash-chain verifier, Facturae 3.2.2 auditor, NIF/CIF/IBAN validator, and QR generator.
+- **DataClean MCP** (`https://mcp.keyflint.dev/dataclean/mcp`): Deterministic CSV/JSON normalization, deduplication, and schema validation.
+- **Web-Intel MCP** (`https://mcp.keyflint.dev/web-intel/mcp`): Clean Markdown extraction, structured table parsing, and metadata inspection for AI agents.
+
+## Browser Converters (Zero-Install Web UI)
+- [Batch Processor (/lote/)](https://mcp.keyflint.dev/lote/)
+- [CSV to ContaSol Converter](https://mcp.keyflint.dev/csv-a-contasol/)
+- [CSV to A3 Asesor Converter](https://mcp.keyflint.dev/csv-a-a3/)
+- [CSV to ContaPlus Converter](https://mcp.keyflint.dev/csv-a-contaplus/)
+- [Norma 43 to Excel / CSV](https://mcp.keyflint.dev/norma43-a-excel/)

@@ -1,0 +1,49 @@
+{
+  "name": "keyflint",
+  "version": "0.1.0",
+  "description": "Create, run and share paid MCP servers: scaffold with KeyFlint licenses and per-call credits, then get one-click install links for every AI client.",
+  "license": "MIT",
+  "author": "ArceeDev",
+  "homepage": "https://keyflint.dev/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ArceeDev/keyflint.git",
+    "directory": "sdks/cli"
+  },
+  "bugs": {
+    "url": "https://github.com/ArceeDev/keyflint/issues"
+  },
+  "type": "module",
+  "bin": {
+    "keyflint": "bin/keyflint.js"
+  },
+  "exports": {
+    "./devkey": "./src/devkey.js",
+    "./links": "./src/links.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "bin",
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18.4"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "keywords": [
+    "keyflint",
+    "mcp",
+    "model-context-protocol",
+    "monetization",
+    "license",
+    "credits",
+    "scaffold",
+    "cursor",
+    "vscode",
+    "claude"
+  ]
+}

@@ -67,17 +67,33 @@ _TIER_ALIASES: dict[str, Tier] = {
     "managed": Tier.PRO,
     "studio": Tier.STUDIO,
     "lifetime": Tier.LIFETIME,
+    "despacho-basico": Tier.DESPACHO_BASICO,
+    "despacho_basico": Tier.DESPACHO_BASICO,
+    "despacho basico": Tier.DESPACHO_BASICO,
+    "despacho-pro": Tier.DESPACHO_PRO,
+    "despacho_pro": Tier.DESPACHO_PRO,
+    "despacho pro": Tier.DESPACHO_PRO,
+    "despacho-empresa": Tier.DESPACHO_EMPRESA,
+    "despacho_empresa": Tier.DESPACHO_EMPRESA,
+    "despacho empresa": Tier.DESPACHO_EMPRESA,
 }
 
 
 def _resolve_tier(raw: Optional[str]) -> Optional[Tier]:
-    """Exact alias first, then a single keyword inside a product name ("Indie License"). None if unknown."""
+    """Exact alias first, then multi-word / hyphenated phrase, then single keyword. None if unknown."""
     if not raw:
         return None
     norm = raw.strip().lower()
     if norm in _TIER_ALIASES:
         return _TIER_ALIASES[norm]
-    hits = {tier for word, tier in _TIER_ALIASES.items() if re.search(rf"\b{word}\b", norm)}
+    # Check multi-word or hyphenated / underscored aliases first (e.g. 'despacho pro')
+    for word, tier in sorted(_TIER_ALIASES.items(), key=lambda item: len(item[0]), reverse=True):
+        if " " in word or "-" in word or "_" in word:
+            pattern = rf"\b{re.escape(word)}\b" if "-" not in word else rf"(?:\b|_){re.escape(word)}(?:\b|_)"
+            if re.search(pattern, norm):
+                return tier
+    # Single-word keyword inside a product name ("Indie License")
+    hits = {tier for word, tier in _TIER_ALIASES.items() if " " not in word and "-" not in word and "_" not in word and re.search(rf"\b{word}\b", norm)}
     return hits.pop() if len(hits) == 1 else None
 
 
@@ -91,9 +107,13 @@ _TIER_UNIT_AMOUNTS_CENTS: dict[str, int] = {
     "pro": 2900,
     "studio": 8900,
     "lifetime": 29900,
+    "despacho_basico": 4900,
+    "despacho_pro": 9900,
+    "despacho_empresa": 14900,
 }
 # Prices of Payment Links sold before the 2026-11 price change: still recognised if metadata is missing.
-_LEGACY_TIER_AMOUNTS_CENTS: dict[int, str] = {14900: "indie", 34900: "agency", 19900: "lifetime"}
+_DESPACHO_EUR_AMOUNTS_CENTS: dict[int, str] = {4900: "despacho_basico", 9900: "despacho_pro", 14900: "despacho_empresa"}
+_LEGACY_TIER_AMOUNTS_CENTS: dict[int, str] = {14900: "indie", 34900: "agency", 19900: "lifetime", 4900: "despacho_basico", 9900: "despacho_pro"}
 
 
 class WebhookAuthenticationError(Exception):
@@ -422,6 +442,14 @@ class BillingService:
             by_price.update({cents: name for name, cents in _TIER_UNIT_AMOUNTS_CENTS.items() if cents})
             if isinstance(subtotal, int) and currency == "usd" and subtotal in by_price:
                 tier_raw = by_price[subtotal]
+            elif (
+                isinstance(subtotal, int)
+                and currency == "eur"
+                and data_obj.get("mode") == "subscription"
+                and subtotal in _DESPACHO_EUR_AMOUNTS_CENTS
+            ):
+                # Plan Despacho: suscripción mensual en EUR (49/99/149 €/mes). Pagos únicos en EUR no se infieren.
+                tier_raw = _DESPACHO_EUR_AMOUNTS_CENTS[subtotal]
         return event_id, raw_event_type, customer_email, _resolve_tier(tier_raw), tier_raw
 
     # Stripe object reference prefixes used to link a payment back to its license.
@@ -506,7 +534,7 @@ class BillingService:
                 return found, "email"
         return [], "none"
 
-    _RECURRING_TIERS = (Tier.PRO, Tier.STUDIO)
+    _RECURRING_TIERS = (Tier.PRO, Tier.STUDIO, Tier.DESPACHO_BASICO, Tier.DESPACHO_PRO, Tier.DESPACHO_EMPRESA)
 
     def _promotable_free_license(self, customer: Any) -> Optional[Any]:
         """A free Community license that was never billed: the only kind a purchase may upgrade in place."""
@@ -848,6 +876,20 @@ class BillingService:
                         event_type,
                     )
                 email_delivered = self.deliver_license_email(license_key, recipient=resolved_email)
+                try:
+                    from app.application.services.daily_growth import send_owner_activity_alert
+
+                    send_owner_activity_alert(
+                        self._email_sender,
+                        "Venta",
+                        f"Nueva licencia {target_tier.value.upper()} activada",
+                        correo=resolved_email,
+                        plan=target_tier.value,
+                        proveedor=provider,
+                        evento=event_type,
+                    )
+                except Exception:
+                    pass
 
         elif event_type in renewal_events and data_obj.get("billing_reason", "subscription_cycle") != "subscription_cycle":
             # One-time Payment Link invoices ("manual") and first subscription invoices are already
@@ -1425,6 +1467,20 @@ class BillingService:
                     )
                 except Exception:
                     logger.warning("Top-up email failed for %s", sid)
+            try:
+                from app.application.services.daily_growth import send_owner_activity_alert
+
+                send_owner_activity_alert(
+                    self._email_sender,
+                    "Recarga",
+                    f"Recarga pagada: +{credits:,} créditos ({amount / 100:.2f} {entry['currency'].upper()})",
+                    correo=to or "desconocido",
+                    creditos=credits,
+                    saldo_nuevo=new_balance,
+                    sesion=sid,
+                )
+            except Exception:
+                pass
         return outcome
 
     def _adjust_topup_credits(self, lic: Any, delta: int) -> int:
@@ -1531,6 +1587,19 @@ class BillingService:
         issued = self._license_service.issue(
             LicenseIssueRequest(customer_email=email, tier=Tier.COMMUNITY.value, metadata=meta)
         )
+        try:
+            from app.application.services.daily_growth import send_owner_activity_alert
+
+            send_owner_activity_alert(
+                self._email_sender,
+                "Solicitud",
+                "Nueva prueba solicitada",
+                correo=email,
+                origen=source or "web / oauth",
+                creditos=Tier.COMMUNITY.default_allowance,
+            )
+        except Exception:
+            pass
         return issued.license_key
 
     def request_portal_magic_link(self, email: str) -> Optional[tuple[str, str]]:

@@ -132,5 +132,26 @@ class TestLicenseLifecycle(BaseKeyFlintTestCase):
         )
 
 
+
+    def test_feat1_by_customer_lists_active_licenses(self):
+        """Verifies GET /api/v1/licenses/by-customer returns all active licenses for an email."""
+        self.require_app()
+        email = "multi-license-customer@acme.ai"
+        res1 = self.issue_license_api(customer_email=email, tier="community")
+        res2 = self.issue_license_api(customer_email=email, tier="pro", max_seats=3)
+
+        resp = self.client.get(f"/api/v1/licenses/by-customer?email={email}")
+        self.assertEqual(resp.status_code, 200)
+        body = resp.json()
+        self.assertTrue(body.get("success"))
+        licenses = body.get("data", [])
+        self.assertEqual(len(licenses), 2)
+        keys = [l["key"] for l in licenses]
+        self.assertIn(res1["license_key"], keys)
+        self.assertIn(res2["license_key"], keys)
+        tiers = [l["tier"] for l in licenses]
+        self.assertIn("community", tiers)
+        self.assertIn("pro", tiers)
+
 if __name__ == "__main__":
     unittest.main()

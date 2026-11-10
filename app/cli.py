@@ -97,7 +97,7 @@ def cli() -> None:
     "--tier",
     "-t",
     default="pro",
-    type=click.Choice(["community", "indie", "agency", "pro", "studio", "lifetime"], case_sensitive=False),
+    type=click.Choice(["community", "indie", "agency", "pro", "studio", "lifetime", "despacho_basico", "despacho_pro", "despacho_empresa"], case_sensitive=False),
     help="Entitlement tier.",
 )
 @click.option(

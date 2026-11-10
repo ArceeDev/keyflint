@@ -27,6 +27,9 @@ class Tier(StrEnum):
     PRO = "pro"
     STUDIO = "studio"
     LIFETIME = "lifetime"
+    DESPACHO_BASICO = "despacho_basico"
+    DESPACHO_PRO = "despacho_pro"
+    DESPACHO_EMPRESA = "despacho_empresa"
 
     @property
     def default_allowance(self) -> int:
@@ -43,6 +46,12 @@ class Tier(StrEnum):
                 return 5_000
             case Tier.LIFETIME:
                 return 10_000
+            case Tier.DESPACHO_BASICO:
+                return 2_500
+            case Tier.DESPACHO_PRO:
+                return 6_000
+            case Tier.DESPACHO_EMPRESA:
+                return 15_000
 
     @property
     def default_max_activations(self) -> int:
@@ -59,6 +68,12 @@ class Tier(StrEnum):
                 return 25
             case Tier.LIFETIME:
                 return 3
+            case Tier.DESPACHO_BASICO:
+                return 3
+            case Tier.DESPACHO_PRO:
+                return 10
+            case Tier.DESPACHO_EMPRESA:
+                return 99
 
     @property
     def default_features(self) -> tuple[str, ...]:
@@ -75,11 +90,17 @@ class Tier(StrEnum):
                 return ("core", "cli_offline", "telemetry_sync", "multi_tenant", "priority_webhook")
             case Tier.LIFETIME:
                 return ("core", "cli_offline", "telemetry_sync", "self_hosted")
+            case Tier.DESPACHO_BASICO:
+                return ("core", "cli_offline", "telemetry_sync", "norma43", "contasol", "a3", "sage")
+            case Tier.DESPACHO_PRO:
+                return ("core", "cli_offline", "telemetry_sync", "norma43", "contasol", "a3", "sage", "verifactu", "multi_tenant", "dpa")
+            case Tier.DESPACHO_EMPRESA:
+                return ("core", "cli_offline", "telemetry_sync", "norma43", "contasol", "a3", "sage", "verifactu", "multi_tenant", "dpa", "priority_support", "sla")
 
     @property
     def default_expires_in_days(self) -> Optional[int]:
         match self:
-            case Tier.PRO | Tier.STUDIO:
+            case Tier.PRO | Tier.STUDIO | Tier.DESPACHO_BASICO | Tier.DESPACHO_PRO | Tier.DESPACHO_EMPRESA:
                 return 365
             case Tier.COMMUNITY | Tier.INDIE | Tier.AGENCY | Tier.LIFETIME:
                 # Community never expires: prepaid top-ups land on the trial key and must not die with it.
