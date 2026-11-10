@@ -37,6 +37,11 @@ class _DummySender:
 
 
 def test_daily_post_generates_1tap_intents() -> None:
+    from app.application.services.daily_growth import DAILY_POST_QUEUE
+
+    assert len(DAILY_POST_QUEUE) >= 10
+    for item in DAILY_POST_QUEUE:
+        assert "/servidores/" not in item["url"]
     now = datetime(2026, 11, 9, 10, 0, tzinfo=timezone.utc)
     post = get_daily_post(now)
     assert "x.com/intent/tweet?text=" in post["x_es_intent"]

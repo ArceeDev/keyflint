@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>KeyFlint &amp; Flint Ecosystem Feed</title>
+    <link>https://keyflint.dev/</link>
+    <atom:link href="https://keyflint.dev/feed.xml" rel="self" type="application/rss+xml" />
+    <description>Daily updates on offline Ed25519 licensing, MCP server monetization, OAuth 2.1 connectors, and deterministic financial MCP servers.</description>
+    <language>en</language>
+    <lastBuildDate>Tue, 10 Nov 2026 08:15:00 GMT</lastBuildDate>
+    <item>
+      <title>Veri*factu AEAT (RD 1007/2023) y validación de huella SHA-256</title>
+      <link>https://mcp.keyflint.dev/verifactu/</link>
+      <guid isPermaLink="false">https://mcp.keyflint.dev/verifactu/#2026-11-10</guid>
+      <pubDate>Tue, 10 Nov 2026 08:15:00 GMT</pubDate>
+      <description>Con la entrada en vigor de Veri*factu (RD 1007/2023), cualquier error en el encadenamiento SHA-256 de las facturas o en la estructura Facturae 3.2.2 supone un riesgo directo.
+
+Nuestro servidor verifactu-mcp permite auditar cadenas de hashes AEAT, validar NIF/CIF/IBAN y generar URLs QR verificables tanto desde la web como desde Claude o Cursor:
+https://mcp.keyflint.dev/verifactu/
+
+--
+
+If an MCP tool fails mid-execution, charging the user&#x27;s credit balance destroys trust.
+
+In KeyFlint, `@kf.metered(credits=2)` debits atomically in SQLite WAL and triggers an automatic idempotent refund whenever the tool raises or returns `isError: true`.
+
+https://keyflint.dev/guides/paid-mcp-server.html</description>
+    </item>
+    <item>
+      <title>Conector único /despacho/mcp para Claude (17 herramientas contables)</title>
+      <link>https://mcp.keyflint.dev/asesorias/#conector</link>
+      <guid isPermaLink="false">https://mcp.keyflint.dev/asesorias/#conector#2026-11-09</guid>
+      <pubDate>Mon, 09 Nov 2026 08:15:00 GMT</pubDate>
+      <description>Hasta hoy, conectar herramientas contables a Claude requería editar archivos JSON o copiar claves.
+
+Acabamos de lanzar el conector unificado de Flint para despachos (/despacho/mcp): una sola URL que reúne las 17 herramientas de conciliación bancaria Norma 43 y conversión a ContaSol, A3, Sage y ContaPlus.
+
+Solo pegas la URL en Claude, verificas tu correo con un código de 6 dígitos y empiezas a trabajar.
+Detalles aquí: https://mcp.keyflint.dev/asesorias/#conector
+
+--
+
+Why copy-pasting API keys into claude_desktop_config.json hurts conversion for non-technical users:
+
+With MCP OAuth 2.1 + 6-digit email OTP, users paste one URL (https://mcp.keyflint.dev/despacho/mcp), enter their email code, and get 17 metered tools instantly.
+
+https://keyflint.dev</description>
+    </item>
+    <item>
+      <title>CSV y Norma 43 a ContaSol / A3 / ContaPlus sin OCR</title>
+      <link>https://mcp.keyflint.dev/csv-a-contasol/</link>
+      <guid isPermaLink="false">https://mcp.keyflint.dev/csv-a-contasol/#2026-11-08</guid>
+      <pubDate>Sun, 08 Nov 2026 08:15:00 GMT</pubDate>
+      <description>Muchos despachos y departamentos contables siguen perdiendo horas adaptando columnas de CSV bancarios o ficheros Norma 43 (.n43) para importarlos en ContaSol, A3 o Sage.
+
+En Flint by KeyFlint hemos lanzado el conversor directo CSV y Norma 43 a ContaSol / A3 / ContaPlus:
+• Vista previa instantánea en el navegador antes de gastar un solo crédito.
+• Cuadre aritmético céntimo a céntimo con Decimal (cero OCR, cero importes inventados).
+• Activación inmediata solo escribiendo tu correo (25 créditos de prueba incluidos).
+
+Pruébalo sin instalar nada: https://mcp.keyflint.dev/csv-a-contasol/
+
+--
+
+Building paid MCP servers in 2026: we just shipped passwordless OAuth 2.1 (6-digit email OTP) + offline Ed25519 license verification + atomic SQLite WAL credit metering.
+
+Architecture &amp; open SDKs:
+https://keyflint.dev/guides/oauth-mcp-server.html</description>
+    </item>
+    <item>
+      <title>SDK de verificación KeyFlint en Go, Python y TypeScript con 50 vectores compartidos</title>
+      <link>https://keyflint.dev/</link>
+      <guid isPermaLink="false">https://keyflint.dev/#2026-11-07</guid>
+      <pubDate>Sat, 07 Nov 2026 08:15:00 GMT</pubDate>
+      <description>Cuando distribuyes SDKs o CLIs en varios lenguajes, mantener idéntica la validación de licencias es crítico.
+
+KeyFlint v1.2 ofrece verificadores MIT en Python, TypeScript y Go probados frente a 50 vectores criptográficos compartidos (Ed25519 con rotación `kid`), bloqueo por nodo/dominio y pasarela SQLite WAL.
+
+Explora la consola interactiva en vivo: https://keyflint.dev/
+
+--
+
+Cross-language cryptographic licensing shouldn&#x27;t drift between Python, TypeScript, and Go.
+
+All three KeyFlint verifiers share 50 conformance vectors + `kid` key rotation without invalidating active tokens:
+https://keyflint.dev/</description>
+    </item>
+    <item>
+      <title>Extracción web en Markdown limpio y auditoría SEO para agentes (web-intel-mcp)</title>
+      <link>https://mcp.keyflint.dev/web-intel/</link>
+      <guid isPermaLink="false">https://mcp.keyflint.dev/web-intel/#2026-11-06</guid>
+      <pubDate>Fri, 06 Nov 2026 08:15:00 GMT</pubDate>
+      <description>Cuando conectas un agente a internet, el HTML crudo consume tokens y rompe el razonamiento.
+
+`web-intel-mcp` extrae contenido principal en Markdown limpio, inventario de enlaces, OpenGraph/JSON-LD y auditoría SEO lista para Claude, Cursor o Windsurf:
+https://mcp.keyflint.dev/web-intel/
+
+--
+
+Stop burning context windows on raw HTML tags. `web-intel-mcp` turns any URL into clean Markdown, structured metadata, and technical SEO checks.
+
+Try 25 free credits: https://mcp.keyflint.dev/web-intel/</description>
+    </item>
+  </channel>
+</rss>
