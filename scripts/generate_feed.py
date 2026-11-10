@@ -1,27 +1,35 @@
-"""Generates docs/feed.xml (RSS 2.0) rotated from DAILY_POST_QUEUE for automated RSS-to-social syndication."""
+"""Generates docs/feed.xml (RSS 2.0) using pure Python stdlib so CI needs no third-party deps."""
 
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 from email.utils import format_datetime
 import html
+import importlib.util
 from pathlib import Path
-import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
 
-from app.application.services.daily_growth import DAILY_POST_QUEUE  # noqa: E402
+
+def _load_queue() -> list[dict[str, str]]:
+    mod_path = ROOT / "app" / "application" / "services" / "growth_posts.py"
+    spec = importlib.util.spec_from_file_location("growth_posts", mod_path)
+    if spec is None or spec.loader is None:
+        raise RuntimeError(f"Cannot load {mod_path}")
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return list(mod.DAILY_POST_QUEUE)
 
 
 def generate_feed(now: datetime | None = None) -> Path:
     now = (now or datetime.now(timezone.utc)).replace(hour=8, minute=15, second=0, microsecond=0)
-    n = len(DAILY_POST_QUEUE)
+    queue = _load_queue()
+    n = len(queue)
     items_xml: list[str] = []
     for offset in range(min(5, n)):
         dt = now - timedelta(days=offset)
         idx = dt.timetuple().tm_yday % n
-        post = DAILY_POST_QUEUE[idx]
+        post = queue[idx]
         title = html.escape(post["topic"])
         link = html.escape(post["url"])
         guid = html.escape(f"{post['url']}#{dt.strftime('%Y-%m-%d')}")
