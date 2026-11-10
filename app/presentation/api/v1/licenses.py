@@ -6,7 +6,7 @@ from datetime import datetime, timezone
 import time
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 
 from app.application.dtos.license_dtos import (
     LicenseActivateRequest,
@@ -20,6 +20,7 @@ from app.application.services.license_service import LicenseService
 from app.domain.entities.license import License, LicenseStatus, Tier, matches_allowed_domains
 from app.presentation.dependencies import (
     build_response_metadata,
+    get_db,
     get_license_service,
     require_admin_access,
 )
@@ -66,6 +67,52 @@ def issue_license(
     return {
         "success": True,
         "data": res.model_dump(),
+        "metadata": build_response_metadata(http_request),
+    }
+
+
+@router.get("/by-customer", dependencies=[Depends(require_admin_access)])
+def list_customer_licenses(
+    http_request: Request,
+    email: str = Query(..., min_length=3),
+    license_service: LicenseService = Depends(get_license_service),
+) -> dict[str, Any]:
+    """Returns active licenses belonging to a customer by email (admin only)."""
+    cleaned = email.strip().lower()
+    customer = license_service._customer_repo.get_by_email(cleaned)
+    if not customer:
+        return {
+            "success": True,
+            "data": [],
+            "metadata": build_response_metadata(http_request),
+        }
+
+    licenses = license_service._license_repo.list_by_customer_id(customer.id)
+    now_dt = datetime.now(timezone.utc)
+    active = []
+    for lic in licenses:
+        if (
+            lic.status in (LicenseStatus.ACTIVE, LicenseStatus.GRACE_PERIOD)
+            and not lic.is_expired(now_dt)
+            and not license_service.is_revoked_id(lic.id)
+        ):
+            quota = license_service._quota_repo.get_by_license_id(lic.id)
+            credits = int(quota.balance) if quota is not None else 0
+            tier_display = lic.tier.value.replace("_", " ").upper()
+            seats_suffix = f" ({lic.max_seats} puestos)" if lic.max_seats > 1 else ""
+            active.append({
+                "key": lic.license_key,
+                "tier": lic.tier.value,
+                "status": lic.status.value,
+                "name": f"Licencia {tier_display}{seats_suffix}",
+                "credits": credits,
+                "max_seats": lic.max_seats,
+                "expires_at": lic.expires_at.isoformat() if lic.expires_at else None,
+            })
+    active.sort(key=lambda item: (item["tier"] == Tier.COMMUNITY.value, -item["credits"]))
+    return {
+        "success": True,
+        "data": active,
         "metadata": build_response_metadata(http_request),
     }
 
@@ -436,5 +483,38 @@ def revoke_license(
     return {
         "success": True,
         "data": res.model_dump(),
+        "metadata": build_response_metadata(http_request),
+    }
+
+
+@router.get("/admin-pulse", dependencies=[Depends(require_admin_access)])
+def get_admin_pulse(
+    http_request: Request,
+    conn: Any = Depends(get_db),
+) -> dict[str, Any]:
+    """Admin: live 24h & cumulative ecosystem metrics + today's rotating multi-platform post pack."""
+    from app.application.services.daily_growth import collect_pulse_metrics
+
+    return {
+        "success": True,
+        "data": collect_pulse_metrics(conn),
+        "metadata": build_response_metadata(http_request),
+    }
+
+
+@router.post("/admin-daily-digest", dependencies=[Depends(require_admin_access)])
+def trigger_admin_daily_digest(
+    http_request: Request,
+    force: bool = Query(default=True),
+    conn: Any = Depends(get_db),
+) -> dict[str, Any]:
+    """Admin: triggers the daily mobile pulse email + IndexNow ping + webhook syndication immediately."""
+    from app.application.services.daily_growth import run_daily_growth
+    from app.infrastructure.email.transactional_email_service import TransactionalEmailService
+
+    res = run_daily_growth(conn, TransactionalEmailService(), force=force)
+    return {
+        "success": True,
+        "data": res,
         "metadata": build_response_metadata(http_request),
     }

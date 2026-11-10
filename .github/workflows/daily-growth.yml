@@ -1,0 +1,41 @@
+name: Daily Ecosystem Growth & RSS Feed
+
+on:
+  schedule:
+    # Runs every day at 08:15 UTC (10:15 Madrid)
+    - cron: "15 8 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  daily-growth:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Rotate Daily RSS Feed (docs/feed.xml)
+        run: |
+          python scripts/generate_feed.py
+          if ! git diff --quiet docs/feed.xml; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add docs/feed.xml
+            git commit -m "chore(feed): rotate daily ecosystem RSS feed"
+            git push
+          fi
+
+      - name: Warm Up Ecosystem Endpoints & Verify Health
+        run: |
+          curl -fsS "https://keyflint.dev/" >/dev/null
+          curl -fsS "https://keyflint.dev/feed.xml" >/dev/null
+          curl -fsS "https://licenses.keyflint.dev/readyz"
+          curl -fsS "https://mcp.keyflint.dev/api/estado" | head -c 400
+          echo ""
+          # IndexNow is already pinged once per UTC day by keyflint-gateway and mcp-hub cron.

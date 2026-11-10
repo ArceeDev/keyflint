@@ -93,6 +93,15 @@ def _maintenance_once() -> dict:
                 logger.info(f"Trial nurture: {nurture}")
         except Exception as exc:  # follow-up emails must never stop maintenance
             logger.error(f"Trial nurture failed: {exc}")
+        try:
+            from app.application.services.daily_growth import run_daily_growth
+
+            growth = run_daily_growth(conn, TransactionalEmailService())
+            if growth.get("status") == "sent":
+                summary["daily_growth"] = growth
+                logger.info(f"Daily growth pulse dispatched: {growth.get('daily_post_topic')}")
+        except Exception as exc:
+            logger.error(f"Daily growth pulse failed: {exc}")
         return summary
     finally:
         conn.close()
