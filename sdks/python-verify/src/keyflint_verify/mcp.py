@@ -36,6 +36,7 @@ from __future__ import annotations
 
 import asyncio
 import functools
+import hashlib
 import logging
 import threading
 import inspect
@@ -68,6 +69,9 @@ GATEWAY_ERROR = -32063
 
 # Hard cap for @metered(offline_grace_calls=N): calls that may run unpaid while the gateway is down.
 MAX_OFFLINE_GRACE_CALLS = 5
+DEFAULT_DEDUP_TTL = 300.0
+_MAX_DEDUP_ENTRIES = 1024
+_MISSING = object()
 _TRANSIENT_STATUSES = (502, 503, 504)  # edge proxy answers while the gateway restarts
 
 _LICENSE_MESSAGES = {
@@ -195,6 +199,7 @@ class KeyFlint:
         # Debits of calls that ran on offline grace, replayed (same idempotency key) on recovery.
         self._pending: list[dict[str, Any]] = []
         self._pending_lock = threading.Lock()
+        self._dedup_cache = _DedupCache()
 
     # ------------------------------------------------------------------ offline
 
@@ -396,6 +401,8 @@ class KeyFlint:
         refund_on_error: bool = True,
         offline_grace_calls: int = 0,
         timeout_ms: Optional[int] = None,
+        idempotency_key: Optional[Callable[..., Optional[str]]] = None,
+        dedup_ttl: float = DEFAULT_DEDUP_TTL,
     ) -> Callable[[F], F]:
         """Decorator: offline license check, then debit ``credits`` before the tool runs.
 
@@ -407,18 +414,26 @@ class KeyFlint:
         offline, up to N calls run anyway; their debits are queued in memory and replayed with the
         same idempotency key before the next successful debit. Queued debits are never refunded and
         are lost if the process exits first, so N bounds what you can give away.
+
+        ``idempotency_key`` (optional callable ``(*args, **kwargs) -> Optional[str]``): when it
+        returns a non-empty request ID, the gateway receives a retry-stable idempotency key and
+        (when ``dedup_ttl > 0``, default 300 s) successful non-error results are cached locally and
+        in-flight duplicates coalesce so client retries after a timeout return the first result
+        without a second charge or execution.
         """
         if credits <= 0:
             raise ValueError("credits must be a positive integer")
         if not 0 <= offline_grace_calls <= MAX_OFFLINE_GRACE_CALLS:
             raise ValueError(f"offline_grace_calls must be between 0 and {MAX_OFFLINE_GRACE_CALLS}")
+        if dedup_ttl < 0:
+            raise ValueError("dedup_ttl must be non-negative")
         timeout = timeout_ms / 1000.0 if timeout_ms else None
 
         def decorate(func: F) -> F:
             name = event_type or f"mcp:{func.__name__}"
 
-            def charge() -> Optional[Callable[[str], Any]]:
-                key = f"mcp-{uuid.uuid4().hex}"
+            def charge(explicit_key: Optional[str] = None) -> Optional[Callable[[str], Any]]:
+                key = explicit_key or f"mcp-{uuid.uuid4().hex}"
                 if self.pending_debits:
                     self.flush_pending()
                 try:
@@ -432,9 +447,164 @@ class KeyFlint:
                     raise
                 return (lambda reason: self.refund(key, reason)) if refund_on_error else None
 
-            return _wrap(func, lambda: self.check(features), charge)
+            def resolve_dedup(args: tuple[Any, ...], kwargs: dict[str, Any]) -> Optional[tuple[tuple[Any, ...], str]]:
+                derived = _derive_gateway_key(name, idempotency_key, args, kwargs)
+                if derived is None:
+                    return None
+                stripped, gw_key = derived
+                return (self.license_key, id(func), name, stripped), gw_key
+
+            dedup_ctx = (
+                (resolve_dedup, self._dedup_cache, float(dedup_ttl))
+                if idempotency_key is not None
+                else None
+            )
+            return _wrap(func, lambda: self.check(features), charge, dedup_ctx)
 
         return decorate
+
+
+def _derive_gateway_key(
+    scope: str,
+    key_fn: Optional[Callable[..., Optional[str]]],
+    args: tuple[Any, ...],
+    kwargs: dict[str, Any],
+) -> Optional[tuple[str, str]]:
+    """Derives a normalized ``(raw_key, gateway_idempotency_key)`` pair from tool arguments."""
+    if key_fn is None:
+        return None
+    raw = key_fn(*args, **kwargs)
+    if not isinstance(raw, str):
+        return None
+    stripped = raw.strip()
+    if not stripped:
+        return None
+    scoped = f"{scope}:{stripped}"
+    if scoped.startswith("refund:") or len(scoped) > 200:
+        gw_key = f"mcp-req-{hashlib.sha256(scoped.encode('utf-8')).hexdigest()}"
+    else:
+        gw_key = scoped
+    return stripped, gw_key
+
+
+def _finish_future(fut: asyncio.Future[Any], value: Any, error: Optional[BaseException]) -> None:
+    if fut.done():
+        return
+    if error is not None:
+        fut.set_exception(error)
+    else:
+        fut.set_result(value)
+
+
+class _InflightSlot:
+    """Single-flight coordination primitive shared between sync and async callers."""
+
+    def __init__(self) -> None:
+        self.event = threading.Event()
+        self.waiters: list[tuple[asyncio.AbstractEventLoop, asyncio.Future[Any]]] = []
+        self.done = False
+        self.value: Any = None
+        self.error: Optional[BaseException] = None
+
+
+class _DedupCache:
+    """Bounded TTL cache with single-flight coalescing for idempotent metered tool calls."""
+
+    def __init__(self, max_entries: int = _MAX_DEDUP_ENTRIES) -> None:
+        self._max_entries = max_entries
+        self._lock = threading.Lock()
+        self._entries: dict[tuple[Any, ...], tuple[float, Any]] = {}
+        self._inflight: dict[tuple[Any, ...], _InflightSlot] = {}
+
+    def _get_valid_locked(self, cache_key: tuple[Any, ...], now: float) -> Any:
+        item = self._entries.get(cache_key)
+        if item is None:
+            return _MISSING
+        expires, value = item
+        if expires <= now:
+            del self._entries[cache_key]
+            return _MISSING
+        return value
+
+    def _set_locked(self, cache_key: tuple[Any, ...], value: Any, ttl: float) -> None:
+        now = time.monotonic()
+        self._entries.pop(cache_key, None)
+        if len(self._entries) >= self._max_entries:
+            expired = [k for k, (exp, _) in self._entries.items() if exp <= now]
+            for k in expired:
+                del self._entries[k]
+            while len(self._entries) >= self._max_entries:
+                del self._entries[next(iter(self._entries))]
+        self._entries[cache_key] = (now + ttl, value)
+
+    def acquire_sync(self, cache_key: tuple[Any, ...]) -> tuple[str, Any, Optional[_InflightSlot]]:
+        """Returns ``("hit", value, None)`` or ``("leader", _MISSING, slot)``."""
+        while True:
+            with self._lock:
+                hit = self._get_valid_locked(cache_key, time.monotonic())
+                if hit is not _MISSING:
+                    return "hit", hit, None
+                slot = self._inflight.get(cache_key)
+                if slot is None:
+                    slot = _InflightSlot()
+                    self._inflight[cache_key] = slot
+                    return "leader", _MISSING, slot
+            slot.event.wait()
+            if slot.done:
+                if slot.error is not None:
+                    raise slot.error
+                return "hit", slot.value, None
+
+    async def acquire_async(self, cache_key: tuple[Any, ...]) -> tuple[str, Any, Optional[_InflightSlot]]:
+        """Async counterpart to :meth:`acquire_sync`; avoids blocking the event loop while waiting."""
+        while True:
+            fut: Optional[asyncio.Future[Any]] = None
+            with self._lock:
+                hit = self._get_valid_locked(cache_key, time.monotonic())
+                if hit is not _MISSING:
+                    return "hit", hit, None
+                slot = self._inflight.get(cache_key)
+                if slot is None:
+                    slot = _InflightSlot()
+                    self._inflight[cache_key] = slot
+                    return "leader", _MISSING, slot
+                if not slot.done:
+                    fut = asyncio.get_running_loop().create_future()
+                    slot.waiters.append((asyncio.get_running_loop(), fut))
+            if fut is not None:
+                return "hit", await fut, None
+            if slot.error is not None:
+                raise slot.error
+            return "hit", slot.value, None
+
+    def release(
+        self,
+        cache_key: tuple[Any, ...],
+        slot: _InflightSlot,
+        ttl: float,
+        *,
+        value: Any = _MISSING,
+        error: Optional[BaseException] = None,
+        cache_result: bool = False,
+    ) -> None:
+        """Completes an inflight slot, caching successful values and waking all waiters."""
+        resolved_val = None if value is _MISSING else value
+        with self._lock:
+            if cache_result and ttl > 0 and value is not _MISSING:
+                self._set_locked(cache_key, value, ttl)
+            if self._inflight.get(cache_key) is slot:
+                del self._inflight[cache_key]
+            slot.value = resolved_val
+            slot.error = error
+            slot.done = True
+            waiters = list(slot.waiters)
+            slot.waiters.clear()
+            slot.event.set()
+        for wloop, wfut in waiters:
+            try:
+                wloop.call_soon_threadsafe(_finish_future, wfut, resolved_val, error)
+            except RuntimeError:
+                pass
 
 
 def _is_transient(exc: LicenseError) -> bool:
@@ -447,38 +617,98 @@ def _is_error_result(out: Any) -> bool:
     return getattr(out, "isError", None) is True
 
 
-def _wrap(func: F, check: Callable[[], Any], charge: Optional[Callable[[], Any]]) -> F:
+def _resolve_dedup_call(
+    dedup_ctx: Optional[tuple[Callable[[tuple[Any, ...], dict[str, Any]], Optional[tuple[tuple[Any, ...], str]]], _DedupCache, float]],
+    args: tuple[Any, ...],
+    kwargs: dict[str, Any],
+) -> tuple[Optional[str], Optional[tuple[Any, ...]], float]:
+    """Extracts ``(gw_key, cache_key, ttl)`` for a single invocation without side effects."""
+    if dedup_ctx is None:
+        return None, None, 0.0
+    resolved = dedup_ctx[0](args, kwargs)
+    if resolved is None:
+        return None, None, 0.0
+    ttl = dedup_ctx[2]
+    return resolved[1], (resolved[0] if ttl > 0 else None), ttl
+
+
+def _wrap(
+    func: F,
+    check: Callable[[], Any],
+    charge: Optional[Callable[[Optional[str]], Any]],
+    dedup_ctx: Optional[tuple[Callable[[tuple[Any, ...], dict[str, Any]], Optional[tuple[tuple[Any, ...], str]]], _DedupCache, float]] = None,
+) -> F:
     """``charge`` debits and may return a ``refund(reason)`` callback used if the tool fails."""
     if inspect.iscoroutinefunction(func):
 
         @functools.wraps(func)
         async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
             check()
-            undo = await asyncio.to_thread(charge) if charge is not None else None
+            gw_key, cache_key, ttl = _resolve_dedup_call(dedup_ctx, args, kwargs)
+            slot: Optional[_InflightSlot] = None
+            if cache_key is not None and dedup_ctx is not None:
+                status, cached, slot = await dedup_ctx[1].acquire_async(cache_key)
+                if status == "hit":
+                    return cached
+
             try:
-                out = await func(*args, **kwargs)
-            except BaseException:
-                if undo is not None:
-                    await asyncio.to_thread(undo, "tool_error")
+                undo = await asyncio.to_thread(charge, gw_key) if charge is not None else None
+                try:
+                    out = await func(*args, **kwargs)
+                except BaseException:
+                    if undo is not None:
+                        await asyncio.to_thread(undo, "tool_error")
+                    raise
+                is_err = _is_error_result(out)
+                if undo is not None and is_err:
+                    await asyncio.to_thread(undo, "tool_error_result")
+                if slot is not None and cache_key is not None and dedup_ctx is not None:
+                    dedup_ctx[1].release(cache_key, slot, ttl, value=out, cache_result=not is_err)
+                    slot = None
+                return out
+            except BaseException as exc:
+                if slot is not None and cache_key is not None and dedup_ctx is not None:
+                    dedup_ctx[1].release(cache_key, slot, ttl, error=exc)
+                    slot = None
                 raise
-            if undo is not None and _is_error_result(out):
-                await asyncio.to_thread(undo, "tool_error_result")
-            return out
+            finally:
+                if slot is not None and cache_key is not None and dedup_ctx is not None:
+                    dedup_ctx[1].release(cache_key, slot, ttl)
 
         return cast(F, async_wrapper)
 
     @functools.wraps(func)
     def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
         check()
-        undo = charge() if charge is not None else None
+        gw_key, cache_key, ttl = _resolve_dedup_call(dedup_ctx, args, kwargs)
+        slot: Optional[_InflightSlot] = None
+        if cache_key is not None and dedup_ctx is not None:
+            status, cached, slot = dedup_ctx[1].acquire_sync(cache_key)
+            if status == "hit":
+                return cached
+
         try:
-            out = func(*args, **kwargs)
-        except BaseException:
-            if undo is not None:
-                undo("tool_error")
+            undo = charge(gw_key) if charge is not None else None
+            try:
+                out = func(*args, **kwargs)
+            except BaseException:
+                if undo is not None:
+                    undo("tool_error")
+                raise
+            is_err = _is_error_result(out)
+            if undo is not None and is_err:
+                undo("tool_error_result")
+            if slot is not None and cache_key is not None and dedup_ctx is not None:
+                dedup_ctx[1].release(cache_key, slot, ttl, value=out, cache_result=not is_err)
+                slot = None
+            return out
+        except BaseException as exc:
+            if slot is not None and cache_key is not None and dedup_ctx is not None:
+                dedup_ctx[1].release(cache_key, slot, ttl, error=exc)
+                slot = None
             raise
-        if undo is not None and _is_error_result(out):
-            undo("tool_error_result")
-        return out
+        finally:
+            if slot is not None and cache_key is not None and dedup_ctx is not None:
+                dedup_ctx[1].release(cache_key, slot, ttl)
 
     return cast(F, sync_wrapper)

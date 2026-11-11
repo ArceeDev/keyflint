@@ -25,6 +25,9 @@ export const QUOTA_EXHAUSTED = -32062;
 export const GATEWAY_ERROR = -32063;
 /** Hard cap for `offlineGraceCalls`: calls that may run unpaid while the gateway is down. */
 export const MAX_OFFLINE_GRACE_CALLS = 5;
+/** Default result cache TTL (ms) for retries sharing an `idempotencyKey`. */
+export const DEFAULT_DEDUP_TTL_MS = 300_000;
+const MAX_DEDUP_ENTRIES = 1024;
 const TRANSIENT_STATUSES = new Set([502, 503, 504]);
 
 const LICENSE_MESSAGES: Record<string, string> = {
@@ -117,7 +120,7 @@ export interface GateOptions {
   features?: string[];
 }
 
-export interface MeteredOptions extends GateOptions {
+export interface MeteredOptions<F extends AnyFn = AnyFn> extends GateOptions {
   eventType?: string;
   /** Give the credits back (POST /quota/refund) if the handler throws or returns { isError: true }. Default true. */
   refundOnError?: boolean;
@@ -130,6 +133,15 @@ export interface MeteredOptions extends GateOptions {
   offlineGraceCalls?: number;
   /** Deduct timeout for this tool in ms (default: the instance's timeoutMs). */
   timeoutMs?: number;
+  /**
+   * Derives a retry-stable request id from handler arguments. When it returns a non-empty string,
+   * `/quota/deduct` receives a deterministic key and (when `dedupTtlMs > 0`) successful non-error
+   * outputs are cached locally with single-flight coalescing so client retries replay the first result
+   * without a second deduct or execution.
+   */
+  idempotencyKey?: (...args: Parameters<F>) => string | undefined | null;
+  /** How long (ms) successful results for an `idempotencyKey` are cached for retries (default 300_000; 0 disables). */
+  dedupTtlMs?: number;
 }
 
 type AnyFn = (...args: never[]) => unknown;
@@ -147,7 +159,7 @@ export interface KeyFlint {
   /** Calls that ran on offline grace and are not yet debited. */
   readonly pendingDebits: number;
   requireLicense<F extends AnyFn>(handler: F, options?: GateOptions): Wrapped<F>;
-  metered<F extends AnyFn>(credits: number, handler: F, options?: MeteredOptions): Wrapped<F>;
+  metered<F extends AnyFn>(credits: number, handler: F, options?: MeteredOptions<F>): Wrapped<F>;
 }
 
 function env(name: string): string | undefined {
@@ -188,6 +200,34 @@ function randomKey(): string {
 function strip<T extends Record<string, unknown>>(o: T): T {
   for (const k of Object.keys(o)) if (o[k] === undefined) delete o[k];
   return o;
+}
+
+function isErrorResult(out: unknown): boolean {
+  return Boolean(out && typeof out === "object" && (out as { isError?: unknown }).isError === true);
+}
+
+async function normalizeGatewayKey(scope: string, raw: unknown): Promise<{ rawKey: string; gwKey: string } | undefined> {
+  if (typeof raw !== "string") return undefined;
+  const stripped = raw.trim();
+  if (!stripped) return undefined;
+  const scoped = `${scope}:${stripped}`;
+  if (!scoped.startsWith("refund:") && scoped.length <= 200) {
+    return { rawKey: stripped, gwKey: scoped };
+  }
+  const subtle = (globalThis as { crypto?: Crypto }).crypto?.subtle;
+  if (subtle) {
+    const digest = await subtle.digest("SHA-256", new TextEncoder().encode(scoped));
+    const hex = Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
+    return { rawKey: stripped, gwKey: `mcp-req-${hex}` };
+  }
+  let h1 = 0x811c9dc5;
+  let h2 = 0x811c9dc5;
+  for (let i = 0; i < scoped.length; i++) {
+    const c = scoped.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 0x01000193) >>> 0;
+    h2 = Math.imul(h2 ^ (c + i), 0x01000193) >>> 0;
+  }
+  return { rawKey: stripped, gwKey: `mcp-req-${h1.toString(16).padStart(8, "0")}${h2.toString(16).padStart(8, "0")}` };
 }
 
 export function createKeyFlint(options: KeyFlintOptions = {}): KeyFlint {
@@ -330,6 +370,33 @@ export function createKeyFlint(options: KeyFlintOptions = {}): KeyFlint {
 
   type Pending = { key: string; credits: number; eventType: string };
   const pending: Pending[] = [];
+  const dedupCache = new Map<string, { expiresAt: number; value: unknown }>();
+  const dedupInflight = new Map<string, Promise<unknown>>();
+  let handlerSeq = 0;
+
+  const getCached = (key: string): { value: unknown } | undefined => {
+    const hit = dedupCache.get(key);
+    if (!hit) return undefined;
+    if (hit.expiresAt <= Date.now()) {
+      dedupCache.delete(key);
+      return undefined;
+    }
+    return hit;
+  };
+  const setCached = (key: string, value: unknown, ttlMs: number): void => {
+    const now = Date.now();
+    dedupCache.delete(key);
+    if (dedupCache.size >= MAX_DEDUP_ENTRIES) {
+      for (const [k, entry] of dedupCache) if (entry.expiresAt <= now) dedupCache.delete(k);
+      while (dedupCache.size >= MAX_DEDUP_ENTRIES) {
+        const oldest = dedupCache.keys().next().value;
+        if (oldest === undefined) break;
+        dedupCache.delete(oldest);
+      }
+    }
+    dedupCache.set(key, { expiresAt: now + ttlMs, value });
+  };
+
   const isTransient = (e: unknown): boolean =>
     e instanceof KeyFlintMcpError &&
     (e.data.reason === "GATEWAY_UNREACHABLE" || (typeof e.data.status === "number" && TRANSIENT_STATUSES.has(e.data.status)));
@@ -370,34 +437,69 @@ export function createKeyFlint(options: KeyFlintOptions = {}): KeyFlint {
       if (!Number.isInteger(grace) || grace < 0 || grace > MAX_OFFLINE_GRACE_CALLS) {
         throw new RangeError(`offlineGraceCalls must be an integer between 0 and ${MAX_OFFLINE_GRACE_CALLS}`);
       }
+      const dedupTtlMs = opts.dedupTtlMs ?? DEFAULT_DEDUP_TTL_MS;
+      if (typeof dedupTtlMs !== "number" || !Number.isFinite(dedupTtlMs) || dedupTtlMs < 0) {
+        throw new RangeError("dedupTtlMs must be a non-negative finite number");
+      }
+      const toolId = ++handlerSeq;
       const eventType = opts.eventType ?? (handler.name ? `mcp:${handler.name}` : defaultEvent);
       return (async (...args) => {
         await check(opts);
-        const idempotencyKey = randomKey();
-        if (pending.length) await flushPending();
-        try {
-          const d: DeductOptions = { eventType, idempotencyKey };
-          if (opts.timeoutMs !== undefined) d.timeoutMs = opts.timeoutMs;
-          await deduct(credits, d);
-        } catch (e) {
-          if (grace > 0 && isTransient(e) && pending.length < grace) {
-            pending.push({ key: idempotencyKey, credits, eventType });
-            return (await handler(...args)) as never; // offline grace: never refunded
+        const derived = opts.idempotencyKey ? await normalizeGatewayKey(eventType, opts.idempotencyKey(...args)) : undefined;
+        const idempotencyKey = derived?.gwKey ?? randomKey();
+        const cacheKey = derived && dedupTtlMs > 0
+          ? JSON.stringify([licenseKey, toolId, eventType, derived.rawKey])
+          : undefined;
+
+        if (cacheKey !== undefined) {
+          const hit = getCached(cacheKey);
+          if (hit) return hit.value as never;
+          const running = dedupInflight.get(cacheKey);
+          if (running) return (await running) as never;
+        }
+
+        const executeAttempt = async (): Promise<unknown> => {
+          if (pending.length) await flushPending();
+          try {
+            const d: DeductOptions = { eventType, idempotencyKey };
+            if (opts.timeoutMs !== undefined) d.timeoutMs = opts.timeoutMs;
+            await deduct(credits, d);
+          } catch (e) {
+            if (grace > 0 && isTransient(e) && pending.length < grace) {
+              pending.push({ key: idempotencyKey, credits, eventType });
+              const graceOut = await handler(...args); // offline grace: never refunded
+              if (cacheKey !== undefined && !isErrorResult(graceOut)) setCached(cacheKey, graceOut, dedupTtlMs);
+              return graceOut;
+            }
+            throw e;
           }
-          throw e;
-        }
-        if (opts.refundOnError === false) return (await handler(...args)) as never;
-        let out: unknown;
-        try {
-          out = await handler(...args);
-        } catch (e) {
-          await refund(idempotencyKey, "tool_error");
-          throw e;
-        }
-        if (out && typeof out === "object" && (out as { isError?: unknown }).isError === true) {
-          await refund(idempotencyKey, "tool_error_result");
-        }
-        return out as never;
+          if (opts.refundOnError === false) {
+            const out = await handler(...args);
+            if (cacheKey !== undefined && !isErrorResult(out)) setCached(cacheKey, out, dedupTtlMs);
+            return out;
+          }
+          let out: unknown;
+          try {
+            out = await handler(...args);
+          } catch (e) {
+            await refund(idempotencyKey, "tool_error");
+            throw e;
+          }
+          const isErr = isErrorResult(out);
+          if (isErr) {
+            await refund(idempotencyKey, "tool_error_result");
+          } else if (cacheKey !== undefined) {
+            setCached(cacheKey, out, dedupTtlMs);
+          }
+          return out;
+        };
+
+        if (cacheKey === undefined) return (await executeAttempt()) as never;
+        const run = executeAttempt().finally(() => {
+          if (dedupInflight.get(cacheKey) === run) dedupInflight.delete(cacheKey);
+        });
+        dedupInflight.set(cacheKey, run);
+        return (await run) as never;
       }) as Wrapped<typeof handler>;
     },
   };

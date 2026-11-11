@@ -12,6 +12,8 @@ Options:
   --features A,B      features the license must include
   --offline-grace N   calls allowed while the gateway is unreachable (0-5, default 0)
   --event-type TYPE   event_type sent to the gateway (default mcp:<tool>)
+  --idempotency-arg F argument field in tools/call to reuse as retry request id
+  --dedup-ttl SEC     seconds to cache successful results per request id (default 300, 0 disables)
 
 Environment: KEYFLINT_LICENSE, KEYFLINT_PUBLIC_KEYS, KEYFLINT_URL, KEYFLINT_CHECKOUT_URL,
 KEYFLINT_MACHINE_ID, KEYFLINT_DOMAIN (same as keyflint-verify).

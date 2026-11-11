@@ -27,6 +27,8 @@ npx @keyflint/wrap --credits 0 --tool summarize=5 -- python server.py
 | `--features A,B` | Features the license must include. |
 | `--offline-grace N` | Calls (0-5) allowed while the gateway is unreachable; their debits are replayed later and never refunded. |
 | `--event-type TYPE` | `event_type` sent to the gateway (default `mcp:<tool>`). |
+| `--idempotency-arg F` | Argument field in `tools/call` reused as a retry request ID (alongside `_meta.idempotencyKey` / `_meta.requestId`). |
+| `--dedup-ttl SEC` | Seconds to cache successful responses per retry request ID (default `300`; `0` disables caching). |
 
 Environment variables are the same as `keyflint-verify` (`KEYFLINT_LICENSE`, `KEYFLINT_PUBLIC_KEYS`,
 `KEYFLINT_URL`, `KEYFLINT_CHECKOUT_URL`, `KEYFLINT_MACHINE_ID`, `KEYFLINT_DOMAIN`).

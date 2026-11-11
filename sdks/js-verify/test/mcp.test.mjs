@@ -153,3 +153,66 @@ test("legacy KEYFORGE_* env vars are honoured, KEYFLINT_* wins", async () => {
     Object.assign(process.env, saved);
   }
 });
+
+test("metered idempotencyKey replays first result after timeout and coalesces concurrent retries", async () => {
+  const gw = await fakeGateway(10);
+  try {
+    const kf = createKeyFlint({ licenseKey: TOKEN, publicKeys: keys.k1, gatewayUrl: gw.url });
+    let calls = 0;
+    let release;
+    const gate = new Promise((r) => (release = r));
+    const slow = kf.metered(
+      3,
+      async function slow(reqId, waitGate = false) {
+        calls++;
+        if (waitGate) await gate;
+        return `res:${reqId}:${calls}`;
+      },
+      { idempotencyKey: (reqId) => reqId },
+    );
+
+    // Work done, caller timed out, caller retries: replays first answer and skips second charge.
+    assert.equal(await slow("done-1"), "res:done-1:1");
+    assert.equal(await slow("done-1"), "res:done-1:1");
+    assert.equal(calls, 1);
+    assert.equal(gw.requests.length, 1);
+    assert.equal(gw.balance(), 7);
+    assert.equal(gw.requests[0].body.idempotency_key, "mcp:slow:done-1");
+
+    // Concurrent retry while attempt 1 is still running coalesces cleanly.
+    const p1 = slow("inflight-1", true);
+    const p2 = slow("inflight-1", true);
+    release();
+    const [a, b] = await Promise.all([p1, p2]);
+    assert.equal(a, "res:inflight-1:2");
+    assert.equal(b, "res:inflight-1:2");
+    assert.equal(calls, 2);
+    assert.equal(gw.requests.length, 2);
+    assert.equal(gw.balance(), 4);
+
+    // Distinct keys (or undefined key) execute and deduct normally.
+    assert.equal(await slow(undefined), "res:undefined:3");
+    assert.equal(gw.balance(), 1);
+  } finally {
+    gw.close();
+  }
+});
+
+test("metered rejects negative dedupTtlMs and does not cache error results", async () => {
+  const gw = await fakeGateway(10);
+  try {
+    const kf = createKeyFlint({ licenseKey: TOKEN, publicKeys: keys.k1, gatewayUrl: gw.url });
+    assert.throws(() => kf.metered(1, async () => 1, { dedupTtlMs: -1 }), RangeError);
+    let runs = 0;
+    const flaky = kf.metered(2, async () => {
+      runs++;
+      return { isError: true, runs };
+    }, { idempotencyKey: () => "err-key" });
+    assert.equal((await flaky()).isError, true);
+    assert.equal((await flaky()).runs, 2);
+    assert.equal(gw.refunds.length, 2);
+    assert.equal(gw.balance(), 10);
+  } finally {
+    gw.close();
+  }
+});

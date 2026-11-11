@@ -11,10 +11,13 @@
  */
 
 import { spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 import { createInterface } from "node:readline";
 import { createKeyFlint, KeyFlintMcpError } from "keyflint-verify/mcp";
 
 const INTERNAL_ERROR = -32603;
+const DEFAULT_DEDUP_TTL_SECONDS = 300;
+const MAX_DEDUP_ENTRIES = 1024;
 
 /** Parses argv (without node and script) into wrapper options and the server command. */
 export function parseArgs(argv, env = process.env) {
@@ -30,6 +33,8 @@ export function parseArgs(argv, env = process.env) {
     features: [],
     offlineGraceCalls: 0,
     eventType: undefined,
+    idempotencyArg: undefined,
+    dedupTtlSeconds: DEFAULT_DEDUP_TTL_SECONDS,
   };
   const value = (i, name) => {
     if (i + 1 >= flags.length) throw new UsageError(`${name} needs a value`);
@@ -50,7 +55,18 @@ export function parseArgs(argv, env = process.env) {
       if (opts.offlineGraceCalls > 5) throw new UsageError("--offline-grace is capped at 5");
     }
     else if (f === "--event-type") opts.eventType = value(i++, f);
-    else throw new UsageError(`unknown option ${f}`);
+    else if (f === "--idempotency-arg") {
+      const field = value(i++, f).trim();
+      if (!field) throw new UsageError("--idempotency-arg needs a field name");
+      opts.idempotencyArg = field;
+    } else if (f === "--dedup-ttl") {
+      const raw = value(i++, f);
+      const secs = Number(raw);
+      if (!raw.trim() || !Number.isFinite(secs) || secs < 0) {
+        throw new UsageError(`--dedup-ttl: "${raw}" is not a non-negative number`);
+      }
+      opts.dedupTtlSeconds = secs;
+    } else throw new UsageError(`unknown option ${f}`);
   }
   // Without a gateway nothing can be deducted, so the default is a license-only check.
   if (opts.defaultCredits === undefined) opts.defaultCredits = gatewayConfigured(env) ? 1 : 0;
@@ -89,6 +105,8 @@ export function wrap(opts, io = {}) {
 
   const waiting = new Map(); // JSON-RPC id (as JSON) -> resolve(response)
   const gates = new Map(); // tool name -> gated forwarder
+  const dedupCache = new Map(); // cacheKey -> { expiresAt, response }
+  const dedupInflight = new Map(); // cacheKey -> Promise<{ isError, response }>
   let childGone = false;
   if (io.forwardSignals) {
     for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"]) process.on(sig, () => child.kill(sig));
@@ -98,19 +116,48 @@ export function wrap(opts, io = {}) {
   const toChild = (line) => {
     if (!childGone) child.stdin.write(line + "\n");
   };
+  const writeResponse = (response, targetId) => {
+    if (Object.is(response.id, targetId) && typeof response.__raw === "string") {
+      output.write(response.__raw + "\n");
+    } else {
+      send({ ...response, id: targetId });
+    }
+  };
+  const forward = async (msg) => {
+    const response = await new Promise((resolve, reject) => {
+      if (childGone) return reject(new Error("MCP server exited"));
+      waiting.set(JSON.stringify(msg.id), resolve);
+      toChild(JSON.stringify(msg));
+    });
+    // Refund (metered) when the server reports a failure; the response is relayed as-is.
+    return { isError: Boolean(response.error || response.result?.isError === true), response };
+  };
+  const getCached = (key) => {
+    const hit = dedupCache.get(key);
+    if (!hit) return undefined;
+    if (hit.expiresAt <= Date.now()) {
+      dedupCache.delete(key);
+      return undefined;
+    }
+    return hit.response;
+  };
+  const setCached = (key, response, ttlMs) => {
+    const now = Date.now();
+    dedupCache.delete(key);
+    if (dedupCache.size >= MAX_DEDUP_ENTRIES) {
+      for (const [k, entry] of dedupCache) if (entry.expiresAt <= now) dedupCache.delete(k);
+      while (dedupCache.size >= MAX_DEDUP_ENTRIES) {
+        const oldest = dedupCache.keys().next().value;
+        if (oldest === undefined) break;
+        dedupCache.delete(oldest);
+      }
+    }
+    dedupCache.set(key, { expiresAt: now + ttlMs, response });
+  };
 
   function gateFor(name) {
     let gate = gates.get(name);
     if (gate) return gate;
-    const forward = async (msg) => {
-      const response = await new Promise((resolve, reject) => {
-        if (childGone) return reject(new Error("MCP server exited"));
-        waiting.set(JSON.stringify(msg.id), resolve);
-        toChild(JSON.stringify(msg));
-      });
-      // Refund (metered) when the server reports a failure; the response is relayed as-is.
-      return { isError: Boolean(response.error || response.result?.isError === true), response };
-    };
     const n = opts.tools.get(name) ?? opts.defaultCredits;
     if (n === 0) gate = kf.requireLicense(forward, { features: opts.features });
     else {
@@ -122,12 +169,47 @@ export function wrap(opts, io = {}) {
     return gate;
   }
 
+  async function callWithRequestId(msg, name, n, rawKey) {
+    const eventType = opts.eventType ?? `mcp:${name}`;
+    const ttlMs = (opts.dedupTtlSeconds ?? DEFAULT_DEDUP_TTL_SECONDS) * 1000;
+    const cacheKey = ttlMs > 0 ? JSON.stringify([eventType, rawKey]) : undefined;
+    await kf.check({ features: opts.features });
+    if (cacheKey !== undefined) {
+      const hit = getCached(cacheKey);
+      if (hit !== undefined) return hit;
+      const running = dedupInflight.get(cacheKey);
+      if (running) return (await running).response;
+    }
+    const gwKey = normalizeGatewayKey(eventType, rawKey);
+    const execute = async () => {
+      if (kf.pendingDebits > 0) await kf.flushPending();
+      await kf.deduct(n, { eventType, idempotencyKey: gwKey });
+      const res = await forward(msg);
+      if (res.isError) {
+        await kf.refund(gwKey, res.response.error ? "tool_error" : "tool_error_result");
+      } else if (cacheKey !== undefined) {
+        setCached(cacheKey, res.response, ttlMs);
+      }
+      return res;
+    };
+    if (cacheKey === undefined) return (await execute()).response;
+    const run = execute().finally(() => {
+      if (dedupInflight.get(cacheKey) === run) dedupInflight.delete(cacheKey);
+    });
+    dedupInflight.set(cacheKey, run);
+    return (await run).response;
+  }
+
   async function handleToolCall(msg) {
     const name = typeof msg.params?.name === "string" ? msg.params.name : "";
     if (opts.free.has(name)) return toChild(JSON.stringify(msg));
     try {
-      const { response } = await gateFor(name)(msg);
-      output.write(response.__raw + "\n");
+      const n = opts.tools.get(name) ?? opts.defaultCredits;
+      const rawKey = n > 0 ? extractRequestKey(msg, opts.idempotencyArg) : undefined;
+      const response = rawKey !== undefined && typeof kf.deduct === "function"
+        ? await callWithRequestId(msg, name, n, rawKey)
+        : (await gateFor(name)(msg)).response;
+      writeResponse(response, msg.id);
     } catch (e) {
       if (e instanceof KeyFlintMcpError || (e && typeof e.code === "number" && e.data)) {
         send({ jsonrpc: "2.0", id: msg.id, error: { code: e.code, message: e.message, data: e.data } });
@@ -203,4 +285,25 @@ export function wrap(opts, io = {}) {
 
 function isToolCall(m) {
   return m && typeof m === "object" && m.method === "tools/call" && "id" in m;
+}
+
+function extractRequestKey(msg, idempotencyArg) {
+  const meta = msg.params?._meta;
+  const candidates = [
+    meta?.idempotencyKey,
+    meta?.idempotency_key,
+    meta?.requestId,
+    meta?.request_id,
+    idempotencyArg ? msg.params?.arguments?.[idempotencyArg] : undefined,
+  ];
+  for (const c of candidates) {
+    if (typeof c === "string" && c.trim()) return c.trim();
+  }
+  return undefined;
+}
+
+function normalizeGatewayKey(scope, rawKey) {
+  const scoped = `${scope}:${rawKey}`;
+  if (!scoped.startsWith("refund:") && scoped.length <= 200) return scoped;
+  return `mcp-req-${createHash("sha256").update(scoped).digest("hex")}`;
 }

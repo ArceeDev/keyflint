@@ -201,6 +201,103 @@ class TestDecorators(unittest.TestCase):
             tool()
         self.assertEqual(cm.exception.reason, "GATEWAY_UNREACHABLE")
 
+    def test_metered_idempotency_replays_first_result_after_client_timeout(self) -> None:
+        calls = 0
+
+        @self.kf.metered(credits=3, idempotency_key=lambda req_id, query: req_id)
+        def tool(req_id: str, query: str) -> str:
+            nonlocal calls
+            calls += 1
+            return f"{query}:{calls}"
+
+        # Attempt 1 finishes the work, even if the caller timed out before reading it.
+        first = tool("req-timeout-1", "alpha")
+        # Attempt 2 retries with the same request ID: replays first result and skips the second charge.
+        retry = tool("req-timeout-1", "alpha")
+        self.assertEqual(first, "alpha:1")
+        self.assertEqual(retry, "alpha:1")
+        self.assertEqual(calls, 1)
+        self.assertEqual(self.gw.balance, 7)
+        self.assertEqual(len(self.gw.requests), 1)
+        self.assertEqual(self.gw.requests[0][0]["idempotency_key"], "mcp:tool:req-timeout-1")
+
+        # Distinct request IDs execute normally and charge again.
+        second = tool("req-timeout-2", "alpha")
+        self.assertEqual(second, "alpha:2")
+        self.assertEqual(calls, 2)
+        self.assertEqual(self.gw.balance, 4)
+        self.assertEqual(len(self.gw.requests), 2)
+
+    def test_metered_idempotency_coalesces_inflight_async_retries_and_skips_errors(self) -> None:
+        calls = 0
+
+        async def scenario() -> None:
+            nonlocal calls
+            started = asyncio.Event()
+            release = asyncio.Event()
+
+            @self.kf.metered(credits=4, idempotency_key=lambda req_id, fail=False: req_id)
+            async def slow(req_id: str, fail: bool = False) -> dict:
+                nonlocal calls
+                calls += 1
+                if calls == 1:
+                    started.set()
+                    await release.wait()
+                if fail:
+                    return {"isError": True, "calls": calls}
+                return {"ok": True, "calls": calls}
+
+            task1 = asyncio.create_task(slow("inflight-1"))
+            await started.wait()
+            # Retry arrives while attempt 1 is still running: must wait and share result + single charge.
+            task2 = asyncio.create_task(slow("inflight-1"))
+            await asyncio.sleep(0.02)
+            release.set()
+            r1, r2 = await asyncio.gather(task1, task2)
+            self.assertEqual(r1, {"ok": True, "calls": 1})
+            self.assertEqual(r2, {"ok": True, "calls": 1})
+            self.assertEqual(calls, 1)
+            self.assertEqual(len(self.gw.requests), 1)
+            self.assertEqual(self.gw.balance, 6)
+
+            # Errors / isError are refunded and never cached.
+            err_res = await slow("err-1", fail=True)
+            self.assertTrue(err_res["isError"])
+            self.assertEqual(self.gw.balance, 6)
+            self.assertEqual(len(self.gw.refunds), 1)
+
+        asyncio.run(scenario())
+
+    def test_metered_dedup_ttl_and_zero_disables_cache(self) -> None:
+        from unittest import mock
+
+        calls = 0
+
+        @self.kf.metered(credits=2, idempotency_key=lambda req_id: req_id, dedup_ttl=10.0)
+        def timed(req_id: str) -> int:
+            nonlocal calls
+            calls += 1
+            return calls
+
+        @self.kf.metered(credits=2, idempotency_key=lambda req_id: req_id, dedup_ttl=0)
+        def uncached(req_id: str) -> int:
+            nonlocal calls
+            calls += 1
+            return calls
+
+        now = [100.0]
+        with mock.patch("keyflint_verify.mcp.time.monotonic", side_effect=lambda: now[0]):
+            self.assertEqual(timed("k"), 1)
+            now[0] = 105.0
+            self.assertEqual(timed("k"), 1)
+            now[0] = 111.0
+            self.assertEqual(timed("k"), 2)
+        self.assertEqual(uncached("u"), 3)
+        self.assertEqual(uncached("u"), 4)
+        self.assertEqual(self.gw.requests[-1][0]["idempotency_key"], self.gw.requests[-2][0]["idempotency_key"])
+        with self.assertRaises(ValueError):
+            self.kf.metered(dedup_ttl=-1.0)
+
 
 try:
     from mcp.server.mcpserver import MCPServer  # type: ignore[import-not-found]

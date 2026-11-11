@@ -83,7 +83,12 @@ test("parseArgs: flags, defaults and errors", () => {
   assert.throws(() => parseArgs(["--tool", "a", "--", "x"], {}), UsageError);
   assert.throws(() => parseArgs(["--credits", "-1", "--", "x"], {}), UsageError);
   assert.throws(() => parseArgs(["--offline-grace", "6", "--", "x"], {}), UsageError);
+  assert.throws(() => parseArgs(["--idempotency-arg", " ", "--", "x"], {}), UsageError);
+  assert.throws(() => parseArgs(["--dedup-ttl", "-1", "--", "x"], {}), UsageError);
   assert.throws(() => parseArgs(["--nope", "--", "x"], {}), UsageError);
+  const dedupOpts = parseArgs(["--idempotency-arg", "request_id", "--dedup-ttl", "60", "--", "python", "s.py"], {});
+  assert.equal(dedupOpts.idempotencyArg, "request_id");
+  assert.equal(dedupOpts.dedupTtlSeconds, 60);
 });
 
 test("non-tool traffic passes through untouched", async () => {
@@ -155,4 +160,41 @@ test("CLI: usage errors exit 2 and the server's exit code is propagated", () => 
     env: { ...process.env, KEYFLINT_URL: "" },
   });
   assert.equal(r.status, 3);
+});
+
+test("reused _meta or argument request id replays first response with new JSON-RPC id and skips second charge", async () => {
+  const gw = await fakeGateway(10);
+  const s = session(["--tool", "count=3", "--idempotency-arg", "request_id"], { gatewayUrl: gw.url });
+  try {
+    // 1. Work done, caller retries after timeout using _meta.idempotencyKey and a bumped JSON-RPC id.
+    const r1 = await s.request("tools/call", { name: "count", arguments: {}, _meta: { idempotencyKey: "turn-1" } }, 101);
+    const r2 = await s.request("tools/call", { name: "count", arguments: {}, _meta: { idempotencyKey: "turn-1" } }, 102);
+    assert.equal(r1.id, 101);
+    assert.equal(r2.id, 102);
+    assert.equal(r1.result.content[0].text, "call:1");
+    assert.equal(r2.result.content[0].text, "call:1");
+    assert.equal(gw.deducts.length, 1);
+    assert.equal(gw.deducts[0].idempotency_key, "mcp:count:turn-1");
+    assert.equal(gw.balance(), 7);
+
+    // 2. Concurrent retry while first execution is still in-flight coalesces and returns call:2 to both ids.
+    const p1 = s.request("tools/call", { name: "count", arguments: { request_id: "arg-9", delayMs: 80 } }, 201);
+    const p2 = s.request("tools/call", { name: "count", arguments: { request_id: "arg-9", delayMs: 80 } }, 202);
+    const [c1, c2] = await Promise.all([p1, p2]);
+    assert.equal(c1.id, 201);
+    assert.equal(c2.id, 202);
+    assert.equal(c1.result.content[0].text, "call:2");
+    assert.equal(c2.result.content[0].text, "call:2");
+    assert.equal(gw.deducts.length, 2);
+    assert.equal(gw.balance(), 4);
+
+    // 3. Failure (isError) is refunded and never cached.
+    const f1 = await s.request("tools/call", { name: "fail", arguments: {}, _meta: { requestId: "err-1" } }, 301);
+    assert.equal(f1.result.isError, true);
+    assert.equal(gw.refunds.length, 1);
+    assert.equal(gw.balance(), 4);
+  } finally {
+    await s.close();
+    gw.close();
+  }
 });
