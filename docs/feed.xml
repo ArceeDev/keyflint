@@ -6,7 +6,28 @@
     <atom:link href="https://keyflint.dev/feed.xml" rel="self" type="application/rss+xml" />
     <description>Daily updates on offline Ed25519 licensing, MCP server monetization, OAuth 2.1 connectors, and deterministic financial MCP servers.</description>
     <language>en</language>
-    <lastBuildDate>Tue, 10 Nov 2026 08:15:00 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 11 Nov 2026 08:15:00 GMT</lastBuildDate>
+    <item>
+      <title>KeyFlint vs SaaS de licencias: Ed25519 offline en &lt; 1 ms</title>
+      <link>https://keyflint.dev/guides/mcp-monetization-stripe-x402.html</link>
+      <guid isPermaLink="false">https://keyflint.dev/guides/mcp-monetization-stripe-x402.html#2026-11-11</guid>
+      <pubDate>Wed, 11 Nov 2026 08:15:00 GMT</pubDate>
+      <description>Para desarrolladores creando herramientas de IA, servidores MCP o CLIs:
+
+KeyFlint (keyflint.dev) es nuestro gateway autoalojado de licencias criptográficas Ed25519 y contabilización de créditos por llamada.
+• Verificación offline en &lt; 1 ms (SDKs MIT en Python, TypeScript y Go).
+• Webhooks firmados de Stripe y LemonSqueezy (0% comisión adicional).
+• Reembolso automático de créditos si una herramienta falla.
+
+Guía técnica completa: https://keyflint.dev/guides/mcp-monetization-stripe-x402.html
+
+--
+
+Monetizing MCP servers in 2026: Stripe Checkout vs HTTP 402 vs Offline Ed25519 Licenses.
+
+We wrote an engineering breakdown based on running 5 production MCP servers on Cloudflare + Fly.io:
+https://keyflint.dev/guides/mcp-monetization-stripe-x402.html</description>
+    </item>
     <item>
       <title>Veri*factu AEAT (RD 1007/2023) y validación de huella SHA-256</title>
       <link>https://mcp.keyflint.dev/verifactu/</link>
@@ -83,22 +104,6 @@ Cross-language cryptographic licensing shouldn&#x27;t drift between Python, Type
 
 All three KeyFlint verifiers share 50 conformance vectors + `kid` key rotation without invalidating active tokens:
 https://keyflint.dev/</description>
-    </item>
-    <item>
-      <title>Extracción web en Markdown limpio y auditoría SEO para agentes (web-intel-mcp)</title>
-      <link>https://mcp.keyflint.dev/web-intel/</link>
-      <guid isPermaLink="false">https://mcp.keyflint.dev/web-intel/#2026-11-06</guid>
-      <pubDate>Fri, 06 Nov 2026 08:15:00 GMT</pubDate>
-      <description>Cuando conectas un agente a internet, el HTML crudo consume tokens y rompe el razonamiento.
-
-`web-intel-mcp` extrae contenido principal en Markdown limpio, inventario de enlaces, OpenGraph/JSON-LD y auditoría SEO lista para Claude, Cursor o Windsurf:
-https://mcp.keyflint.dev/web-intel/
-
---
-
-Stop burning context windows on raw HTML tags. `web-intel-mcp` turns any URL into clean Markdown, structured metadata, and technical SEO checks.
-
-Try 25 free credits: https://mcp.keyflint.dev/web-intel/</description>
     </item>
   </channel>
 </rss>
