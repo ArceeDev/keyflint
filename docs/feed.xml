@@ -6,7 +6,26 @@
     <atom:link href="https://keyflint.dev/feed.xml" rel="self" type="application/rss+xml" />
     <description>Daily updates on offline Ed25519 licensing, MCP server monetization, OAuth 2.1 connectors, and deterministic financial MCP servers.</description>
     <language>en</language>
-    <lastBuildDate>Wed, 11 Nov 2026 08:15:00 GMT</lastBuildDate>
+    <lastBuildDate>Thu, 12 Nov 2026 08:15:00 GMT</lastBuildDate>
+    <item>
+      <title>Conciliación bancaria determinista: Norma 43 CaixaBank, BBVA, Santander, Sabadell</title>
+      <link>https://mcp.keyflint.dev/lote/</link>
+      <guid isPermaLink="false">https://mcp.keyflint.dev/lote/#2026-11-12</guid>
+      <pubDate>Thu, 12 Nov 2026 08:15:00 GMT</pubDate>
+      <description>¿Por qué falla la IA genérica en contabilidad? Porque un modelo de lenguaje predice texto, no cuadra saldos.
+
+En Flint by KeyFlint separamos responsabilidades: el motor determinista valida el fichero Norma 43 o CSV al céntimo y genera el asiento exacto para ContaSol, A3 o Sage, mientras Claude te asiste en lenguaje natural.
+
+Pruébalo en el navegador con 25 créditos gratis: https://mcp.keyflint.dev/lote/
+
+--
+
+Rule #1 of financial AI tools: never let the LLM do the math.
+
+Our accounting MCP servers parse bank statements using integer-cent math, verify opening/closing balances to the cent, and let Claude focus on orchestration and reporting.
+
+Live at https://mcp.keyflint.dev</description>
+    </item>
     <item>
       <title>KeyFlint vs SaaS de licencias: Ed25519 offline en &lt; 1 ms</title>
       <link>https://keyflint.dev/guides/mcp-monetization-stripe-x402.html</link>
@@ -86,24 +105,6 @@ Building paid MCP servers in 2026: we just shipped passwordless OAuth 2.1 (6-dig
 
 Architecture &amp; open SDKs:
 https://keyflint.dev/guides/oauth-mcp-server.html</description>
-    </item>
-    <item>
-      <title>SDK de verificación KeyFlint en Go, Python y TypeScript con 50 vectores compartidos</title>
-      <link>https://keyflint.dev/</link>
-      <guid isPermaLink="false">https://keyflint.dev/#2026-11-07</guid>
-      <pubDate>Sat, 07 Nov 2026 08:15:00 GMT</pubDate>
-      <description>Cuando distribuyes SDKs o CLIs en varios lenguajes, mantener idéntica la validación de licencias es crítico.
-
-KeyFlint v1.2 ofrece verificadores MIT en Python, TypeScript y Go probados frente a 50 vectores criptográficos compartidos (Ed25519 con rotación `kid`), bloqueo por nodo/dominio y pasarela SQLite WAL.
-
-Explora la consola interactiva en vivo: https://keyflint.dev/
-
---
-
-Cross-language cryptographic licensing shouldn&#x27;t drift between Python, TypeScript, and Go.
-
-All three KeyFlint verifiers share 50 conformance vectors + `kid` key rotation without invalidating active tokens:
-https://keyflint.dev/</description>
     </item>
   </channel>
 </rss>
