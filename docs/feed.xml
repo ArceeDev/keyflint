@@ -6,7 +6,24 @@
     <atom:link href="https://keyflint.dev/feed.xml" rel="self" type="application/rss+xml" />
     <description>Daily updates on offline Ed25519 licensing, MCP server monetization, OAuth 2.1 connectors, and deterministic financial MCP servers.</description>
     <language>en</language>
-    <lastBuildDate>Thu, 12 Nov 2026 08:15:00 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 13 Nov 2026 08:15:00 GMT</lastBuildDate>
+    <item>
+      <title>Extractos bancarios en PDF digital directo a diario contable (ContaBridge v0.4.0)</title>
+      <link>https://mcp.keyflint.dev/csv-a-contasol/</link>
+      <guid isPermaLink="false">https://mcp.keyflint.dev/csv-a-contasol/#2026-11-13</guid>
+      <pubDate>Fri, 13 Nov 2026 08:15:00 GMT</pubDate>
+      <description>Uno de los cuellos de botella en cualquier asesoría es recibir un extracto bancario en PDF digital cuando el cliente no descarga el Norma 43.
+
+Acabamos de lanzar contabridge-mcp 0.4.0: extrae movimientos de PDFs digitales leyendo el texto del documento (sin OCR ni IA generativa), comprueba saldo anterior + movimiento = saldo impreso en cada línea y genera el APU.ods o SUENLACE.DAT.
+
+Disponible en PyPI y en el procesador web: https://mcp.keyflint.dev/csv-a-contasol/
+
+--
+
+Just released `contabridge-mcp` v0.4.0 to PyPI and the Official MCP Registry: deterministic digital bank PDF statement parsing without OCR hallucinations, line-by-line balance checks, and auto-refund on failure.
+
+https://github.com/ArceeDev/contabridge-mcp</description>
+    </item>
     <item>
       <title>Conciliación bancaria determinista: Norma 43 CaixaBank, BBVA, Santander, Sabadell</title>
       <link>https://mcp.keyflint.dev/lote/</link>
@@ -84,27 +101,6 @@ Why copy-pasting API keys into claude_desktop_config.json hurts conversion for n
 With MCP OAuth 2.1 + 6-digit email OTP, users paste one URL (https://mcp.keyflint.dev/despacho/mcp), enter their email code, and get 17 metered tools instantly.
 
 https://keyflint.dev</description>
-    </item>
-    <item>
-      <title>CSV y Norma 43 a ContaSol / A3 / ContaPlus sin OCR</title>
-      <link>https://mcp.keyflint.dev/csv-a-contasol/</link>
-      <guid isPermaLink="false">https://mcp.keyflint.dev/csv-a-contasol/#2026-11-08</guid>
-      <pubDate>Sun, 08 Nov 2026 08:15:00 GMT</pubDate>
-      <description>Muchos despachos y departamentos contables siguen perdiendo horas adaptando columnas de CSV bancarios o ficheros Norma 43 (.n43) para importarlos en ContaSol, A3 o Sage.
-
-En Flint by KeyFlint hemos lanzado el conversor directo CSV y Norma 43 a ContaSol / A3 / ContaPlus:
-• Vista previa instantánea en el navegador antes de gastar un solo crédito.
-• Cuadre aritmético céntimo a céntimo con Decimal (cero OCR, cero importes inventados).
-• Activación inmediata solo escribiendo tu correo (25 créditos de prueba incluidos).
-
-Pruébalo sin instalar nada: https://mcp.keyflint.dev/csv-a-contasol/
-
---
-
-Building paid MCP servers in 2026: we just shipped passwordless OAuth 2.1 (6-digit email OTP) + offline Ed25519 license verification + atomic SQLite WAL credit metering.
-
-Architecture &amp; open SDKs:
-https://keyflint.dev/guides/oauth-mcp-server.html</description>
     </item>
   </channel>
 </rss>
