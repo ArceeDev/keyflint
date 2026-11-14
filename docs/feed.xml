@@ -6,7 +6,26 @@
     <atom:link href="https://keyflint.dev/feed.xml" rel="self" type="application/rss+xml" />
     <description>Daily updates on offline Ed25519 licensing, MCP server monetization, OAuth 2.1 connectors, and deterministic financial MCP servers.</description>
     <language>en</language>
-    <lastBuildDate>Fri, 13 Nov 2026 08:15:00 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 14 Nov 2026 08:15:00 GMT</lastBuildDate>
+    <item>
+      <title>Revolut, Stripe y PayPal a diario contable ContaSol / A3</title>
+      <link>https://mcp.keyflint.dev/revolut-a-contasol/</link>
+      <guid isPermaLink="false">https://mcp.keyflint.dev/revolut-a-contasol/#2026-11-14</guid>
+      <pubDate>Sat, 14 Nov 2026 08:15:00 GMT</pubDate>
+      <description>Muchos ecommerce y startups operan con Revolut, Stripe o PayPal, pero sus exportaciones CSV traen importes netos, comisiones y formatos en inglés difíciles de importar en ContaSol o A3.
+
+Hemos publicado guías y convertidores dedicados para transformar cada fichero en asientos listos para importar:
+• Revolut: https://mcp.keyflint.dev/revolut-a-contasol/
+• Stripe: https://mcp.keyflint.dev/stripe-a-contasol/
+• PayPal: https://mcp.keyflint.dev/paypal-a-contasol/
+
+--
+
+Accountants spend hours cleaning Revolut, Stripe, and PayPal CSV exports before importing into ERPs.
+
+Our ContaBridge web &amp; MCP pipeline maps net amounts, fees, and dates deterministically into ERP journal entries:
+https://mcp.keyflint.dev/en/</description>
+    </item>
     <item>
       <title>Extractos bancarios en PDF digital directo a diario contable (ContaBridge v0.4.0)</title>
       <link>https://mcp.keyflint.dev/csv-a-contasol/</link>
@@ -81,26 +100,6 @@ If an MCP tool fails mid-execution, charging the user&#x27;s credit balance dest
 In KeyFlint, `@kf.metered(credits=2)` debits atomically in SQLite WAL and triggers an automatic idempotent refund whenever the tool raises or returns `isError: true`.
 
 https://keyflint.dev/guides/paid-mcp-server.html</description>
-    </item>
-    <item>
-      <title>Conector único /despacho/mcp para Claude (17 herramientas contables)</title>
-      <link>https://mcp.keyflint.dev/asesorias/#conector</link>
-      <guid isPermaLink="false">https://mcp.keyflint.dev/asesorias/#conector#2026-11-09</guid>
-      <pubDate>Mon, 09 Nov 2026 08:15:00 GMT</pubDate>
-      <description>Hasta hoy, conectar herramientas contables a Claude requería editar archivos JSON o copiar claves.
-
-Acabamos de lanzar el conector unificado de Flint para despachos (/despacho/mcp): una sola URL que reúne las 17 herramientas de conciliación bancaria Norma 43 y conversión a ContaSol, A3, Sage y ContaPlus.
-
-Solo pegas la URL en Claude, verificas tu correo con un código de 6 dígitos y empiezas a trabajar.
-Detalles aquí: https://mcp.keyflint.dev/asesorias/#conector
-
---
-
-Why copy-pasting API keys into claude_desktop_config.json hurts conversion for non-technical users:
-
-With MCP OAuth 2.1 + 6-digit email OTP, users paste one URL (https://mcp.keyflint.dev/despacho/mcp), enter their email code, and get 17 metered tools instantly.
-
-https://keyflint.dev</description>
     </item>
   </channel>
 </rss>
