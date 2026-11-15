@@ -6,7 +6,25 @@
     <atom:link href="https://keyflint.dev/feed.xml" rel="self" type="application/rss+xml" />
     <description>Daily updates on offline Ed25519 licensing, MCP server monetization, OAuth 2.1 connectors, and deterministic financial MCP servers.</description>
     <language>en</language>
-    <lastBuildDate>Sat, 14 Nov 2026 08:15:00 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 15 Nov 2026 08:15:00 GMT</lastBuildDate>
+    <item>
+      <title>Envuelve cualquier servidor MCP stdio de pago con KeyFlint</title>
+      <link>https://keyflint.dev/guides/paid-mcp-server.html</link>
+      <guid isPermaLink="false">https://keyflint.dev/guides/paid-mcp-server.html#2026-11-15</guid>
+      <pubDate>Sun, 15 Nov 2026 08:15:00 GMT</pubDate>
+      <description>Si ya construiste un servidor MCP para Claude Desktop, Cursor o VS Code, no necesitas programar un sistema completo de Stripe, webhooks y contadores de saldo desde cero.
+
+Con KeyFlint despliegas un único contenedor Docker con SQLite WAL y proteges tus herramientas en Python (`keyflint-verify`), TypeScript o Go en minutos.
+
+Guía paso a paso: https://keyflint.dev/guides/paid-mcp-server.html
+
+--
+
+Want to gate an existing MCP server with Ed25519 licenses and per-tool credits in one self-hosted Docker container?
+
+Read the step-by-step guide with Python, TypeScript, and Go verification SDKs:
+https://keyflint.dev/guides/paid-mcp-server.html</description>
+    </item>
     <item>
       <title>Revolut, Stripe y PayPal a diario contable ContaSol / A3</title>
       <link>https://mcp.keyflint.dev/revolut-a-contasol/</link>
@@ -82,24 +100,6 @@ Monetizing MCP servers in 2026: Stripe Checkout vs HTTP 402 vs Offline Ed25519 L
 
 We wrote an engineering breakdown based on running 5 production MCP servers on Cloudflare + Fly.io:
 https://keyflint.dev/guides/mcp-monetization-stripe-x402.html</description>
-    </item>
-    <item>
-      <title>Veri*factu AEAT (RD 1007/2023) y validación de huella SHA-256</title>
-      <link>https://mcp.keyflint.dev/verifactu/</link>
-      <guid isPermaLink="false">https://mcp.keyflint.dev/verifactu/#2026-11-10</guid>
-      <pubDate>Tue, 10 Nov 2026 08:15:00 GMT</pubDate>
-      <description>Con la entrada en vigor de Veri*factu (RD 1007/2023), cualquier error en el encadenamiento SHA-256 de las facturas o en la estructura Facturae 3.2.2 supone un riesgo directo.
-
-Nuestro servidor verifactu-mcp permite auditar cadenas de hashes AEAT, validar NIF/CIF/IBAN y generar URLs QR verificables tanto desde la web como desde Claude o Cursor:
-https://mcp.keyflint.dev/verifactu/
-
---
-
-If an MCP tool fails mid-execution, charging the user&#x27;s credit balance destroys trust.
-
-In KeyFlint, `@kf.metered(credits=2)` debits atomically in SQLite WAL and triggers an automatic idempotent refund whenever the tool raises or returns `isError: true`.
-
-https://keyflint.dev/guides/paid-mcp-server.html</description>
     </item>
   </channel>
 </rss>
