@@ -6,7 +6,24 @@
     <atom:link href="https://keyflint.dev/feed.xml" rel="self" type="application/rss+xml" />
     <description>Daily updates on offline Ed25519 licensing, MCP server monetization, OAuth 2.1 connectors, and deterministic financial MCP servers.</description>
     <language>en</language>
-    <lastBuildDate>Sun, 15 Nov 2026 08:15:00 GMT</lastBuildDate>
+    <lastBuildDate>Mon, 16 Nov 2026 08:15:00 GMT</lastBuildDate>
+    <item>
+      <title>Carpeta vigilada para asesorías: procesa extractos en local automáticamente</title>
+      <link>https://mcp.keyflint.dev/asesorias/</link>
+      <guid isPermaLink="false">https://mcp.keyflint.dev/asesorias/#2026-11-16</guid>
+      <pubDate>Mon, 16 Nov 2026 08:15:00 GMT</pubDate>
+      <description>En despachos con decenas de clientes, abrir un conversor web archivo por archivo sigue quitando tiempo.
+
+Con un solo comando en Windows (PowerShell) o macOS/Linux, Flint crea una carpeta vigilada que procesa automáticamente cada extracto que guardas dentro, incluso tras reiniciar el equipo.
+
+Conoce el flujo para asesorías: https://mcp.keyflint.dev/asesorias/
+
+--
+
+For teams automating high-volume bank reconciliation: Flint&#x27;s watch-folder script processes every incoming statement dropped into a folder with strict audit logs (`.flint.json`) and idempotent credit billing.
+
+https://mcp.keyflint.dev/asesorias/</description>
+    </item>
     <item>
       <title>Envuelve cualquier servidor MCP stdio de pago con KeyFlint</title>
       <link>https://keyflint.dev/guides/paid-mcp-server.html</link>
@@ -79,27 +96,6 @@ Rule #1 of financial AI tools: never let the LLM do the math.
 Our accounting MCP servers parse bank statements using integer-cent math, verify opening/closing balances to the cent, and let Claude focus on orchestration and reporting.
 
 Live at https://mcp.keyflint.dev</description>
-    </item>
-    <item>
-      <title>KeyFlint vs SaaS de licencias: Ed25519 offline en &lt; 1 ms</title>
-      <link>https://keyflint.dev/guides/mcp-monetization-stripe-x402.html</link>
-      <guid isPermaLink="false">https://keyflint.dev/guides/mcp-monetization-stripe-x402.html#2026-11-11</guid>
-      <pubDate>Wed, 11 Nov 2026 08:15:00 GMT</pubDate>
-      <description>Para desarrolladores creando herramientas de IA, servidores MCP o CLIs:
-
-KeyFlint (keyflint.dev) es nuestro gateway autoalojado de licencias criptográficas Ed25519 y contabilización de créditos por llamada.
-• Verificación offline en &lt; 1 ms (SDKs MIT en Python, TypeScript y Go).
-• Webhooks firmados de Stripe y LemonSqueezy (0% comisión adicional).
-• Reembolso automático de créditos si una herramienta falla.
-
-Guía técnica completa: https://keyflint.dev/guides/mcp-monetization-stripe-x402.html
-
---
-
-Monetizing MCP servers in 2026: Stripe Checkout vs HTTP 402 vs Offline Ed25519 Licenses.
-
-We wrote an engineering breakdown based on running 5 production MCP servers on Cloudflare + Fly.io:
-https://keyflint.dev/guides/mcp-monetization-stripe-x402.html</description>
     </item>
   </channel>
 </rss>
