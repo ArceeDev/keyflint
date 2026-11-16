@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM python:3.12-slim AS builder
+FROM python:3.15-slim AS builder
 
 WORKDIR /build
 
@@ -8,7 +8,7 @@ COPY requirements.lock .
 RUN pip install --no-cache-dir --user --require-hashes -r requirements.lock
 
 # Litestream (continuous SQLite backup to S3/R2). Only runs when LITESTREAM_* is configured.
-FROM python:3.12-slim AS litestream
+FROM python:3.15-slim AS litestream
 ARG TARGETARCH
 ARG LITESTREAM_VERSION=0.3.13
 RUN case "${TARGETARCH:-amd64}" in \
@@ -21,7 +21,7 @@ RUN case "${TARGETARCH:-amd64}" in \
  && echo "${SUM}  /tmp/ls.tgz" | sha256sum -c - \
  && tar -xzf /tmp/ls.tgz -C /usr/local/bin litestream
 
-FROM python:3.12-slim AS runner
+FROM python:3.15-slim AS runner
 
 WORKDIR /app
 
