@@ -6,7 +6,24 @@
     <atom:link href="https://keyflint.dev/feed.xml" rel="self" type="application/rss+xml" />
     <description>Daily updates on offline Ed25519 licensing, MCP server monetization, OAuth 2.1 connectors, and deterministic financial MCP servers.</description>
     <language>en</language>
-    <lastBuildDate>Mon, 16 Nov 2026 08:15:00 GMT</lastBuildDate>
+    <lastBuildDate>Tue, 17 Nov 2026 08:15:00 GMT</lastBuildDate>
+    <item>
+      <title>Limpieza determinista de CSV antes de analizar con IA (dataclean-mcp)</title>
+      <link>https://mcp.keyflint.dev/dataclean/</link>
+      <guid isPermaLink="false">https://mcp.keyflint.dev/dataclean/#2026-11-17</guid>
+      <pubDate>Tue, 17 Nov 2026 08:15:00 GMT</pubDate>
+      <description>Los ficheros CSV con comas decimales europeas, codificaciones rotas (CP1252/Latin-1) y filas duplicadas hacen perder tiempo tanto a analistas como a agentes de IA.
+
+`dataclean-mcp` normaliza esquemas, fechas e importes con reglas deterministas desde tu asistente de IA o navegador:
+https://mcp.keyflint.dev/dataclean/
+
+--
+
+Clean messy CSV/JSON tables deterministically inside Claude or Cursor before your agent writes code against broken columns.
+
+Explore `dataclean-mcp` (PyPI + remote OAuth MCP):
+https://mcp.keyflint.dev/dataclean/</description>
+    </item>
     <item>
       <title>Carpeta vigilada para asesorías: procesa extractos en local automáticamente</title>
       <link>https://mcp.keyflint.dev/asesorias/</link>
@@ -77,25 +94,6 @@ Disponible en PyPI y en el procesador web: https://mcp.keyflint.dev/csv-a-contas
 Just released `contabridge-mcp` v0.4.0 to PyPI and the Official MCP Registry: deterministic digital bank PDF statement parsing without OCR hallucinations, line-by-line balance checks, and auto-refund on failure.
 
 https://github.com/ArceeDev/contabridge-mcp</description>
-    </item>
-    <item>
-      <title>Conciliación bancaria determinista: Norma 43 CaixaBank, BBVA, Santander, Sabadell</title>
-      <link>https://mcp.keyflint.dev/lote/</link>
-      <guid isPermaLink="false">https://mcp.keyflint.dev/lote/#2026-11-12</guid>
-      <pubDate>Thu, 12 Nov 2026 08:15:00 GMT</pubDate>
-      <description>¿Por qué falla la IA genérica en contabilidad? Porque un modelo de lenguaje predice texto, no cuadra saldos.
-
-En Flint by KeyFlint separamos responsabilidades: el motor determinista valida el fichero Norma 43 o CSV al céntimo y genera el asiento exacto para ContaSol, A3 o Sage, mientras Claude te asiste en lenguaje natural.
-
-Pruébalo en el navegador con 25 créditos gratis: https://mcp.keyflint.dev/lote/
-
---
-
-Rule #1 of financial AI tools: never let the LLM do the math.
-
-Our accounting MCP servers parse bank statements using integer-cent math, verify opening/closing balances to the cent, and let Claude focus on orchestration and reporting.
-
-Live at https://mcp.keyflint.dev</description>
     </item>
   </channel>
 </rss>
