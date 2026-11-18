@@ -6,7 +6,23 @@
     <atom:link href="https://keyflint.dev/feed.xml" rel="self" type="application/rss+xml" />
     <description>Daily updates on offline Ed25519 licensing, MCP server monetization, OAuth 2.1 connectors, and deterministic financial MCP servers.</description>
     <language>en</language>
-    <lastBuildDate>Tue, 17 Nov 2026 08:15:00 GMT</lastBuildDate>
+    <lastBuildDate>Wed, 18 Nov 2026 08:15:00 GMT</lastBuildDate>
+    <item>
+      <title>Extracción web en Markdown limpio y auditoría SEO para agentes (web-intel-mcp)</title>
+      <link>https://mcp.keyflint.dev/web-intel/</link>
+      <guid isPermaLink="false">https://mcp.keyflint.dev/web-intel/#2026-11-18</guid>
+      <pubDate>Wed, 18 Nov 2026 08:15:00 GMT</pubDate>
+      <description>Cuando conectas un agente a internet, el HTML crudo consume tokens y rompe el razonamiento.
+
+`web-intel-mcp` extrae contenido principal en Markdown limpio, inventario de enlaces, OpenGraph/JSON-LD y auditoría SEO lista para Claude, Cursor o Windsurf:
+https://mcp.keyflint.dev/web-intel/
+
+--
+
+Stop burning context windows on raw HTML tags. `web-intel-mcp` turns any URL into clean Markdown, structured metadata, and technical SEO checks.
+
+Try 25 free credits: https://mcp.keyflint.dev/web-intel/</description>
+    </item>
     <item>
       <title>Limpieza determinista de CSV antes de analizar con IA (dataclean-mcp)</title>
       <link>https://mcp.keyflint.dev/dataclean/</link>
@@ -77,23 +93,6 @@ Accountants spend hours cleaning Revolut, Stripe, and PayPal CSV exports before 
 
 Our ContaBridge web &amp; MCP pipeline maps net amounts, fees, and dates deterministically into ERP journal entries:
 https://mcp.keyflint.dev/en/</description>
-    </item>
-    <item>
-      <title>Extractos bancarios en PDF digital directo a diario contable (ContaBridge v0.4.0)</title>
-      <link>https://mcp.keyflint.dev/csv-a-contasol/</link>
-      <guid isPermaLink="false">https://mcp.keyflint.dev/csv-a-contasol/#2026-11-13</guid>
-      <pubDate>Fri, 13 Nov 2026 08:15:00 GMT</pubDate>
-      <description>Uno de los cuellos de botella en cualquier asesoría es recibir un extracto bancario en PDF digital cuando el cliente no descarga el Norma 43.
-
-Acabamos de lanzar contabridge-mcp 0.4.0: extrae movimientos de PDFs digitales leyendo el texto del documento (sin OCR ni IA generativa), comprueba saldo anterior + movimiento = saldo impreso en cada línea y genera el APU.ods o SUENLACE.DAT.
-
-Disponible en PyPI y en el procesador web: https://mcp.keyflint.dev/csv-a-contasol/
-
---
-
-Just released `contabridge-mcp` v0.4.0 to PyPI and the Official MCP Registry: deterministic digital bank PDF statement parsing without OCR hallucinations, line-by-line balance checks, and auto-refund on failure.
-
-https://github.com/ArceeDev/contabridge-mcp</description>
     </item>
   </channel>
 </rss>
