@@ -6,7 +6,28 @@
     <atom:link href="https://keyflint.dev/feed.xml" rel="self" type="application/rss+xml" />
     <description>Daily updates on offline Ed25519 licensing, MCP server monetization, OAuth 2.1 connectors, and deterministic financial MCP servers.</description>
     <language>en</language>
-    <lastBuildDate>Thu, 19 Nov 2026 08:15:00 GMT</lastBuildDate>
+    <lastBuildDate>Fri, 20 Nov 2026 08:15:00 GMT</lastBuildDate>
+    <item>
+      <title>CSV y Norma 43 a ContaSol / A3 / ContaPlus sin OCR</title>
+      <link>https://mcp.keyflint.dev/csv-a-contasol/</link>
+      <guid isPermaLink="false">https://mcp.keyflint.dev/csv-a-contasol/#2026-11-20</guid>
+      <pubDate>Fri, 20 Nov 2026 08:15:00 GMT</pubDate>
+      <description>Muchos despachos y departamentos contables siguen perdiendo horas adaptando columnas de CSV bancarios o ficheros Norma 43 (.n43) para importarlos en ContaSol, A3 o Sage.
+
+En Flint by KeyFlint hemos lanzado el conversor directo CSV y Norma 43 a ContaSol / A3 / ContaPlus:
+• Vista previa instantánea en el navegador antes de gastar un solo crédito.
+• Cuadre aritmético céntimo a céntimo con Decimal (cero OCR, cero importes inventados).
+• Activación inmediata solo escribiendo tu correo (25 créditos de prueba incluidos).
+
+Pruébalo sin instalar nada: https://mcp.keyflint.dev/csv-a-contasol/
+
+--
+
+Building paid MCP servers in 2026: we just shipped passwordless OAuth 2.1 (6-digit email OTP) + offline Ed25519 license verification + atomic SQLite WAL credit metering.
+
+Architecture &amp; open SDKs:
+https://keyflint.dev/guides/oauth-mcp-server.html</description>
+    </item>
     <item>
       <title>SDK de verificación KeyFlint en Go, Python y TypeScript con 50 vectores compartidos</title>
       <link>https://keyflint.dev/</link>
@@ -74,24 +95,6 @@ Conoce el flujo para asesorías: https://mcp.keyflint.dev/asesorias/
 For teams automating high-volume bank reconciliation: Flint&#x27;s watch-folder script processes every incoming statement dropped into a folder with strict audit logs (`.flint.json`) and idempotent credit billing.
 
 https://mcp.keyflint.dev/asesorias/</description>
-    </item>
-    <item>
-      <title>Envuelve cualquier servidor MCP stdio de pago con KeyFlint</title>
-      <link>https://keyflint.dev/guides/paid-mcp-server.html</link>
-      <guid isPermaLink="false">https://keyflint.dev/guides/paid-mcp-server.html#2026-11-15</guid>
-      <pubDate>Sun, 15 Nov 2026 08:15:00 GMT</pubDate>
-      <description>Si ya construiste un servidor MCP para Claude Desktop, Cursor o VS Code, no necesitas programar un sistema completo de Stripe, webhooks y contadores de saldo desde cero.
-
-Con KeyFlint despliegas un único contenedor Docker con SQLite WAL y proteges tus herramientas en Python (`keyflint-verify`), TypeScript o Go en minutos.
-
-Guía paso a paso: https://keyflint.dev/guides/paid-mcp-server.html
-
---
-
-Want to gate an existing MCP server with Ed25519 licenses and per-tool credits in one self-hosted Docker container?
-
-Read the step-by-step guide with Python, TypeScript, and Go verification SDKs:
-https://keyflint.dev/guides/paid-mcp-server.html</description>
     </item>
   </channel>
 </rss>
