@@ -6,7 +6,27 @@
     <atom:link href="https://keyflint.dev/feed.xml" rel="self" type="application/rss+xml" />
     <description>Daily updates on offline Ed25519 licensing, MCP server monetization, OAuth 2.1 connectors, and deterministic financial MCP servers.</description>
     <language>en</language>
-    <lastBuildDate>Fri, 20 Nov 2026 08:15:00 GMT</lastBuildDate>
+    <lastBuildDate>Sat, 21 Nov 2026 08:15:00 GMT</lastBuildDate>
+    <item>
+      <title>Conector único /despacho/mcp para Claude (17 herramientas contables)</title>
+      <link>https://mcp.keyflint.dev/asesorias/#conector</link>
+      <guid isPermaLink="false">https://mcp.keyflint.dev/asesorias/#conector#2026-11-21</guid>
+      <pubDate>Sat, 21 Nov 2026 08:15:00 GMT</pubDate>
+      <description>Hasta hoy, conectar herramientas contables a Claude requería editar archivos JSON o copiar claves.
+
+Acabamos de lanzar el conector unificado de Flint para despachos (/despacho/mcp): una sola URL que reúne las 17 herramientas de conciliación bancaria Norma 43 y conversión a ContaSol, A3, Sage y ContaPlus.
+
+Solo pegas la URL en Claude, verificas tu correo con un código de 6 dígitos y empiezas a trabajar.
+Detalles aquí: https://mcp.keyflint.dev/asesorias/#conector
+
+--
+
+Why copy-pasting API keys into claude_desktop_config.json hurts conversion for non-technical users:
+
+With MCP OAuth 2.1 + 6-digit email OTP, users paste one URL (https://mcp.keyflint.dev/despacho/mcp), enter their email code, and get 17 metered tools instantly.
+
+https://keyflint.dev</description>
+    </item>
     <item>
       <title>CSV y Norma 43 a ContaSol / A3 / ContaPlus sin OCR</title>
       <link>https://mcp.keyflint.dev/csv-a-contasol/</link>
@@ -78,23 +98,6 @@ Clean messy CSV/JSON tables deterministically inside Claude or Cursor before you
 
 Explore `dataclean-mcp` (PyPI + remote OAuth MCP):
 https://mcp.keyflint.dev/dataclean/</description>
-    </item>
-    <item>
-      <title>Carpeta vigilada para asesorías: procesa extractos en local automáticamente</title>
-      <link>https://mcp.keyflint.dev/asesorias/</link>
-      <guid isPermaLink="false">https://mcp.keyflint.dev/asesorias/#2026-11-16</guid>
-      <pubDate>Mon, 16 Nov 2026 08:15:00 GMT</pubDate>
-      <description>En despachos con decenas de clientes, abrir un conversor web archivo por archivo sigue quitando tiempo.
-
-Con un solo comando en Windows (PowerShell) o macOS/Linux, Flint crea una carpeta vigilada que procesa automáticamente cada extracto que guardas dentro, incluso tras reiniciar el equipo.
-
-Conoce el flujo para asesorías: https://mcp.keyflint.dev/asesorias/
-
---
-
-For teams automating high-volume bank reconciliation: Flint&#x27;s watch-folder script processes every incoming statement dropped into a folder with strict audit logs (`.flint.json`) and idempotent credit billing.
-
-https://mcp.keyflint.dev/asesorias/</description>
     </item>
   </channel>
 </rss>
