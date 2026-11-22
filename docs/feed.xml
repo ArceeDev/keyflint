@@ -6,7 +6,25 @@
     <atom:link href="https://keyflint.dev/feed.xml" rel="self" type="application/rss+xml" />
     <description>Daily updates on offline Ed25519 licensing, MCP server monetization, OAuth 2.1 connectors, and deterministic financial MCP servers.</description>
     <language>en</language>
-    <lastBuildDate>Sat, 21 Nov 2026 08:15:00 GMT</lastBuildDate>
+    <lastBuildDate>Sun, 22 Nov 2026 08:15:00 GMT</lastBuildDate>
+    <item>
+      <title>Veri*factu AEAT (RD 1007/2023) y validación de huella SHA-256</title>
+      <link>https://mcp.keyflint.dev/verifactu/</link>
+      <guid isPermaLink="false">https://mcp.keyflint.dev/verifactu/#2026-11-22</guid>
+      <pubDate>Sun, 22 Nov 2026 08:15:00 GMT</pubDate>
+      <description>Con la entrada en vigor de Veri*factu (RD 1007/2023), cualquier error en el encadenamiento SHA-256 de las facturas o en la estructura Facturae 3.2.2 supone un riesgo directo.
+
+Nuestro servidor verifactu-mcp permite auditar cadenas de hashes AEAT, validar NIF/CIF/IBAN y generar URLs QR verificables tanto desde la web como desde Claude o Cursor:
+https://mcp.keyflint.dev/verifactu/
+
+--
+
+If an MCP tool fails mid-execution, charging the user&#x27;s credit balance destroys trust.
+
+In KeyFlint, `@kf.metered(credits=2)` debits atomically in SQLite WAL and triggers an automatic idempotent refund whenever the tool raises or returns `isError: true`.
+
+https://keyflint.dev/guides/paid-mcp-server.html</description>
+    </item>
     <item>
       <title>Conector único /despacho/mcp para Claude (17 herramientas contables)</title>
       <link>https://mcp.keyflint.dev/asesorias/#conector</link>
@@ -81,23 +99,6 @@ https://mcp.keyflint.dev/web-intel/
 Stop burning context windows on raw HTML tags. `web-intel-mcp` turns any URL into clean Markdown, structured metadata, and technical SEO checks.
 
 Try 25 free credits: https://mcp.keyflint.dev/web-intel/</description>
-    </item>
-    <item>
-      <title>Limpieza determinista de CSV antes de analizar con IA (dataclean-mcp)</title>
-      <link>https://mcp.keyflint.dev/dataclean/</link>
-      <guid isPermaLink="false">https://mcp.keyflint.dev/dataclean/#2026-11-17</guid>
-      <pubDate>Tue, 17 Nov 2026 08:15:00 GMT</pubDate>
-      <description>Los ficheros CSV con comas decimales europeas, codificaciones rotas (CP1252/Latin-1) y filas duplicadas hacen perder tiempo tanto a analistas como a agentes de IA.
-
-`dataclean-mcp` normaliza esquemas, fechas e importes con reglas deterministas desde tu asistente de IA o navegador:
-https://mcp.keyflint.dev/dataclean/
-
---
-
-Clean messy CSV/JSON tables deterministically inside Claude or Cursor before your agent writes code against broken columns.
-
-Explore `dataclean-mcp` (PyPI + remote OAuth MCP):
-https://mcp.keyflint.dev/dataclean/</description>
     </item>
   </channel>
 </rss>
