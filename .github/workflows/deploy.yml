@@ -25,7 +25,7 @@ jobs:
     environment: production
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Validate version
         env:
           VERSION: ${{ inputs.version }}
@@ -36,7 +36,7 @@ jobs:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
           VERSION: ${{ inputs.version }}
         run: flyctl deploy --app keyflint-gateway --image "ghcr.io/arceedev/keyflint:${VERSION}" --wait-timeout 300
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
       - name: Post-deploy smoke (backup verify runs 60 s after boot)
