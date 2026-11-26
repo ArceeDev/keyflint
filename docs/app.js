@@ -32,11 +32,13 @@ document.addEventListener("DOMContentLoaded", () => {
     // Hero CTA smooth focus into interactive generator
     const btnHeroStart = document.getElementById("btnHeroStart");
     const cardIssue = document.getElementById("cardIssue");
-    btnHeroStart.addEventListener("click", () => {
-        document.getElementById("console-section").scrollIntoView({ behavior: "smooth" });
+    // Scrolls to the Issue card and issues the license right away, so the token appears next to the button.
+    btnHeroStart.addEventListener("click", async () => {
+        cardIssue.scrollIntoView({ behavior: "smooth", block: "center" });
         cardIssue.classList.add("pulse-focus");
-        issueEmail.focus();
         setTimeout(() => cardIssue.classList.remove("pulse-focus"), 1400);
+        await runIssue();
+        issueResult.scrollIntoView({ behavior: "smooth", block: "nearest" });
     });
 
     function renderBox(el, payload, state = "ok") {
@@ -222,7 +224,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // 1. Issue License
     const btnIssue = document.getElementById("btnIssue");
     const issueResult = document.getElementById("issueResult");
-    btnIssue.addEventListener("click", () =>
+    const runIssue = () =>
         withButtonLock(btnIssue, "Issuing...", async () => {
             const domainVal = issueDomain.value.trim();
             const payload = {
@@ -260,8 +262,8 @@ document.addEventListener("DOMContentLoaded", () => {
             } catch (err) {
                 renderBox(issueResult, { error: err.message }, "err");
             }
-        })
-    );
+        });
+    btnIssue.addEventListener("click", runIssue);
 
     // 2A. Verify Online
     const btnVerifyOnline = document.getElementById("btnVerifyOnline");
@@ -536,6 +538,53 @@ document.addEventListener("DOMContentLoaded", () => {
         })
     );
 
+    // 3D. Auto-refund demo: debit -> simulated tool failure -> refund with the same idempotency key
+    const btnQuotaRefundDemo = document.getElementById("btnQuotaRefundDemo");
+    btnQuotaRefundDemo.addEventListener("click", () =>
+        withButtonLock(btnQuotaRefundDemo, "Simulating...", async () => {
+            const key = quotaKey.value.trim();
+            const credits = parseInt(quotaCredits.value || "5", 10);
+            const idem = "ui_refund_" + crypto.randomUUID();
+            const post = async (path, body) => {
+                const res = await fetch(path, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(body),
+                });
+                return { res, data: await res.json() };
+            };
+            try {
+                const d = await post("/api/v1/quota/deduct", {
+                    license_key: key, credits, idempotency_key: idem, event_type: "console_refund_demo",
+                });
+                if (!d.res.ok) {
+                    renderBox(quotaResult, d.data, classifyResponse(d.res, d.data));
+                    return;
+                }
+                const afterDebit = d.data.data.remaining_balance ?? d.data.data.credit_balance;
+                const r = await post("/api/v1/quota/refund", {
+                    license_key: key, idempotency_key: idem, reason: "simulated tool failure (isError: true)",
+                });
+                if (!r.res.ok) {
+                    renderBox(quotaResult, r.data, classifyResponse(r.res, r.data));
+                    return;
+                }
+                const afterRefund = r.data.data.remaining_balance;
+                renderBox(quotaResult, {
+                    "1_debit": { credits, idempotency_key: idem, balance: afterDebit },
+                    "2_tool_call": { isError: true, content: "Simulated failure: the tool raised an exception" },
+                    "3_auto_refund": { refunded: r.data.data.refunded, balance: afterRefund },
+                    balance_before: afterDebit + credits,
+                    balance_after: afterRefund,
+                    restored: afterRefund === afterDebit + credits,
+                }, "ok");
+                await refreshTelemetry(key);
+            } catch (err) {
+                renderBox(quotaResult, { error: err.message }, "err");
+            }
+        })
+    );
+
     // 4. Simulate Signed Webhook
     const btnSimulate = document.getElementById("btnSimulate");
     const simResult = document.getElementById("simResult");
@@ -788,7 +837,7 @@ kf = KeyFlint()  <span class="hl-cm"># reads KEYFLINT_LICENSE, KEYFLINT_PUBLIC_K
 
         "ts-mcp": `<span class="hl-kw">import</span> { createKeyFlint } <span class="hl-kw">from</span> <span class="hl-str">"keyflint-verify/mcp"</span>;
 
-<span class="hl-kw">const</span> kf = createKeyFlint({ gatewayUrl: <span class="hl-str">"https://licenses.tu-dominio.com"</span> });
+<span class="hl-kw">const</span> kf = createKeyFlint({ gatewayUrl: <span class="hl-str">"https://licenses.your-domain.com"</span> });
 
 <span class="hl-cm">// Atomic per-call debit in @modelcontextprotocol/sdk</span>
 server.tool(<span class="hl-str">"audit_code"</span>, schema, kf.metered(2, <span class="hl-kw">async</span> (args) => {
@@ -862,8 +911,8 @@ fmt.Println(payload.Tier, payload.Features)`
     const btnCopyGenerated = document.getElementById("btnCopyGenerated");
 
     function buildSnippet(lang, credits, pub, gateway) {
-        const key = /^[0-9a-fA-F]{64}$/.test(pub) ? pub.toLowerCase() : "PEGA_AQUI_TU_CLAVE_PUBLICA_HEX";
-        const gw = gateway || "https://licencias.tu-dominio.com";
+        const key = /^[0-9a-fA-F]{64}$/.test(pub) ? pub.toLowerCase() : "PASTE_YOUR_PUBLIC_KEY_HEX";
+        const gw = gateway || "https://licenses.your-domain.com";
         const n = Number.isInteger(credits) && credits > 0 ? credits : 0;
         if (lang === "ts") {
             const wrap = n ? `kf.metered(${n}, async ({ query }: { query: string }) => {` : "kf.requireLicense(async ({ query }: { query: string }) => {";
@@ -875,10 +924,10 @@ fmt.Println(payload.Tier, payload.Features)`
                 'import { createKeyFlint } from "keyflint-verify/mcp";',
                 "",
                 `const kf = createKeyFlint({ publicKeys: ${JSON.stringify(key)}${n ? `, gatewayUrl: ${JSON.stringify(gw)}` : ""} });`,
-                'const server = new McpServer({ name: "mi-herramienta", version: "1.0.0" });',
+                'const server = new McpServer({ name: "my-tool", version: "1.0.0" });',
                 "",
                 n ? `// ${n} credit(s) per call; refunded if the tool fails` : "// License only (offline)",
-                'server.registerTool("buscar", { inputSchema: { query: z.string() } }, ' + wrap,
+                'server.registerTool("search", { inputSchema: { query: z.string() } }, ' + wrap,
                 '  return { content: [{ type: "text" as const, text: `Result for ${query}` }] };',
                 "}));",
                 "",
@@ -916,12 +965,12 @@ fmt.Println(payload.Tier, payload.Features)`
             "from keyflint_verify.mcp import KeyFlint",
             "",
             `kf = KeyFlint(public_keys=${JSON.stringify(key)}${n ? `, gateway_url=${JSON.stringify(gw)}` : ""})`,
-            'mcp = FastMCP("mi-herramienta")',
+            'mcp = FastMCP("my-tool")',
             "",
             n ? `# ${n} credit(s) per call; refunded if the tool fails` : "# License only (offline)",
             "@mcp.tool()",
             n ? `@kf.metered(credits=${n})` : "@kf.require_license",
-            "def buscar(query: str) -> str:",
+            "def search(query: str) -> str:",
             '    return f"Result for {query}"',
             "",
             'if __name__ == "__main__":',
@@ -929,8 +978,16 @@ fmt.Println(payload.Tier, payload.Features)`
         ].join("\n");
     }
 
+    const genPubKeyHint = document.getElementById("genPubKeyHint");
     function renderGenerated() {
         if (!genOutput) return;
+        const pub = genPubKey.value.trim();
+        const badKey = pub !== "" && !/^[0-9a-fA-F]{64}$/.test(pub);
+        genPubKey.setAttribute("aria-invalid", badKey ? "true" : "false");
+        if (genPubKeyHint) {
+            genPubKeyHint.hidden = !badKey;
+            genPubKeyHint.textContent = `Must be exactly 64 hex characters (0-9, a-f); got ${pub.length}. Using a placeholder until it is valid.`;
+        }
         genOutput.textContent = buildSnippet(
             genLang.value,
             parseInt(genCredits.value, 10),

@@ -10,7 +10,7 @@
         community: { seats: 1, credits: 25, recurring: false },
         indie: { seats: 3, credits: 10000, recurring: false },
         agency: { seats: 25, credits: 50000, recurring: false },
-        pro: { seats: 3, credits: 500, recurring: true },
+        pro: { seats: 3, credits: 1000, recurring: true },
         studio: { seats: 25, credits: 5000, recurring: true },
         lifetime: { seats: 3, credits: 10000, recurring: false },
     };
@@ -77,7 +77,7 @@
         const license_key = `LIC-${t.toUpperCase()}-${b64url(body)}.${b64url(sig)}`;
         const rec = {
             license_key, payload, algo, status: "active", balance: spec.credits,
-            activations: new Map(), idem: new Set(), created_at: nowIso(),
+            activations: new Map(), idem: new Map(), refunded: new Set(), created_at: nowIso(),
         };
         licenses.set(license_key, rec);
         log(rec, "license_issued", { tier: t, signing_algorithm: algo });
@@ -187,10 +187,23 @@
             if (rec.balance < credits) {
                 return fail(402, "ERR_QUOTA_EXHAUSTED", `Insufficient balance: ${rec.balance} credits left.`);
             }
-            rec.idem.add(b.idempotency_key);
+            rec.idem.set(b.idempotency_key, credits);
             rec.balance -= credits;
             log(rec, "quota_deducted", { credits, idempotency_key: b.idempotency_key });
-            return ok({ deducted: credits, credit_balance: rec.balance, idempotency_key: b.idempotency_key });
+            return ok({ deducted: credits, remaining_balance: rec.balance, credit_balance: rec.balance, idempotency_key: b.idempotency_key });
+        },
+        "POST /api/v1/quota/refund": async (b) => {
+            const rec = find(b.license_key);
+            if (!rec) return notFound();
+            const credits = rec.idem.get(b.idempotency_key);
+            if (credits === undefined) return fail(404, "ERR_DEDUCT_NOT_FOUND", "No debit found for that idempotency key.");
+            if (rec.refunded.has(b.idempotency_key)) {
+                return ok({ refunded: 0, is_cached: true, remaining_balance: rec.balance, idempotency_key: b.idempotency_key });
+            }
+            rec.refunded.add(b.idempotency_key);
+            rec.balance += credits;
+            log(rec, "quota_refunded", { credits, idempotency_key: b.idempotency_key, reason: b.reason || null });
+            return ok({ refunded: credits, remaining_balance: rec.balance, idempotency_key: b.idempotency_key });
         },
         "POST /api/v1/quota/replenish": async (b) => {
             const rec = find(b.license_key);
